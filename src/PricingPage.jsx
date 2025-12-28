@@ -48,7 +48,14 @@ function PricingPage({ navigate }) {
                                 <li>Team templates and audit-ready exports</li>
                                 <li>Priority support</li>
                             </ul>
-                            <a className="button button--primary" href="#" onClick={(e) => e.preventDefault()}>
+                            <a
+                                className="button button--primary"
+                                href="/request-access?type=pro"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    navigate('/request-access?type=pro')
+                                }}
+                            >
                                 Request access
                             </a>
                         </article>
@@ -64,7 +71,14 @@ function PricingPage({ navigate }) {
                                 <li>Security review and procurement</li>
                                 <li>Custom onboarding</li>
                             </ul>
-                            <a className="button button--outline" href="#" onClick={(e) => e.preventDefault()}>
+                            <a
+                                className="button button--outline"
+                                href="/request-access?type=enterprise"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    navigate('/request-access?type=enterprise')
+                                }}
+                            >
                                 Talk to us
                             </a>
                         </article>

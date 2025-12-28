@@ -1,14 +1,108 @@
 import './App.css'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { supabase } from './supabaseClient'
 
 function LoginPage() {
+    const query = useMemo(() => new URLSearchParams(window.location.search || ''), [])
+
+    const source = useMemo(() => query.get('source') || '', [query])
+    const ideDeepLinkMode = useMemo(() => source === 'ide', [source])
+
+    const ideMode = useMemo(() => query.get('ide') === '1', [query])
+    const ideRedirect = useMemo(() => query.get('redirect') || '', [query])
+
     const nextPath = useMemo(() => {
-        const next = new URLSearchParams(window.location.search || '').get('next')
+        const next = query.get('next')
         return next || '/dashboard'
-    }, [])
+    }, [query])
+
+    const oauthRedirectTo = useMemo(() => {
+        const base = `${window.location.origin}/login`
+        const params = new URLSearchParams()
+        if (query.get('next')) params.set('next', query.get('next'))
+        if (query.get('ide')) params.set('ide', query.get('ide'))
+        if (query.get('redirect')) params.set('redirect', query.get('redirect'))
+        if (query.get('source')) params.set('source', query.get('source'))
+        const qs = params.toString()
+        return qs ? `${base}?${qs}` : base
+    }, [query])
+
+    const generateToken = () => {
+        const bytes = new Uint8Array(24)
+        crypto.getRandomValues(bytes)
+        return Array.from(bytes)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('')
+    }
+
+    const createExchangeToken = async () => {
+        const { data: userData, error: userErr } = await supabase.auth.getUser()
+        if (userErr) throw userErr
+        const userId = userData?.user?.id
+        if (!userId) throw new Error('Unable to resolve user id.')
+
+        const token = `bt_ex_${generateToken()}`
+        const expiresAt = new Date(Date.now() + 60 * 1000).toISOString()
+
+        const { error: insertErr } = await supabase.from('auth_exchanges').insert({
+            token,
+            user_id: userId,
+            expires_at: expiresAt,
+            used: false,
+        })
+
+        if (insertErr) throw insertErr
+
+        return token
+    }
+
+    const completeIdeHandshake = async () => {
+        const { data: userData, error: userErr } = await supabase.auth.getUser()
+        if (userErr) throw userErr
+        const userId = userData?.user?.id
+        if (!userId) throw new Error('Unable to resolve user id.')
+
+        let licenseType = 'free'
+        try {
+            const { data: licenses, error: licErr } = await supabase
+                .from('licenses')
+                .select('license_type,issued_at,is_active,expires_at')
+                .eq('user_id', userId)
+                .order('issued_at', { ascending: false })
+                .limit(1)
+
+            if (licErr) throw licErr
+            const lic = licenses?.[0]
+            if (lic?.license_type) licenseType = lic.license_type
+        } catch {
+            licenseType = 'free'
+        }
+
+        const token = generateToken()
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+
+        const { error: insertErr } = await supabase.from('ide_auth_tokens').insert({
+            token,
+            user_id: userId,
+            license_type: licenseType,
+            expires_at: expiresAt,
+        })
+
+        if (insertErr) throw insertErr
+
+        const redirectUrl = ideRedirect ? new URL(ideRedirect) : null
+        if (!redirectUrl) {
+            return { userId, licenseType, token }
+        }
+
+        redirectUrl.searchParams.set('user_id', userId)
+        redirectUrl.searchParams.set('license_type', licenseType)
+        redirectUrl.searchParams.set('token', token)
+        window.location.href = redirectUrl.toString()
+        return null
+    }
 
     const go = (nextPath) => {
         window.history.pushState({}, '', nextPath)
@@ -21,6 +115,40 @@ function LoginPage() {
     const [submitted, setSubmitted] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
+    const [ideResult, setIdeResult] = useState(null)
+    const [exchangeToken, setExchangeToken] = useState('')
+
+    useEffect(() => {
+        let mounted = true
+        const run = async () => {
+            if (!ideDeepLinkMode) return
+            if (isLoading) return
+            if (exchangeToken) return
+
+            const { data } = await supabase.auth.getSession()
+            if (!data?.session) return
+            if (!mounted) return
+
+            try {
+                setIsLoading(true)
+                const token = await createExchangeToken()
+                if (!mounted) return
+                setExchangeToken(token)
+                go(`/auth-redirect?token=${encodeURIComponent(token)}`)
+            } catch (e) {
+                if (!mounted) return
+                setError(e?.message || 'Unable to create IDE exchange token.')
+            } finally {
+                if (!mounted) return
+                setIsLoading(false)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [ideDeepLinkMode, exchangeToken])
 
     const emailOk = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email])
     const passwordOk = useMemo(() => password.trim().length >= 6, [password])
@@ -42,9 +170,9 @@ function LoginPage() {
 
             <div className="loginShell__right">
                 <div className="loginPanel">
-                    <div className="loginBrand">FREEPIK</div>
+                    <div className="loginBrand">BrainTrain</div>
                     <h1 className="loginTitle">Log in</h1>
-                    <p className="loginSubtitle">Welcome back!</p>
+                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Complete sign-in to open the BrainTrain IDE.' : 'Welcome back!'}</p>
 
                     <button
                         className="loginAccount"
@@ -55,7 +183,7 @@ function LoginPage() {
                             setSubmitted(false)
                             await supabase.auth.signInWithOAuth({
                                 provider: 'google',
-                                options: { redirectTo: `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}` },
+                                options: { redirectTo: oauthRedirectTo },
                             })
                         }}
                     >
@@ -92,6 +220,21 @@ function LoginPage() {
                                 })
                                 if (signInError) {
                                     setError(signInError.message)
+                                    return
+                                }
+
+                                if (ideDeepLinkMode) {
+                                    const token = await createExchangeToken()
+                                    setExchangeToken(token)
+                                    go(`/auth-redirect?token=${encodeURIComponent(token)}`)
+                                    return
+                                }
+
+                                if (ideMode) {
+                                    const result = await completeIdeHandshake()
+                                    if (result) {
+                                        setIdeResult(result)
+                                    }
                                     return
                                 }
 
@@ -151,6 +294,19 @@ function LoginPage() {
                             Sign up
                         </a>
                     </div>
+
+                    {ideMode && ideResult && (
+                        <div className="loginHint" style={{ marginTop: 10 }}>
+                            IDE handshake ready. Provide this token to the IDE within 5 minutes.
+                            <div style={{ marginTop: 8, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+                                user_id={ideResult.userId}
+                                <br />
+                                license_type={ideResult.licenseType}
+                                <br />
+                                token={ideResult.token}
+                            </div>
+                        </div>
+                    )}
 
                     <button className="loginCookies" type="button">Cookies Settings</button>
                 </div>

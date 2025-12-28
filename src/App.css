@@ -904,6 +904,19 @@
   background: rgba(43, 255, 158, 0.06);
 }
 
+.requestForm {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.requestForm textarea.loginInput {
+  height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  resize: vertical;
+}
+
 .whyCard__title {
   font-weight: 850;
   letter-spacing: -0.03em;

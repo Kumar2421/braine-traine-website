@@ -10,6 +10,10 @@ import DashboardPage from './DashboardPage'
 import DownloadHubPage from './DownloadHubPage'
 import PricingPage from './PricingPage'
 import WhyPage from './WhyPage'
+import LicensePage from './LicensePage'
+import SecurityPage from './SecurityPage'
+import AuthRedirectPage from './AuthRedirectPage'
+import RequestAccessPage from './RequestAccessPage'
 
 import { supabase } from './supabaseClient'
 
@@ -60,12 +64,16 @@ function App() {
   const isLogin = path === '/login'
   const isSignup = path === '/signup'
   const isDashboard = path === '/dashboard'
+  const isDashboardLicense = path === '/dashboard/license'
   const isPricing = path === '/pricing'
   const isWhy = path === '/why'
   const isLogout = path === '/logout'
+  const isSecurity = path === '/security'
+  const isAuthRedirect = path === '/auth-redirect'
+  const isRequestAccess = path === '/request-access'
 
   const authed = !!session
-  const needsAuth = isDashboard || isDownload
+  const needsAuth = isDashboard || isDashboardLicense || isDownload
 
   useEffect(() => {
     if (isDownloads) {
@@ -91,6 +99,10 @@ function App() {
 
   useEffect(() => {
     if (!authed || !isLogin) return
+    const isIdeDeepLink = new URLSearchParams(window.location.search || '').get('source') === 'ide'
+    if (isIdeDeepLink) return
+    const isIdeHandshake = new URLSearchParams(window.location.search || '').get('ide') === '1'
+    if (isIdeHandshake) return
     const next = new URLSearchParams(window.location.search || '').get('next')
     navigate(next || '/dashboard')
   }, [authed, isLogin, navigate])
@@ -398,6 +410,14 @@ function App() {
           <PricingPage navigate={navigate} />
         ) : isWhy ? (
           <WhyPage />
+        ) : isSecurity ? (
+          <SecurityPage />
+        ) : isAuthRedirect ? (
+          <AuthRedirectPage navigate={navigate} />
+        ) : isRequestAccess ? (
+          <RequestAccessPage session={session} navigate={navigate} />
+        ) : isDashboardLicense ? (
+          <LicensePage session={session} navigate={navigate} />
         ) : isDownloads ? (
           <DownloadPage />
         ) : isAbout ? (
