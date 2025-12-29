@@ -3,8 +3,10 @@ import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 
 import { supabase } from './supabaseClient'
+import { useToast } from './utils/toast.jsx'
 
 function LoginPage() {
+    const toast = useToast()
     const query = useMemo(() => new URLSearchParams(window.location.search || ''), [])
 
     const source = useMemo(() => query.get('source') || '', [query])
@@ -220,8 +222,11 @@ function LoginPage() {
                                 })
                                 if (signInError) {
                                     setError(signInError.message)
+                                    toast.error(signInError.message)
                                     return
                                 }
+
+                                toast.success('Successfully logged in!')
 
                                 if (ideDeepLinkMode) {
                                     const token = await createExchangeToken()
@@ -234,13 +239,16 @@ function LoginPage() {
                                     const result = await completeIdeHandshake()
                                     if (result) {
                                         setIdeResult(result)
+                                        toast.success('IDE handshake completed successfully')
                                     }
                                     return
                                 }
 
                                 go(nextPath)
                             } catch (err) {
-                                setError(err?.message || 'Unable to log in. Please try again.')
+                                const errorMessage = err?.message || 'Unable to log in. Please try again.'
+                                setError(errorMessage)
+                                toast.error(errorMessage)
                             } finally {
                                 setIsLoading(false)
                             }

@@ -14,6 +14,7 @@ import LicensePage from './LicensePage'
 import SecurityPage from './SecurityPage'
 import AuthRedirectPage from './AuthRedirectPage'
 import RequestAccessPage from './RequestAccessPage'
+import { SEO } from './components/SEO.jsx'
 
 import { supabase } from './supabaseClient'
 
@@ -152,8 +153,44 @@ function App() {
     </footer>
   )
 
+  // SEO metadata based on current page
+  useEffect(() => {
+    if (isHome) {
+      document.title = 'BrainTrain — Desktop-first Vision AI training studio'
+    } else if (isDocs) {
+      document.title = 'Documentation | BrainTrain'
+    } else if (isDashboard) {
+      document.title = 'Dashboard | BrainTrain'
+    } else if (isPricing) {
+      document.title = 'Pricing | BrainTrain'
+    } else if (isDownload) {
+      document.title = 'Download | BrainTrain'
+    }
+  }, [isHome, isDocs, isDashboard, isPricing, isDownload])
+
   return (
     <div className="page">
+      <SEO
+        title={
+          isHome
+            ? undefined
+            : isDocs
+              ? 'Documentation'
+              : isDashboard
+                ? 'Dashboard'
+                : isPricing
+                  ? 'Pricing'
+                  : isDownload
+                    ? 'Download'
+                    : undefined
+        }
+        description={
+          isHome
+            ? 'Build, train, and ship Vision AI — locally, reproducibly, without cloud lock-in. Desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export.'
+            : undefined
+        }
+        path={path}
+      />
       {!isLogin && !isSignup && (
         <header className={`topbar topbar--phase1 ${isAgentic ? 'topbar--agentic' : ''}`}>
           <div className="container topbar__inner">
@@ -172,12 +209,48 @@ function App() {
             <nav className="nav" aria-label="Primary">
               {isAgentic ? (
                 <>
-                  <a className="nav__link" href="#">Why DataRobot</a>
-                  <a className="nav__link" href="#">Apps &amp; Agents</a>
-                  <a className="nav__link" href="#">Platform</a>
-                  <a className="nav__link" href="#">Resources</a>
                   <a
-                    className="nav__link"
+                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
+                    href="/why"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/why')
+                    }}
+                  >
+                    Why BrainTrain
+                  </a>
+                  <a
+                    className={`nav__link ${isAgentic ? 'nav__link--active' : ''}`}
+                    href="/agentic-ai"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/agentic-ai')
+                    }}
+                  >
+                    Workflow
+                  </a>
+                  <a
+                    className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
+                    href="/docs"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/docs')
+                    }}
+                  >
+                    Docs
+                  </a>
+                  <a
+                    className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
+                    href="/pricing"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/pricing')
+                    }}
+                  >
+                    Pricing
+                  </a>
+                  <a
+                    className={`nav__link ${isAbout ? 'nav__link--active' : ''}`}
                     href="/about"
                     onClick={(e) => {
                       e.preventDefault()
@@ -220,10 +293,6 @@ function App() {
                     }}
                   >
                     Workflow
-                  </a>
-
-                  <a className="nav__link" href="#" onClick={(e) => e.preventDefault()}>
-                    Inside the IDE
                   </a>
 
                   <a
@@ -283,15 +352,30 @@ function App() {
                 </a>
               )}
               <a
-                className={`button ${isAgentic ? 'button--agenticSolid' : 'button--primary'}`}
-                href="/download"
+                className={`button ${isAgentic ? 'button--agenticPill' : 'button--primary'}`}
+                href={isAgentic ? '#' : '/download'}
                 onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/download')
+                  if (!isAgentic) {
+                    e.preventDefault()
+                    navigate('/download')
+                  } else {
+                    e.preventDefault()
+                  }
                 }}
               >
-                Download
+                Try DataRobot
               </a>
+              {isAgentic && (
+                <a
+                  className="button button--agenticSolid"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                  }}
+                >
+                  Request a Demo
+                </a>
+              )}
             </div>
           </div>
         </header>
@@ -311,8 +395,26 @@ function App() {
                     deterministic workflows in real-world environments.
                   </p>
                   <div className="hero__cta">
-                    <a className="button button--primary" href="#">Download BrainTrain</a>
-                    <a className="button button--outline" href="#">View Workflow</a>
+                    <a 
+                      className="button button--primary" 
+                      href="/download"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        navigate('/download')
+                      }}
+                    >
+                      Download BrainTrain
+                    </a>
+                    <a 
+                      className="button button--outline" 
+                      href="/agentic-ai"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        navigate('/agentic-ai')
+                      }}
+                    >
+                      View Workflow
+                    </a>
                   </div>
                 </div>
               </div>
@@ -423,7 +525,7 @@ function App() {
         ) : isAbout ? (
           <AboutPage />
         ) : isAgentic ? (
-          <AgenticPage />
+          <AgenticPage navigate={navigate} />
         ) : (
           <></>
         )}
@@ -596,7 +698,16 @@ function App() {
                   <p className="ctaBand__subtitle ctaBand__subtitle--agentic">
                     BrainTrain exists because scripts, notebooks, and ad-hoc tools break down in real production workflows.
                   </p>
-                  <a className="ctaBand__button" href="#">Download BrainTrain</a>
+                  <a 
+                    className="ctaBand__button" 
+                    href="/download"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/download')
+                    }}
+                  >
+                    Download BrainTrain
+                  </a>
                 </div>
               </div>
             </section>

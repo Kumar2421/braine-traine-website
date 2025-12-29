@@ -7,7 +7,7 @@ function PricingPage({ navigate }) {
                 <div className="container pricingHero__inner">
                     <p className="pricingHero__kicker">Pricing</p>
                     <h1 className="pricingHero__title">Desktop-first Vision AI. Clear tiers.</h1>
-                    <p className="pricingHero__subtitle">No payment flow yet. Request access when you’re ready.</p>
+                    <p className="pricingHero__subtitle">Local-first workflows for individuals, teams, and enterprises. Request access when you're ready.</p>
                 </div>
             </section>
 

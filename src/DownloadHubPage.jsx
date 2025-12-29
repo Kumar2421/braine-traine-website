@@ -5,9 +5,10 @@ function DownloadHubPage({ navigate }) {
         <>
             <section className="downloadHero">
                 <div className="container downloadHero__inner">
+                    <p className="downloadHero__kicker">Download</p>
                     <h1 className="downloadHero__title">Download BrainTrain</h1>
                     <p className="downloadHero__subtitle">
-                        Local-first installers. Offline capable. No dataset uploads.
+                        Local-first installers. Offline capable. No dataset uploads. Your data stays with you.
                     </p>
                 </div>
             </section>
