@@ -3,6 +3,7 @@ import './App.css'
 import { useMemo, useState } from 'react'
 
 import { supabase } from './supabaseClient'
+import { sendOTP, verifyOTP } from './utils/emailApi'
 
 function SignupPage() {
     const go = (nextPath) => {
@@ -23,6 +24,8 @@ function SignupPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
+    const [otpResendCooldown, setOtpResendCooldown] = useState(0)
+    const [accountExists, setAccountExists] = useState(null)
 
     const emailOk = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email])
     const passwordLenOk = useMemo(() => {
@@ -76,32 +79,58 @@ function SignupPage() {
                                     try {
                                         setIsLoading(true)
 
-                                        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                                            email: email.trim(),
-                                            token: otp.trim(),
-                                            type: 'email',
-                                        })
+                                        // Verify OTP using custom email API
+                                        const verifyResult = await verifyOTP(email.trim(), otp.trim())
 
-                                        if (verifyError) {
-                                            setError(verifyError.message)
+                                        if (!verifyResult.success) {
+                                            // Show user-friendly message for existing account
+                                            if (verifyResult.requiresLogin) {
+                                                setError('An account with this email already exists. Please log in to continue.')
+                                            } else {
+                                                setError(verifyResult.error || 'Failed to verify OTP')
+                                            }
                                             return
                                         }
 
-                                        if (!data?.session) {
+                                        // Handle case where account was created but session couldn't be created
+                                        if (verifyResult.requiresPasswordLogin) {
+                                            setSuccess(verifyResult.message || 'Account created successfully! Redirecting to login...')
+                                            setTimeout(() => {
+                                                go('/login')
+                                            }, 2000)
+                                            return
+                                        }
+
+                                        if (!verifyResult.session && !verifyResult.requiresLogin) {
                                             setError('Verification succeeded but no session was created. Please try again.')
                                             return
                                         }
 
-                                        const { error: updateError } = await supabase.auth.updateUser({
-                                            password,
-                                            data: { first_name: firstName.trim(), last_name: lastName.trim() },
-                                        })
-                                        if (updateError) {
-                                            setError(updateError.message)
+                                        // If account already exists, show message (handled above)
+                                        if (verifyResult.requiresLogin) {
                                             return
                                         }
 
-                                        go('/')
+                                        // Update user metadata if needed
+                                        if (firstName.trim() || lastName.trim()) {
+                                            const { error: updateError } = await supabase.auth.updateUser({
+                                                data: { 
+                                                    first_name: firstName.trim(), 
+                                                    last_name: lastName.trim() 
+                                                },
+                                            })
+                                            if (updateError) {
+                                                console.error('Error updating user metadata:', updateError)
+                                                // Don't fail the signup if metadata update fails
+                                            }
+                                        }
+
+                                        // Check if admin and redirect accordingly
+                                        const { data: { user } } = await supabase.auth.getUser()
+                                        const isAdmin = user?.user_metadata?.is_admin === true
+                                        const redirectPath = isAdmin ? '/admin' : '/dashboard'
+                                        
+                                        window.location.href = redirectPath
                                     } catch (err) {
                                         setError(err?.message || 'Unable to verify code. Please try again.')
                                     } finally {
@@ -123,7 +152,30 @@ function SignupPage() {
                                 </label>
 
                                 {submitted && !otp.trim() && <div className="loginHint">Enter the code from your email.</div>}
-                                {error && <div className="loginHint">{error}</div>}
+                                {error && (
+                                    <div className={`loginHint ${error.includes('already exists') || error.includes('already registered') ? 'loginHint--warning' : 'loginHint--error'}`}>
+                                        {error}
+                                        {(error.includes('already exists') || error.includes('already registered') || error.includes('Please log in')) && (
+                                            <div style={{ marginTop: '12px' }}>
+                                                <a
+                                                    href="/login"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        go('/login')
+                                                    }}
+                                                    style={{
+                                                        color: '#3b82f6',
+                                                        textDecoration: 'underline',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Go to Login →
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <button className="button button--primary loginSubmit" type="submit" disabled={isLoading}>
                                     {isLoading ? 'Verifying…' : 'Verify & Create account'}
@@ -132,20 +184,39 @@ function SignupPage() {
                                 <button
                                     className="button button--ghost loginSubmit"
                                     type="button"
-                                    disabled={isLoading}
+                                    disabled={isLoading || otpResendCooldown > 0}
                                     onClick={async () => {
                                         setError('')
+                                        setSuccess('')
                                         try {
                                             setIsLoading(true)
-                                            const { error: otpError } = await supabase.auth.signInWithOtp({
-                                                email: email.trim(),
-                                                options: { shouldCreateUser: true },
-                                            })
-                                            if (otpError) {
-                                                setError(otpError.message)
+                                            
+                                            // Resend OTP using custom email API
+                                            const sendResult = await sendOTP(
+                                                email.trim(),
+                                                firstName.trim(),
+                                                lastName.trim(),
+                                                password
+                                            )
+
+                                            if (!sendResult.success) {
+                                                setError(sendResult.error || 'Failed to resend OTP')
                                                 return
                                             }
-                                            setSuccess('OTP resent.')
+                                            
+                                            setSuccess('OTP resent. Check your email.')
+                                            setOtpResendCooldown(60) // 60 second cooldown
+                                            
+                                            // Countdown timer
+                                            const interval = setInterval(() => {
+                                                setOtpResendCooldown((prev) => {
+                                                    if (prev <= 1) {
+                                                        clearInterval(interval)
+                                                        return 0
+                                                    }
+                                                    return prev - 1
+                                                })
+                                            }, 1000)
                                         } catch (err) {
                                             setError(err?.message || 'Unable to resend OTP.')
                                         } finally {
@@ -153,7 +224,7 @@ function SignupPage() {
                                         }
                                     }}
                                 >
-                                    Resend code
+                                    {otpResendCooldown > 0 ? `Resend code (${otpResendCooldown}s)` : 'Resend code'}
                                 </button>
 
                                 {success && <div className="loginHint">{success}</div>}
@@ -205,18 +276,53 @@ function SignupPage() {
 
                                     try {
                                         setIsLoading(true)
-                                        const { error: otpError } = await supabase.auth.signInWithOtp({
-                                            email: email.trim(),
-                                            options: { shouldCreateUser: true },
-                                        })
+                                        
+                                        // Check if account already exists
+                                        // We'll check this during OTP send, but also try a password reset to verify
+                                        try {
+                                            // Try password reset - if user exists, this will succeed
+                                            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                                                redirectTo: window.location.origin + '/login'
+                                            })
+                                            
+                                            // If no error, user exists (password reset email sent)
+                                            if (!resetError) {
+                                                setError('An account with this email already exists. Please log in instead. If you forgot your password, check your email for a reset link.')
+                                                return
+                                            }
+                                        } catch (e) {
+                                            // User likely doesn't exist, continue with signup
+                                            // The error is expected if user doesn't exist
+                                        }
+                                        
+                                        // Send OTP using custom email API
+                                        // Password is sent securely to Edge Function, which handles hashing via Supabase Auth
+                                        const sendResult = await sendOTP(
+                                            email.trim(),
+                                            firstName.trim(),
+                                            lastName.trim(),
+                                            password
+                                        )
 
-                                        if (otpError) {
-                                            setError(otpError.message)
+                                        if (!sendResult.success) {
+                                            setError(sendResult.error || 'Failed to send OTP')
                                             return
                                         }
 
                                         setSuccess('We sent an OTP to your email. Enter it to finish creating your account.')
                                         setStep('otp')
+                                        setOtpResendCooldown(60) // Start cooldown timer
+                                        
+                                        // Countdown timer for resend
+                                        const interval = setInterval(() => {
+                                            setOtpResendCooldown((prev) => {
+                                                if (prev <= 1) {
+                                                    clearInterval(interval)
+                                                    return 0
+                                                }
+                                                return prev - 1
+                                            })
+                                        }, 1000)
                                     } catch (err) {
                                         setError(err?.message || 'Unable to create account. Please try again.')
                                     } finally {
@@ -301,8 +407,32 @@ function SignupPage() {
 
                                 {submitted && !passwordOk && <div className="loginHint">Please meet the password requirements above.</div>}
 
-                                {error && <div className="loginHint">{error}</div>}
-                                {success && <div className="loginHint">{success}</div>}
+                                {error && (
+                                    <div className={`loginHint ${error.includes('already exists') || error.includes('already registered') ? 'loginHint--warning' : 'loginHint--error'}`}>
+                                        {error}
+                                        {(error.includes('already exists') || error.includes('already registered') || error.includes('Please log in')) && (
+                                            <div style={{ marginTop: '12px' }}>
+                                                <a
+                                                    href="/login"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        go('/login')
+                                                    }}
+                                                    style={{
+                                                        color: '#3b82f6',
+                                                        textDecoration: 'underline',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'inline-block'
+                                                    }}
+                                                >
+                                                    Go to Login →
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {success && <div className="loginHint loginHint--success">{success}</div>}
 
                                 <div className="loginHint" style={{ marginTop: 12 }}>
                                     By signing up you agree to the terms and services and the privacy policy.

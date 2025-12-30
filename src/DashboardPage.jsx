@@ -8,10 +8,21 @@ import { useToast } from './utils/toast.jsx'
 import { LoadingSpinner, TableSkeleton } from './components/LoadingSpinner.jsx'
 
 function DashboardPage({ session, navigate }) {
+    const toast = useToast()
+
+    const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut()
+            toast.success('Logged out successfully')
+            navigate('/')
+        } catch (error) {
+            console.error('Logout error:', error)
+            toast.error('Failed to logout. Please try again.')
+        }
+    }
     const user = session?.user
     const meta = user?.user_metadata || {}
     const name = [meta.first_name, meta.last_name].filter(Boolean).join(' ') || user?.email || 'Account'
-    const toast = useToast()
 
     const userId = user?.id
     const [license, setLicense] = useState(null)
@@ -370,27 +381,39 @@ function DashboardPage({ session, navigate }) {
                         </article>
                     </div>
 
-                    <div className="dashActions">
-                        <a
-                            className="button button--primary"
-                            href="/download"
+                    <div className="dashActions" style={{ justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            <a
+                                className="button button--primary"
+                                href="/download"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    navigate('/download')
+                                }}
+                            >
+                                Go to Download Hub
+                            </a>
+                            <a
+                                className="button button--outline"
+                                href="/docs"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    navigate('/docs')
+                                }}
+                            >
+                                View Docs
+                            </a>
+                        </div>
+                        <button
+                            className="button button--outline-dark"
                             onClick={(e) => {
                                 e.preventDefault()
-                                navigate('/download')
+                                handleLogout()
                             }}
+                            type="button"
                         >
-                            Go to Download Hub
-                        </a>
-                        <a
-                            className="button button--outline"
-                            href="/docs"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                navigate('/docs')
-                            }}
-                        >
-                            View Docs
-                        </a>
+                            Logout
+                        </button>
                     </div>
                 </div>
             </section>

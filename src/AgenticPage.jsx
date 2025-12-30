@@ -289,22 +289,6 @@ function AgenticPage({ navigate }) {
                 <div className="agenticHeroBand">
                     <div className="container agenticHeroBand__inner">
                         <div className="agenticHeroBand__copy">
-                            <div className="agenticHeroBand__cta">
-                                <a 
-                                    className="button button--agenticSolid" 
-                                    href="/download"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        if (navigate) {
-                                            navigate('/download')
-                                        } else {
-                                            window.location.href = '/download'
-                                        }
-                                    }}
-                                >
-                                    Try for free
-                                </a>
-                            </div>
                         </div>
                         <div className="agenticHeroBand__visual" aria-hidden="true">
                             <div className="agenticHeroVisual">

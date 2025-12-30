@@ -14,7 +14,9 @@ import LicensePage from './LicensePage'
 import SecurityPage from './SecurityPage'
 import AuthRedirectPage from './AuthRedirectPage'
 import RequestAccessPage from './RequestAccessPage'
+import AdminPage from './AdminPage'
 import { SEO } from './components/SEO.jsx'
+import { isAdmin } from './utils/adminApi'
 
 import { supabase } from './supabaseClient'
 
@@ -72,6 +74,7 @@ function App() {
   const isSecurity = path === '/security'
   const isAuthRedirect = path === '/auth-redirect'
   const isRequestAccess = path === '/request-access'
+  const isAdminPath = path === '/admin'
 
   const authed = !!session
   const needsAuth = isDashboard || isDashboardLicense || isDownload
@@ -105,7 +108,18 @@ function App() {
     const isIdeHandshake = new URLSearchParams(window.location.search || '').get('ide') === '1'
     if (isIdeHandshake) return
     const next = new URLSearchParams(window.location.search || '').get('next')
+    
+    // Check if user is admin and redirect accordingly
+    const checkAdminAndRedirect = async () => {
+      const admin = await isAdmin()
+      if (admin && !next) {
+        navigate('/admin')
+      } else {
     navigate(next || '/dashboard')
+      }
+    }
+    
+    checkAdminAndRedirect()
   }, [authed, isLogin, navigate])
 
   const footer = (
@@ -116,27 +130,136 @@ function App() {
             <div className="footer__logo" aria-hidden="true" />
             <div>
               <div className="footer__name">BrainTrain</div>
-              <div className="footer__tag">BrainTrain — Desktop-first Vision AI training studio.</div>
+              <div className="footer__tag">Desktop-first Vision AI training studio for reproducible workflows.</div>
             </div>
           </div>
           <div className="footer__cols">
             <div className="footer__col">
               <div className="footer__heading">Product</div>
-              <a className="footer__link" href="#">Product</a>
-              <a className="footer__link" href="#">Workflow</a>
-              <a className="footer__link" href="#">Inside the IDE</a>
+              <a 
+                className="footer__link" 
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/')
+                }}
+              >
+                Overview
+              </a>
+              <a 
+                className="footer__link" 
+                href="/agentic-ai"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/agentic-ai')
+                }}
+              >
+                Workflow
+              </a>
+              <a 
+                className="footer__link" 
+                href="/why"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/why')
+                }}
+              >
+                Why BrainTrain
+              </a>
+              <a 
+                className="footer__link" 
+                href="/pricing"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/pricing')
+                }}
+              >
+                Pricing
+              </a>
             </div>
             <div className="footer__col">
               <div className="footer__heading">Resources</div>
-              <a className="footer__link" href="#">Docs</a>
-              <a className="footer__link" href="#">GitHub</a>
-              <a className="footer__link" href="#">License</a>
+              <a 
+                className="footer__link" 
+                href="/docs"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/docs')
+                }}
+              >
+                Documentation
+              </a>
+              <a 
+                className="footer__link" 
+                href="/download"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/download')
+                }}
+              >
+                Download
+              </a>
+              <a 
+                className="footer__link" 
+                href="/about"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/about')
+                }}
+              >
+                About
+              </a>
+              <a 
+                className="footer__link" 
+                href="/dashboard/license"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/dashboard/license')
+                }}
+              >
+                License
+              </a>
             </div>
             <div className="footer__col">
-              <div className="footer__heading">Links</div>
-              <a className="footer__link" href="#">Product</a>
-              <a className="footer__link" href="#">Docs</a>
-              <a className="footer__link" href="#">License</a>
+              <div className="footer__heading">Company</div>
+              <a 
+                className="footer__link" 
+                href="/security"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/security')
+                }}
+              >
+                Security
+              </a>
+              <a 
+                className="footer__link" 
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                }}
+              >
+                Privacy Policy
+              </a>
+              <a 
+                className="footer__link" 
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                }}
+              >
+                Terms of Service
+              </a>
+              <a 
+                className="footer__link" 
+                href="/request-access"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/request-access')
+                }}
+              >
+                Request Access
+              </a>
             </div>
           </div>
         </div>
@@ -144,9 +267,34 @@ function App() {
         <div className="footer__bottom">
           <div className="footer__legal">© {new Date().getFullYear()} BrainTrain. All rights reserved.</div>
           <div className="footer__bottomLinks">
-            <a className="footer__link" href="#">Privacy</a>
-            <a className="footer__link" href="#">Terms</a>
-            <a className="footer__link" href="#">Security</a>
+            <a 
+              className="footer__link" 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+              }}
+            >
+              Privacy
+            </a>
+            <a 
+              className="footer__link" 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+              }}
+            >
+              Terms
+            </a>
+            <a 
+              className="footer__link" 
+              href="/security"
+              onClick={(e) => {
+                e.preventDefault()
+                navigate('/security')
+              }}
+            >
+              Security
+            </a>
           </div>
         </div>
       </div>
@@ -205,6 +353,21 @@ function App() {
               <span className="brand__mark" aria-hidden="true" />
               <span className="brand__text">BrainTrain</span>
             </a>
+
+            <button 
+              className="navToggle" 
+              type="button"
+              aria-label="Toggle navigation menu"
+              aria-expanded="false"
+              onClick={(e) => {
+                const nav = e.currentTarget.closest('.topbar')?.querySelector('.nav')
+                const isExpanded = e.currentTarget.getAttribute('aria-expanded') === 'true'
+                e.currentTarget.setAttribute('aria-expanded', !isExpanded)
+                nav?.classList.toggle('nav--open')
+              }}
+            >
+              <span className="navToggle__icon" aria-hidden="true">☰</span>
+            </button>
 
             <nav className="nav" aria-label="Primary">
               {isAgentic ? (
@@ -526,6 +689,8 @@ function App() {
           <AboutPage />
         ) : isAgentic ? (
           <AgenticPage navigate={navigate} />
+        ) : isAdminPath ? (
+          <AdminPage session={session} navigate={navigate} />
         ) : (
           <></>
         )}
@@ -534,7 +699,7 @@ function App() {
           <>
             <section className="features" id="platform">
               <div className="container">
-                <div className="platformHero">
+                <div className="platformHero platformHero--centered">
                   <h2 className="platformHero__title">
                     One IDE. <span className="platformHero__titleMuted">For every Vision AI team.</span>
                   </h2>
@@ -570,10 +735,15 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart">
+                            <div className="platformChart platformChart--dataset">
                               <div className="platformChart__grid" />
-                              <div className="platformChart__line" />
-                              <div className="platformChart__points" />
+                              <div className="platformChart__dataset-bars" />
+                              <div className="platformChart__dataset-labels">
+                                <span className="platformChart__label">Person</span>
+                                <span className="platformChart__label">Car</span>
+                                <span className="platformChart__label">Bike</span>
+                                <span className="platformChart__label">Sign</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -603,10 +773,13 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart platformChart--bars">
+                            <div className="platformChart platformChart--loss">
                               <div className="platformChart__grid" />
-                              <div className="platformChart__bars" />
-                              <div className="platformChart__points" />
+                              <div className="platformChart__loss-curve" />
+                              <div className="platformChart__loss-labels">
+                                <span className="platformChart__axis-label platformChart__axis-label--y">Loss</span>
+                                <span className="platformChart__axis-label platformChart__axis-label--x">Epoch</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -636,9 +809,14 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart platformChart--terminal">
+                            <div className="platformChart platformChart--confusion">
                               <div className="platformChart__grid" />
-                              <div className="platformChart__terminal" />
+                              <div className="platformChart__confusion-matrix" />
+                              <div className="platformChart__confusion-labels">
+                                <span className="platformChart__matrix-label">Precision: 0.94</span>
+                                <span className="platformChart__matrix-label">Recall: 0.91</span>
+                                <span className="platformChart__matrix-label">F1: 0.92</span>
+                              </div>
                             </div>
                           </div>
                         </div>

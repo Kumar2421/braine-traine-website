@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { supabase } from './supabaseClient'
 import { useToast } from './utils/toast.jsx'
+import { isAdmin } from './utils/adminApi'
 
 function LoginPage() {
     const toast = useToast()
@@ -17,7 +18,7 @@ function LoginPage() {
 
     const nextPath = useMemo(() => {
         const next = query.get('next')
-        return next || '/dashboard'
+        return next || '/dashboard' // Default path, will be checked after login
     }, [query])
 
     const oauthRedirectTo = useMemo(() => {
@@ -119,6 +120,8 @@ function LoginPage() {
     const [error, setError] = useState('')
     const [ideResult, setIdeResult] = useState(null)
     const [exchangeToken, setExchangeToken] = useState('')
+    const [checkingAccount, setCheckingAccount] = useState(false)
+    const [accountExists, setAccountExists] = useState(null)
 
     useEffect(() => {
         let mounted = true
@@ -155,6 +158,9 @@ function LoginPage() {
     const emailOk = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email])
     const passwordOk = useMemo(() => password.trim().length >= 6, [password])
     const canSubmit = emailOk && passwordOk
+
+    // Note: Account existence check will be done on login attempt
+    // We can't use admin API from client side, so we'll check during sign-in
 
     return (
         <div className="loginShell">
@@ -216,13 +222,41 @@ function LoginPage() {
 
                             try {
                                 setIsLoading(true)
-                                const { error: signInError } = await supabase.auth.signInWithPassword({
+                                
+                                // Verify password format
+                                if (password.length < 6) {
+                                    setError('Password must be at least 6 characters')
+                                    toast.error('Password must be at least 6 characters')
+                                    return
+                                }
+
+                                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                                     email: email.trim(),
                                     password,
                                 })
+                                
                                 if (signInError) {
-                                    setError(signInError.message)
-                                    toast.error(signInError.message)
+                                    // Provide more specific error messages
+                                    let errorMessage = signInError.message
+                                    if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Invalid')) {
+                                        errorMessage = 'Invalid email or password. Please check your credentials and try again. If you just signed up, wait a moment and try again, or use "Forgot Password" to reset.'
+                                        setAccountExists(false)
+                                    } else if (signInError.message.includes('Email not confirmed')) {
+                                        errorMessage = 'Please verify your email address before logging in.'
+                                    } else if (signInError.message.includes('User not found')) {
+                                        errorMessage = 'No account found with this email. Please sign up first.'
+                                        setAccountExists(false)
+                                    }
+                                    setError(errorMessage)
+                                    toast.error(errorMessage)
+                                    console.error('Login error details:', signInError)
+                                    return
+                                }
+
+                                // Verify session was created
+                                if (!signInData?.session) {
+                                    setError('Login failed. Please try again.')
+                                    toast.error('Login failed. Please try again.')
                                     return
                                 }
 
@@ -244,7 +278,22 @@ function LoginPage() {
                                     return
                                 }
 
-                                go(nextPath)
+                                // Check if admin and redirect accordingly
+                                // Only check if no explicit next path was provided
+                                let redirectPath = nextPath
+                                if (!query.get('next')) {
+                                    try {
+                                        const admin = await isAdmin()
+                                        redirectPath = admin ? '/admin' : '/dashboard'
+                                    } catch (e) {
+                                        console.error('Error checking admin status:', e)
+                                        redirectPath = '/dashboard'
+                                    }
+                                }
+                                
+                                // Use full page redirect to ensure proper navigation
+                                // This ensures App.jsx can properly handle the redirect
+                                window.location.href = redirectPath
                             } catch (err) {
                                 const errorMessage = err?.message || 'Unable to log in. Please try again.'
                                 setError(errorMessage)

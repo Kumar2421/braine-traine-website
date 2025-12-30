@@ -9,7 +9,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <ToastProvider>
-        <App />
+    <App />
       </ToastProvider>
     </ErrorBoundary>
   </StrictMode>,
