@@ -1,6 +1,6 @@
 import './App.css'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { supabase } from './supabaseClient'
 import { sendOTP, verifyOTP } from './utils/emailApi'
@@ -45,23 +45,93 @@ function SignupPage() {
 
     const canSubmit = emailOk && nameOk && passwordOk && confirmOk
 
+    const vantaRef = useRef(null)
+    const vantaEffect = useRef(null)
+
+    // Initialize Vanta.js cells effect
+    useEffect(() => {
+        if (!vantaRef.current) return
+
+        let vantaInstance = null
+
+        const initVanta = async () => {
+            try {
+                const vantaModule = await import('vanta/dist/vanta.cells.min.js')
+                const THREE = await import('three')
+
+                const VANTA = vantaModule.default || vantaModule
+
+                if (vantaEffect.current) {
+                    vantaEffect.current.destroy()
+                }
+
+                vantaInstance = VANTA({
+                    el: vantaRef.current,
+                    THREE: THREE.default || THREE,
+                    mouseControls: true,
+                    touchControls: true,
+                    gyroControls: false,
+                    minHeight: 200.00,
+                    minWidth: 200.00,
+                    scale: 1.00,
+                    scaleMobile: 1.00,
+                    color1: 0x517915,
+                    color2: 0x84f7a8,
+                    size: 1.30,
+                    speed: 1.20,
+                    backgroundColor: 0x0a0c0d
+                })
+
+                vantaEffect.current = vantaInstance
+            } catch (error) {
+                console.error('Error initializing Vanta.js:', error)
+            }
+        }
+
+        // Small delay to ensure DOM is ready and container has dimensions
+        const timer = setTimeout(() => {
+            if (vantaRef.current && vantaRef.current.offsetWidth > 0 && vantaRef.current.offsetHeight > 0) {
+                initVanta()
+            } else {
+                // Retry if container not ready
+                setTimeout(() => initVanta(), 200)
+            }
+        }, 100)
+
+        return () => {
+            clearTimeout(timer)
+            if (vantaEffect.current) {
+                vantaEffect.current.destroy()
+                vantaEffect.current = null
+            }
+        }
+    }, [])
+
     return (
         <div className="loginShell">
             <div className="loginShell__left" aria-hidden="true">
-                <div className="loginArt">
-                    <div className="loginArt__step loginArt__step--1" />
-                    <div className="loginArt__step loginArt__step--2" />
-                    <div className="loginArt__step loginArt__step--3" />
-                    <div className="loginArt__wall loginArt__wall--a" />
-                    <div className="loginArt__wall loginArt__wall--b" />
-                    <div className="loginArt__person" />
+                <div className="loginHero">
+                    <h1 className="loginHero__headline">
+                        The end-to-end IDE for{' '}
+                        <span className="loginHero__highlight">Vision AI</span>
+                    </h1>
+                    <div className="loginHero__pipeline">
+                        <div className="loginHero__pipelineLine" />
+                        <div className="loginHero__pipelineNodes">
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                        </div>
+                    </div>
                 </div>
-                <div className="loginArt__caption">Image generated with Freepik Pikaso</div>
+                <div ref={vantaRef} className="loginArt loginArt--vanta" />
             </div>
 
             <div className="loginShell__right">
                 <div className="loginPanel">
-                    <div className="loginBrand">FREEPIK</div>
+                    <div className="loginBrand">ML FORGE</div>
                     {step === 'otp' ? (
                         <>
                             <h1 className="loginTitle">Verify your email</h1>
@@ -114,9 +184,9 @@ function SignupPage() {
                                         // Update user metadata if needed
                                         if (firstName.trim() || lastName.trim()) {
                                             const { error: updateError } = await supabase.auth.updateUser({
-                                                data: { 
-                                                    first_name: firstName.trim(), 
-                                                    last_name: lastName.trim() 
+                                                data: {
+                                                    first_name: firstName.trim(),
+                                                    last_name: lastName.trim()
                                                 },
                                             })
                                             if (updateError) {
@@ -129,7 +199,7 @@ function SignupPage() {
                                         const { data: { user } } = await supabase.auth.getUser()
                                         const isAdmin = user?.user_metadata?.is_admin === true
                                         const redirectPath = isAdmin ? '/admin' : '/dashboard'
-                                        
+
                                         window.location.href = redirectPath
                                     } catch (err) {
                                         setError(err?.message || 'Unable to verify code. Please try again.')
@@ -190,7 +260,7 @@ function SignupPage() {
                                         setSuccess('')
                                         try {
                                             setIsLoading(true)
-                                            
+
                                             // Resend OTP using custom email API
                                             const sendResult = await sendOTP(
                                                 email.trim(),
@@ -203,10 +273,10 @@ function SignupPage() {
                                                 setError(sendResult.error || 'Failed to resend OTP')
                                                 return
                                             }
-                                            
+
                                             setSuccess('OTP resent. Check your email.')
                                             setOtpResendCooldown(60) // 60 second cooldown
-                                            
+
                                             // Countdown timer
                                             const interval = setInterval(() => {
                                                 setOtpResendCooldown((prev) => {
@@ -276,7 +346,7 @@ function SignupPage() {
 
                                     try {
                                         setIsLoading(true)
-                                        
+
                                         // Check if account already exists
                                         // We'll check this during OTP send, but also try a password reset to verify
                                         try {
@@ -284,7 +354,7 @@ function SignupPage() {
                                             const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
                                                 redirectTo: window.location.origin + '/login'
                                             })
-                                            
+
                                             // If no error, user exists (password reset email sent)
                                             if (!resetError) {
                                                 setError('An account with this email already exists. Please log in instead. If you forgot your password, check your email for a reset link.')
@@ -294,7 +364,7 @@ function SignupPage() {
                                             // User likely doesn't exist, continue with signup
                                             // The error is expected if user doesn't exist
                                         }
-                                        
+
                                         // Send OTP using custom email API
                                         // Password is sent securely to Edge Function, which handles hashing via Supabase Auth
                                         const sendResult = await sendOTP(
@@ -312,7 +382,7 @@ function SignupPage() {
                                         setSuccess('We sent an OTP to your email. Enter it to finish creating your account.')
                                         setStep('otp')
                                         setOtpResendCooldown(60) // Start cooldown timer
-                                        
+
                                         // Countdown timer for resend
                                         const interval = setInterval(() => {
                                             setOtpResendCooldown((prev) => {
@@ -402,8 +472,8 @@ function SignupPage() {
                                 <div className="loginHint" style={{ marginTop: 10 }}>
                                     Your password must contain:
                                 </div>
-                                <div className="loginHint">Between 8 and 64 characters</div>
-                                <div className="loginHint">At least 1 letter and 1 number</div>
+                                <div className="loginHint">Between 8 and 64 characters , At least 1 letter and 1 number</div>
+
 
                                 {submitted && !passwordOk && <div className="loginHint">Please meet the password requirements above.</div>}
 
@@ -459,7 +529,6 @@ function SignupPage() {
                         </a>
                     </div>
 
-                    <button className="loginCookies" type="button">Cookies Settings</button>
                 </div>
             </div>
         </div>

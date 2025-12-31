@@ -12,7 +12,7 @@ function AuthRedirectPage({ navigate }) {
             setAttempted(true)
         }, 900)
 
-        window.location.href = `braintrain://auth?token=${encodeURIComponent(token)}`
+        window.location.href = `mlforge://auth?token=${encodeURIComponent(token)}`
 
         return () => {
             window.clearTimeout(t)
@@ -24,9 +24,9 @@ function AuthRedirectPage({ navigate }) {
             <section className="whyHero">
                 <div className="container whyHero__inner">
                     <p className="whyHero__kicker">IDE Login</p>
-                    <h1 className="whyHero__title">Connecting to BrainTrain…</h1>
+                    <h1 className="whyHero__title">Connecting to ML FORGE…</h1>
                     <p className="whyHero__subtitle">
-                        Your browser will hand off to the BrainTrain IDE using a short-lived exchange token.
+                        Your browser will hand off to the ML FORGE IDE using a short-lived exchange token.
                     </p>
                 </div>
             </section>
@@ -45,7 +45,7 @@ function AuthRedirectPage({ navigate }) {
                             <div className="whyCard__title">If the IDE is not detected</div>
                             <div className="whyCard__body">
                                 {attempted
-                                    ? 'BrainTrain IDE not detected. Please install the IDE and try again.'
+                                    ? 'ML FORGE IDE not detected. Please install the IDE and try again.'
                                     : 'If the IDE does not open automatically, you may not have it installed yet.'}
                             </div>
                             <div className="dashActions" style={{ marginTop: 12 }}>

@@ -6,7 +6,7 @@ function AboutPage() {
             <section className="aboutHero">
                 <div className="container aboutHero__inner">
                     <p className="aboutHero__kicker">Company</p>
-                    <h1 className="aboutHero__title">About BrainTrain</h1>
+                    <h1 className="aboutHero__title">About ML FORGE</h1>
                     <p className="aboutHero__subtitle">
                         We help teams deliver trusted Vision AI—from datasets to deployment—with reproducibility, governance, and local-first workflows.
                     </p>
@@ -21,7 +21,7 @@ function AboutPage() {
                                 }
                             }}
                         >
-                            Download BrainTrain
+                            Download ML FORGE
                         </a>
                         <a 
                             className="button button--outline" 
@@ -102,7 +102,7 @@ function AboutPage() {
                                         }
                                     }}
                                 >
-                                    Download BrainTrain
+                                    Download ML FORGE
                                 </a>
                             </div>
                         </div>

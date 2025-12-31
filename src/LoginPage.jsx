@@ -1,6 +1,6 @@
 import './App.css'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { supabase } from './supabaseClient'
 import { useToast } from './utils/toast.jsx'
@@ -122,6 +122,67 @@ function LoginPage() {
     const [exchangeToken, setExchangeToken] = useState('')
     const [checkingAccount, setCheckingAccount] = useState(false)
     const [accountExists, setAccountExists] = useState(null)
+    const vantaRef = useRef(null)
+    const vantaEffect = useRef(null)
+
+    // Initialize Vanta.js cells effect
+    useEffect(() => {
+        if (!vantaRef.current) return
+
+        let vantaInstance = null
+
+        const initVanta = async () => {
+            try {
+                const vantaModule = await import('vanta/dist/vanta.cells.min.js')
+                const THREE = await import('three')
+
+                const VANTA = vantaModule.default || vantaModule
+
+                if (vantaEffect.current) {
+                    vantaEffect.current.destroy()
+                }
+
+                vantaInstance = VANTA({
+                    el: vantaRef.current,
+                    THREE: THREE.default || THREE,
+                    mouseControls: true,
+                    touchControls: true,
+                    gyroControls: false,
+                    minHeight: 200.00,
+                    minWidth: 200.00,
+                    scale: 1.00,
+                    scaleMobile: 1.00,
+                    color1: 0x517915,
+                    color2: 0x84f7a8,
+                    size: 1.30,
+                    speed: 1.20,
+                    backgroundColor: 0x0a0c0d
+                })
+
+                vantaEffect.current = vantaInstance
+            } catch (error) {
+                console.error('Error initializing Vanta.js:', error)
+            }
+        }
+
+        // Small delay to ensure DOM is ready and container has dimensions
+        const timer = setTimeout(() => {
+            if (vantaRef.current && vantaRef.current.offsetWidth > 0 && vantaRef.current.offsetHeight > 0) {
+                initVanta()
+            } else {
+                // Retry if container not ready
+                setTimeout(() => initVanta(), 200)
+            }
+        }, 100)
+
+        return () => {
+            clearTimeout(timer)
+            if (vantaEffect.current) {
+                vantaEffect.current.destroy()
+                vantaEffect.current = null
+            }
+        }
+    }, [])
 
     useEffect(() => {
         let mounted = true
@@ -165,22 +226,30 @@ function LoginPage() {
     return (
         <div className="loginShell">
             <div className="loginShell__left" aria-hidden="true">
-                <div className="loginArt">
-                    <div className="loginArt__step loginArt__step--1" />
-                    <div className="loginArt__step loginArt__step--2" />
-                    <div className="loginArt__step loginArt__step--3" />
-                    <div className="loginArt__wall loginArt__wall--a" />
-                    <div className="loginArt__wall loginArt__wall--b" />
-                    <div className="loginArt__person" />
+                <div className="loginHero">
+                    <h1 className="loginHero__headline">
+                        The end-to-end IDE for{' '}
+                        <span className="loginHero__highlight">Vision AI</span>
+                    </h1>
+                    <div className="loginHero__pipeline">
+                        <div className="loginHero__pipelineLine" />
+                        <div className="loginHero__pipelineNodes">
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                            <span className="loginHero__pipelineNode" />
+                        </div>
+                    </div>
                 </div>
-                <div className="loginArt__caption">Image generated with Freepik Pikasoa</div>
+                <div ref={vantaRef} className="loginArt loginArt--vanta" />
             </div>
 
             <div className="loginShell__right">
                 <div className="loginPanel">
-                    <div className="loginBrand">BrainTrain</div>
+                    <div className="loginBrand">ML FORGE</div>
                     <h1 className="loginTitle">Log in</h1>
-                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Complete sign-in to open the BrainTrain IDE.' : 'Welcome back!'}</p>
+                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Complete sign-in to open the ML FORGE IDE.' : 'Welcome back!'}</p>
 
                     <button
                         className="loginAccount"
@@ -222,7 +291,7 @@ function LoginPage() {
 
                             try {
                                 setIsLoading(true)
-                                
+
                                 // Verify password format
                                 if (password.length < 6) {
                                     setError('Password must be at least 6 characters')
@@ -234,7 +303,7 @@ function LoginPage() {
                                     email: email.trim(),
                                     password,
                                 })
-                                
+
                                 if (signInError) {
                                     // Provide more specific error messages
                                     let errorMessage = signInError.message
@@ -290,7 +359,7 @@ function LoginPage() {
                                         redirectPath = '/dashboard'
                                     }
                                 }
-                                
+
                                 // Use full page redirect to ensure proper navigation
                                 // This ensures App.jsx can properly handle the redirect
                                 window.location.href = redirectPath
@@ -365,7 +434,6 @@ function LoginPage() {
                         </div>
                     )}
 
-                    <button className="loginCookies" type="button">Cookies Settings</button>
                 </div>
             </div>
         </div>

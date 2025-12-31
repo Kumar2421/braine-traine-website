@@ -77,7 +77,7 @@ function App() {
   const isAdminPath = path === '/admin'
 
   const authed = !!session
-  const needsAuth = isDashboard || isDashboardLicense || isDownload
+  const needsAuth = isDashboard || isDashboardLicense
 
   useEffect(() => {
     if (isDownloads) {
@@ -108,17 +108,17 @@ function App() {
     const isIdeHandshake = new URLSearchParams(window.location.search || '').get('ide') === '1'
     if (isIdeHandshake) return
     const next = new URLSearchParams(window.location.search || '').get('next')
-    
+
     // Check if user is admin and redirect accordingly
     const checkAdminAndRedirect = async () => {
       const admin = await isAdmin()
       if (admin && !next) {
         navigate('/admin')
       } else {
-    navigate(next || '/dashboard')
+        navigate(next || '/dashboard')
       }
     }
-    
+
     checkAdminAndRedirect()
   }, [authed, isLogin, navigate])
 
@@ -129,15 +129,15 @@ function App() {
           <div className="footer__brand">
             <div className="footer__logo" aria-hidden="true" />
             <div>
-              <div className="footer__name">BrainTrain</div>
+              <div className="footer__name">ML FORGE</div>
               <div className="footer__tag">Desktop-first Vision AI training studio for reproducible workflows.</div>
             </div>
           </div>
           <div className="footer__cols">
             <div className="footer__col">
               <div className="footer__heading">Product</div>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/"
                 onClick={(e) => {
                   e.preventDefault()
@@ -146,8 +146,8 @@ function App() {
               >
                 Overview
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/agentic-ai"
                 onClick={(e) => {
                   e.preventDefault()
@@ -156,18 +156,18 @@ function App() {
               >
                 Workflow
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/why"
                 onClick={(e) => {
                   e.preventDefault()
                   navigate('/why')
                 }}
               >
-                Why BrainTrain
+                Why ML FORGE
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/pricing"
                 onClick={(e) => {
                   e.preventDefault()
@@ -179,8 +179,8 @@ function App() {
             </div>
             <div className="footer__col">
               <div className="footer__heading">Resources</div>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/docs"
                 onClick={(e) => {
                   e.preventDefault()
@@ -189,8 +189,8 @@ function App() {
               >
                 Documentation
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/download"
                 onClick={(e) => {
                   e.preventDefault()
@@ -199,8 +199,8 @@ function App() {
               >
                 Download
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/about"
                 onClick={(e) => {
                   e.preventDefault()
@@ -209,8 +209,8 @@ function App() {
               >
                 About
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/dashboard/license"
                 onClick={(e) => {
                   e.preventDefault()
@@ -222,8 +222,8 @@ function App() {
             </div>
             <div className="footer__col">
               <div className="footer__heading">Company</div>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/security"
                 onClick={(e) => {
                   e.preventDefault()
@@ -232,8 +232,8 @@ function App() {
               >
                 Security
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="#"
                 onClick={(e) => {
                   e.preventDefault()
@@ -241,8 +241,8 @@ function App() {
               >
                 Privacy Policy
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="#"
                 onClick={(e) => {
                   e.preventDefault()
@@ -250,8 +250,8 @@ function App() {
               >
                 Terms of Service
               </a>
-              <a 
-                className="footer__link" 
+              <a
+                className="footer__link"
                 href="/request-access"
                 onClick={(e) => {
                   e.preventDefault()
@@ -265,10 +265,10 @@ function App() {
         </div>
 
         <div className="footer__bottom">
-          <div className="footer__legal">© {new Date().getFullYear()} BrainTrain. All rights reserved.</div>
+          <div className="footer__legal">© {new Date().getFullYear()} ML FORGE. All rights reserved.</div>
           <div className="footer__bottomLinks">
-            <a 
-              className="footer__link" 
+            <a
+              className="footer__link"
               href="#"
               onClick={(e) => {
                 e.preventDefault()
@@ -276,8 +276,8 @@ function App() {
             >
               Privacy
             </a>
-            <a 
-              className="footer__link" 
+            <a
+              className="footer__link"
               href="#"
               onClick={(e) => {
                 e.preventDefault()
@@ -285,8 +285,8 @@ function App() {
             >
               Terms
             </a>
-            <a 
-              className="footer__link" 
+            <a
+              className="footer__link"
               href="/security"
               onClick={(e) => {
                 e.preventDefault()
@@ -304,17 +304,56 @@ function App() {
   // SEO metadata based on current page
   useEffect(() => {
     if (isHome) {
-      document.title = 'BrainTrain — Desktop-first Vision AI training studio'
+      document.title = 'ML FORGE — Desktop-first Vision AI training studio'
     } else if (isDocs) {
-      document.title = 'Documentation | BrainTrain'
+      document.title = 'Documentation | ML FORGE'
     } else if (isDashboard) {
-      document.title = 'Dashboard | BrainTrain'
+      document.title = 'Dashboard | ML FORGE'
     } else if (isPricing) {
-      document.title = 'Pricing | BrainTrain'
+      document.title = 'Pricing | ML FORGE'
     } else if (isDownload) {
-      document.title = 'Download | BrainTrain'
+      document.title = 'Download | ML FORGE'
     }
   }, [isHome, isDocs, isDashboard, isPricing, isDownload])
+
+  // Handle mobile nav closing on window resize and outside clicks
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 980) {
+        const nav = document.querySelector('.nav')
+        const toggle = document.querySelector('.navToggle')
+        if (nav && toggle) {
+          nav.classList.remove('nav--open')
+          toggle.setAttribute('aria-expanded', 'false')
+        }
+      }
+    }
+
+    const handleClickOutside = (e) => {
+      const nav = document.querySelector('.nav')
+      const toggle = document.querySelector('.navToggle')
+      const topbar = document.querySelector('.topbar')
+
+      if (nav && toggle && topbar && window.innerWidth < 980) {
+        const isClickInsideNav = nav.contains(e.target)
+        const isClickOnToggle = toggle.contains(e.target)
+        const isClickInsideTopbar = topbar.contains(e.target)
+
+        if (!isClickInsideNav && !isClickOnToggle && isClickInsideTopbar) {
+          nav.classList.remove('nav--open')
+          toggle.setAttribute('aria-expanded', 'false')
+        }
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    document.addEventListener('click', handleClickOutside)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="page">
@@ -351,42 +390,67 @@ function App() {
               }}
             >
               <span className="brand__mark" aria-hidden="true" />
-              <span className="brand__text">BrainTrain</span>
+              <span className="brand__text">ML FORGE</span>
             </a>
 
-            <button 
-              className="navToggle" 
+            <button
+              className="navToggle"
               type="button"
               aria-label="Toggle navigation menu"
               aria-expanded="false"
               onClick={(e) => {
-                const nav = e.currentTarget.closest('.topbar')?.querySelector('.nav')
-                const isExpanded = e.currentTarget.getAttribute('aria-expanded') === 'true'
-                e.currentTarget.setAttribute('aria-expanded', !isExpanded)
-                nav?.classList.toggle('nav--open')
+                e.preventDefault()
+                e.stopPropagation()
+                const topbar = e.currentTarget.closest('.topbar')
+                const nav = topbar?.querySelector('.nav')
+                const button = e.currentTarget
+                const isExpanded = button.getAttribute('aria-expanded') === 'true'
+
+                if (nav) {
+                  if (isExpanded) {
+                    nav.classList.remove('nav--open')
+                    button.setAttribute('aria-expanded', 'false')
+                  } else {
+                    nav.classList.add('nav--open')
+                    button.setAttribute('aria-expanded', 'true')
+                  }
+                }
               }}
             >
               <span className="navToggle__icon" aria-hidden="true">☰</span>
             </button>
 
             <nav className="nav" aria-label="Primary">
-              {isAgentic ? (
+              {isHome ? (
                 <>
                   <a
-                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
-                    href="/why"
+                    className={`nav__link ${isHome ? 'nav__link--active' : ''}`}
+                    href="/"
                     onClick={(e) => {
                       e.preventDefault()
-                      navigate('/why')
+                      // Close mobile nav when link is clicked
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/')
                     }}
                   >
-                    Why BrainTrain
+                    Product
                   </a>
                   <a
                     className={`nav__link ${isAgentic ? 'nav__link--active' : ''}`}
                     href="/agentic-ai"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/agentic-ai')
                     }}
                   >
@@ -397,16 +461,44 @@ function App() {
                     href="/docs"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/docs')
                     }}
                   >
                     Docs
                   </a>
                   <a
+                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
+                    href="/why"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/why')
+                    }}
+                  >
+                    Why ML FORGE
+                  </a>
+                  <a
                     className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
                     href="/pricing"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/pricing')
                     }}
                   >
@@ -417,6 +509,12 @@ function App() {
                     href="/about"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/about')
                     }}
                   >
@@ -430,54 +528,48 @@ function App() {
                     href="/"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/')
                     }}
                   >
-                    Product
+                    Home
                   </a>
-
-                  <a
-                    className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
-                    href="/docs"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      navigate('/docs')
-                    }}
-                  >
-                    Docs
-                  </a>
-
                   <a
                     className={`nav__link ${isAgentic ? 'nav__link--active' : ''}`}
                     href="/agentic-ai"
                     onClick={(e) => {
                       e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
                       navigate('/agentic-ai')
                     }}
                   >
                     Workflow
                   </a>
-
                   <a
-                    className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
-                    href="/pricing"
+                    className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
+                    href="/docs"
                     onClick={(e) => {
                       e.preventDefault()
-                      navigate('/pricing')
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/docs')
                     }}
                   >
-                    Pricing
-                  </a>
-
-                  <a
-                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
-                    href="/why"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      navigate('/why')
-                    }}
-                  >
-                    Why BrainTrain
+                    Docs
                   </a>
                 </>
               )}
@@ -516,29 +608,14 @@ function App() {
               )}
               <a
                 className={`button ${isAgentic ? 'button--agenticPill' : 'button--primary'}`}
-                href={isAgentic ? '#' : '/download'}
+                href="/download"
                 onClick={(e) => {
-                  if (!isAgentic) {
-                    e.preventDefault()
-                    navigate('/download')
-                  } else {
-                    e.preventDefault()
-                  }
+                  e.preventDefault()
+                  navigate('/download')
                 }}
               >
-                Try DataRobot
+                Download
               </a>
-              {isAgentic && (
-                <a
-                  className="button button--agenticSolid"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                  }}
-                >
-                  Request a Demo
-                </a>
-              )}
             </div>
           </div>
         </header>
@@ -554,22 +631,22 @@ function App() {
                     Build, train, and ship Vision AI — locally, reproducibly, without cloud lock-in.
                   </h1>
                   <p className="hero__subtitle">
-                    BrainTrain is a desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export — designed for
-                    deterministic workflows in real-world environments.
+                    ML FORGE is a desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export — designed for
+                    deterministic workflows in real-world environments. <strong>No coding required.</strong>
                   </p>
                   <div className="hero__cta">
-                    <a 
-                      className="button button--primary" 
+                    <a
+                      className="button button--primary"
                       href="/download"
                       onClick={(e) => {
                         e.preventDefault()
                         navigate('/download')
                       }}
                     >
-                      Download BrainTrain
+                      Download ML FORGE
                     </a>
-                    <a 
-                      className="button button--outline" 
+                    <a
+                      className="button button--outline"
                       href="/agentic-ai"
                       onClick={(e) => {
                         e.preventDefault()
@@ -602,7 +679,7 @@ function App() {
                     <div className="unifyCard__kicker">Dataset Management</div>
                     <p className="unifyCard__body">
                       Versioned datasets with explicit metadata.
-                      No silent changes. No hidden preprocessing.
+                      No silent changes. No hidden preprocessing. <strong>No coding required.</strong>
                     </p>
                   </article>
 
@@ -610,10 +687,10 @@ function App() {
                     <div className="unifyCard__kicker">Annotation Studio</div>
                     <p className="unifyCard__body">
                       Reviewable labeling with audit-ready change history.
-                      Built for iteration, not one-off labeling.
+                      Built for iteration, not one-off labeling. <strong>Visual interface — no coding required.</strong>
                     </p>
                     <div className="unifyPartner">
-                      <div className="unifyPartner__logo" aria-hidden="true">SAP</div>
+                      <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
                       <div className="unifyPartner__meta">
                         <div className="unifyPartner__kicker">Review-gated changes</div>
                         <div className="unifyPartner__body">Audit-ready labeling history for regulated workflows.</div>
@@ -624,17 +701,17 @@ function App() {
                   <article className="unifyCard">
                     <div className="unifyCard__kicker">Deterministic Training</div>
                     <p className="unifyCard__body">
-                      Explicit configs, locked inputs, and reproducible runs — every time.
+                      Explicit configs, locked inputs, and reproducible runs — every time. <strong>Configure visually or via code.</strong>
                     </p>
                   </article>
 
                   <article className="unifyCard">
                     <div className="unifyCard__kicker">Evaluation &amp; Benchmarks</div>
                     <p className="unifyCard__body">
-                      Compare runs, metrics, and artifacts with full provenance.
+                      Compare runs, metrics, and artifacts with full provenance. <strong>Visual comparison tools — no coding required.</strong>
                     </p>
                     <div className="unifyPartner unifyPartner--inline">
-                      <div className="unifyPartner__logo" aria-hidden="true">NVIDIA</div>
+                      <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
                       <div className="unifyPartner__meta">
                         <div className="unifyPartner__kicker">Provenance by default</div>
                         <div className="unifyPartner__body">Artifacts stay tied to configs, data, and metrics.</div>
@@ -645,14 +722,14 @@ function App() {
                   <article className="unifyCard">
                     <div className="unifyCard__kicker">Local-First Execution</div>
                     <p className="unifyCard__body">
-                      Runs fully offline. GPU optional. No cloud dependency.
+                      Runs fully offline. GPU optional. No cloud dependency. <strong>One-click execution — no coding required.</strong>
                     </p>
                   </article>
 
                   <article className="unifyCard">
                     <div className="unifyCard__kicker">Production-Ready Exports</div>
                     <p className="unifyCard__body">
-                      Export models, configs, and metrics together — ready for deployment.
+                      Export models, configs, and metrics together — ready for deployment. <strong>Visual export wizard — no coding required.</strong>
                     </p>
                   </article>
                 </div>
@@ -874,17 +951,17 @@ function App() {
                 <h2 className="ctaBand__title ctaBand__title--agentic">Vision AI is hard. Reproducibility is harder.</h2>
                 <div className="ctaBand__row">
                   <p className="ctaBand__subtitle ctaBand__subtitle--agentic">
-                    BrainTrain exists because scripts, notebooks, and ad-hoc tools break down in real production workflows.
+                    ML FORGE exists because scripts, notebooks, and ad-hoc tools break down in real production workflows.
                   </p>
-                  <a 
-                    className="ctaBand__button" 
+                  <a
+                    className="ctaBand__button"
                     href="/download"
                     onClick={(e) => {
                       e.preventDefault()
                       navigate('/download')
                     }}
                   >
-                    Download BrainTrain
+                    Download ML FORGE
                   </a>
                 </div>
               </div>

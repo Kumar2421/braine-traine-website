@@ -58,7 +58,7 @@ function LicensePage({ session, navigate }) {
                 <div className="container dashHero__inner">
                     <p className="dashHero__kicker">Account</p>
                     <h1 className="dashHero__title">License</h1>
-                    <p className="dashHero__subtitle">Control-plane license metadata used by the BrainTrain IDE for offline activation.</p>
+                    <p className="dashHero__subtitle">Control-plane license metadata used by the ML FORGE IDE for offline activation.</p>
                 </div>
             </section>
 

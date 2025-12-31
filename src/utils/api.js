@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient'
 
 /**
- * API service layer for BrainTrain website
+ * API service layer for ML FORGE website
  * Handles all Supabase interactions and provides a consistent interface
  */
 

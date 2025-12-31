@@ -5,7 +5,7 @@ function WhyPage() {
         <>
             <section className="aboutHero">
                 <div className="container aboutHero__inner">
-                    <p className="aboutHero__kicker">Why BrainTrain</p>
+                    <p className="aboutHero__kicker">Why ML FORGE</p>
                     <h1 className="aboutHero__title">A trust layer for local Vision AI.</h1>
                     <p className="aboutHero__subtitle">
                         Engineer-to-engineer: deterministic workflows, artifact lineage, and zero cloud lock-in by default. Built for teams who cannot afford silent failures.
@@ -16,7 +16,7 @@ function WhyPage() {
             <section className="aboutSection">
                 <div className="container">
                     <div className="sectionHeader">
-                        <h2 className="sectionHeader__title">Why choose BrainTrain</h2>
+                        <h2 className="sectionHeader__title">Why choose ML FORGE</h2>
                         <p className="sectionHeader__subtitle">Designed for Vision AI teams who need production reliability, reproducibility, and data sovereignty.</p>
                     </div>
 
@@ -55,14 +55,14 @@ function WhyPage() {
                         Built for teams who cannot afford silent failures
                     </h2>
                     <p className="unifyHeading__subtitle">
-                        Manufacturing quality inspection, robotics labs, smart surveillance, and medical imaging teams rely on BrainTrain for production-grade Vision AI workflows.
+                        Manufacturing quality inspection, robotics labs, smart surveillance, and medical imaging teams rely on ML FORGE for production-grade Vision AI workflows.
                     </p>
 
                     <div className="aboutSplit">
                         <div className="aboutSplit__copy">
                             <h3 className="aboutSplit__title">Production reliability</h3>
                             <p className="aboutSplit__body">
-                                Vision systems fail in production when data and training inputs drift. BrainTrain makes every input explicit and file-backed so you can reproduce results across machines and over time. No silent failures. No hidden state. Just deterministic workflows.
+                                Vision systems fail in production when data and training inputs drift. ML FORGE makes every input explicit and file-backed so you can reproduce results across machines and over time. No silent failures. No hidden state. Just deterministic workflows.
                             </p>
                             <div className="aboutSplit__cta">
                                 <a 
@@ -75,7 +75,7 @@ function WhyPage() {
                                         }
                                     }}
                                 >
-                                    Download BrainTrain
+                                    Download ML FORGE
                                 </a>
                                 <a 
                                     className="button button--outline" 

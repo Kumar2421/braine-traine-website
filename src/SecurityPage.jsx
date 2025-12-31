@@ -8,7 +8,7 @@ function SecurityPage() {
                     <p className="aboutHero__kicker">Security &amp; Privacy</p>
                     <h1 className="aboutHero__title">Offline-first, by design.</h1>
                     <p className="aboutHero__subtitle">
-                        BrainTrain's website is a control plane. Execution stays on your machines. Your data never leaves your infrastructure.
+                        ML FORGE's website is a control plane. Execution stays on your machines. Your data never leaves your infrastructure.
                     </p>
                 </div>
             </section>
@@ -27,11 +27,11 @@ function SecurityPage() {
                         </article>
                         <article className="unifyCard">
                             <div className="unifyCard__kicker">No dataset uploads</div>
-                            <p className="unifyCard__body">No images, videos, or datasets are uploaded to BrainTrain's website. Your data stays with you.</p>
+                            <p className="unifyCard__body">No images, videos, or datasets are uploaded to ML FORGE's website. Your data stays with you.</p>
                         </article>
                         <article className="unifyCard">
                             <div className="unifyCard__kicker">No cloud inference</div>
-                            <p className="unifyCard__body">Inference does not run on BrainTrain servers. Deployments remain your responsibility.</p>
+                            <p className="unifyCard__body">Inference does not run on ML FORGE servers. Deployments remain your responsibility.</p>
                         </article>
                         <article className="unifyCard">
                             <div className="unifyCard__kicker">No cloud training</div>
@@ -62,7 +62,7 @@ function SecurityPage() {
                         <div className="aboutSplit__copy">
                             <h3 className="aboutSplit__title">Data sovereignty</h3>
                             <p className="aboutSplit__body">
-                                Your datasets, models, and training runs never touch BrainTrain servers. The website is a control plane for licensing and distribution—not a runtime. Perfect for air-gapped environments and regulated industries.
+                                Your datasets, models, and training runs never touch ML FORGE servers. The website is a control plane for licensing and distribution—not a runtime. Perfect for air-gapped environments and regulated industries.
                             </p>
                             <div className="aboutSplit__cta">
                                 <a 
@@ -75,7 +75,7 @@ function SecurityPage() {
                                         }
                                     }}
                                 >
-                                    Download BrainTrain
+                                    Download ML FORGE
                                 </a>
                                 <a 
                                     className="button button--outline" 

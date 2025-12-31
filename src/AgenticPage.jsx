@@ -12,46 +12,57 @@ function AgenticPage({ navigate }) {
                 icon: 'suite',
                 items: [
                     {
-                        label: 'AI tool calling',
-                        headline: 'AI tool calling.',
-                        body: 'Call AI tools and components without friction.',
+                        label: 'Vision AI Workflow',
+                        headline: 'Vision AI Workflow.',
+                        body: 'Complete end-to-end pipeline for building, training, and deploying Vision AI models with full reproducibility and traceability. No coding required.',
                         tools: [
                             {
-                                name: 'Get data warehouse tables',
-                                desc: 'Search for tables on the data warehouse using multiple search strategies and return ranked results.',
-                                type: 'Tool',
+                                name: 'Dataset Management',
+                                desc: 'Import, version, validate, and manage image and video datasets. Create deterministic splits, manage classes, and ensure reproducibility.',
+                                type: 'Component',
                             },
                             {
-                                name: 'Onboarding expert',
-                                desc: 'Sends an email with the content of body to the recipient defined.',
-                                type: 'Assistant',
+                                name: 'Annotation Studio',
+                                desc: 'Label images and videos with review-gated changes. Full annotation history and dataset version safety.',
+                                type: 'Component',
                             },
                             {
-                                name: 'Compare images',
-                                desc: 'Compare two images using NVIDIA Cosmos Vision Model and highlight the differences.',
-                                type: 'Tool',
+                                name: 'Training Engine',
+                                desc: 'Run reproducible Vision AI training with explicit configs, tracked metrics, and immutable artifacts.',
+                                type: 'Component',
                             },
                             {
-                                name: 'Send email',
-                                desc: 'Sends an email with the content of body to the recipient defined.',
-                                type: 'Tool',
+                                name: 'Export & Deployment',
+                                desc: 'Convert trained models into deployment-ready formats: ONNX, TensorRT, CoreML, TensorFlow Lite, and more.',
+                                type: 'Component',
                             },
                         ],
                         code:
-                            'def get_data_warehouse_tables(search_terms: str) -> Markdown:\n' +
-                            '    """\n' +
-                            '    Search for tables on the data warehouse using multiple\n' +
-                            '    search strategies and return ranked results. Use this tool\n' +
-                            '    to find information about past performance like historical\n' +
-                            '    financial results, stock volume or even our shipping\n' +
-                            '    information.\n' +
+                            '# Complete Vision AI Workflow\n' +
+                            'from mlforge import DatasetManager, TrainingEngine, ExportEngine\n' +
                             '\n' +
-                            '    Parameters:\n' +
-                            '        search_terms: str - Terms to search for in table names\n' +
-                            '                          and descriptions.\n' +
-                            '    """\n' +
-                            '    results = TableSearch().search(search_terms)\n' +
-                            '    return Markdown(results.to_markdown())\n',
+                            '# Import and validate dataset\n' +
+                            'dataset = DatasetManager.import(\n' +
+                            '    path="./images",\n' +
+                            '    task_type="detection"\n' +
+                            ')\n' +
+                            '\n' +
+                            '# Create deterministic splits and lock\n' +
+                            'dataset.create_splits(train=0.7, val=0.2, test=0.1)\n' +
+                            'version = dataset.lock()\n' +
+                            '\n' +
+                            '# Train with explicit configuration\n' +
+                            'engine = TrainingEngine(\n' +
+                            '    model="yolov8",\n' +
+                            '    dataset_version=version,\n' +
+                            '    epochs=100,\n' +
+                            '    batch_size=16\n' +
+                            ')\n' +
+                            'run = engine.train()\n' +
+                            '\n' +
+                            '# Export for deployment\n' +
+                            'export = ExportEngine(run.best_checkpoint, format="onnx")\n' +
+                            'artifact = export.generate()\n',
                     },
                 ],
             },
@@ -63,7 +74,7 @@ function AgenticPage({ navigate }) {
                     {
                         label: 'Dataset Manager',
                         headline: 'Dataset Manager.',
-                        body: 'The Dataset Manager is the foundation of BrainTrain. Every model, training run, evaluation, and export begins here.',
+                        body: 'The Dataset Manager is the foundation of ML FORGE. Every model, training run, evaluation, and export begins here. No coding required — visual interface for all operations.',
                         tools: [
                             { name: 'Import datasets', desc: 'Import raw images and videos. Support multiple task types and models. All dataset operations are explicit, traceable, and reproducible.', type: 'Component', enabled: true },
                             { name: 'Version & validate', desc: 'Review, validate, and version data. Create deterministic splits. Manage classes and identities. Guarantee reproducibility.', type: 'Component', enabled: true },
@@ -74,7 +85,7 @@ function AgenticPage({ navigate }) {
                         ],
                         code:
                             '# Dataset Manager Workflow\n' +
-                            'from braintrain import DatasetManager\n' +
+                            'from mlforge import DatasetManager\n' +
                             '\n' +
                             '# Import and validate dataset\n' +
                             'dataset = DatasetManager.import(\n' +
@@ -102,7 +113,7 @@ function AgenticPage({ navigate }) {
                     {
                         label: 'Training Engine',
                         headline: 'Training Engine.',
-                        body: 'Run reproducible Vision AI training with explicit configs, tracked metrics, and immutable artifacts. Training always happens locally or on user-controlled infrastructure.',
+                        body: 'Run reproducible Vision AI training with explicit configs, tracked metrics, and immutable artifacts. Training always happens locally or on user-controlled infrastructure. Configure visually — no coding required.',
                         tools: [
                             { name: 'Model selection', desc: 'Select model architecture (YOLOv5/YOLOv8). Choose task type (Detection/Classification). Model selection determines input requirements and output format.', type: 'Control' },
                             { name: 'GPU monitoring', desc: 'Real-time GPU metrics: utilization, temperature, VRAM usage. CPU fallback support. Hardware transparency prevents silent over-allocation.', type: 'Control' },
@@ -112,7 +123,7 @@ function AgenticPage({ navigate }) {
                         ],
                         code:
                             '# Training Engine Configuration\n' +
-                            'from braintrain import TrainingEngine\n' +
+                            'from mlforge import TrainingEngine\n' +
                             '\n' +
                             'engine = TrainingEngine(\n' +
                             '    model="yolov8",\n' +
@@ -138,7 +149,7 @@ function AgenticPage({ navigate }) {
                     {
                         label: 'Export & Deployment',
                         headline: 'Export & Deployment.',
-                        body: 'Convert trained models into deployment-ready formats for edge devices, servers, mobile apps, and production inference pipelines. All exports are deterministic and tied to model version, dataset snapshot, and training configuration.',
+                        body: 'Convert trained models into deployment-ready formats for edge devices, servers, mobile apps, and production inference pipelines. All exports are deterministic and tied to model version, dataset snapshot, and training configuration. Visual export wizard — no coding required.',
                         tools: [
                             { name: 'Export formats', desc: 'ONNX (universal), TorchScript (PyTorch), TensorRT (NVIDIA GPU), TensorFlow Lite (mobile), CoreML (Apple), OpenVINO (Intel), NCNN (mobile).', type: 'Export' },
                             { name: 'Quantization', desc: 'FP32 (full precision), FP16 (half precision, 2× smaller), INT8 (quantized, smallest size). Accuracy trade-offs clearly shown.', type: 'Export' },
@@ -148,7 +159,7 @@ function AgenticPage({ navigate }) {
                         ],
                         code:
                             '# Export Model for Deployment\n' +
-                            'from braintrain import ExportEngine\n' +
+                            'from mlforge import ExportEngine\n' +
                             '\n' +
                             'export = ExportEngine(\n' +
                             '    model=run.best_checkpoint,\n' +
@@ -172,7 +183,7 @@ function AgenticPage({ navigate }) {
                     {
                         label: 'Governance & Observability',
                         headline: 'Governance and observability.',
-                        body: 'Trace workflows and outputs to ensure safety, quality, and compliance. Training Logs provide a real-time, immutable, and auditable record of everything that happens during training.',
+                        body: 'Trace workflows and outputs to ensure safety, quality, and compliance. Training Logs provide a real-time, immutable, and auditable record of everything that happens during training. Visual monitoring dashboard — no coding required.',
                         tools: [
                             { name: 'Training Logs', desc: 'Real-time, immutable training logs. Capture dataset loading, model initialization, training loop progress, loss/metrics, checkpoints, warnings, and errors.', type: 'Artifact' },
                             { name: 'End-to-end lineage', desc: 'Dataset → Version → Training Run → Metrics → Export tracked end-to-end. Every artifact tied to immutable dataset snapshot and explicit configuration.', type: 'Artifact' },
@@ -282,13 +293,16 @@ function AgenticPage({ navigate }) {
         <>
             <section className="agenticHero" id="agentic-ai">
                 <div className="container agenticHero__inner">
-                    <p className="agenticHero__kicker">ENTERPRISE AI SUITE / AI PLATFORM</p>
-                    <h1 className="agenticHero__title">Agentic AI</h1>
+                    <p className="agenticHero__kicker">VISION AI IDE / DESKTOP-FIRST PLATFORM</p>
+                    <h1 className="agenticHero__title">Vision AI Workflow</h1>
                 </div>
 
                 <div className="agenticHeroBand">
                     <div className="container agenticHeroBand__inner">
                         <div className="agenticHeroBand__copy">
+                            <p className="agenticHeroBand__text">
+                                Build, train, and deploy Vision AI models with full reproducibility. <strong>No coding required.</strong> Complete desktop-first IDE for datasets, annotation, training, evaluation, and export.
+                            </p>
                         </div>
                         <div className="agenticHeroBand__visual" aria-hidden="true">
                             <div className="agenticHeroVisual">
@@ -313,40 +327,37 @@ function AgenticPage({ navigate }) {
             <section className="differenceSection">
                 <div className="container">
                     <div className="differenceSection__header">
-                        <h2 className="differenceSection__title">The DataRobot difference</h2>
+                        <h2 className="differenceSection__title">The ML FORGE difference</h2>
                     </div>
 
                     <div className="differenceSection__frame">
                         <div className="agenticGrid">
                             <article className="agenticCard">
                                 <div className="diffIcon diffIcon--workflow" aria-hidden="true" />
-                                <h3 className="agenticCard__title">Develop multi-agent workflows by connecting, building, and managing AI tools</h3>
+                                <h3 className="agenticCard__title">Complete Vision AI workflow — no coding required</h3>
                                 <div className="agenticCard__bodyWrap">
                                     <p className="agenticCard__body">
-                                        Leverage LLMs, generative workflows, vector databases, predictive models, and multimodal data using a flexible unified
-                                        platform or pre-built components.
+                                        Build, train, and deploy Vision AI models through an intuitive desktop IDE. Manage datasets, annotate images, run training, and export models — all without writing code.
                                     </p>
                                 </div>
                             </article>
 
                             <article className="agenticCard">
                                 <div className="diffIcon diffIcon--deploy" aria-hidden="true" />
-                                <h3 className="agenticCard__title">Deploy complex agentic pipelines anywhere</h3>
+                                <h3 className="agenticCard__title">Local-first execution with full reproducibility</h3>
                                 <div className="agenticCard__bodyWrap">
                                     <p className="agenticCard__body">
-                                        Optimize cost, latency, and availability by managing multiple AI tool deployments across clouds or on premise on leading
-                                        GPUs without specialized infrastructure skills.
+                                        Run everything locally or on your infrastructure. Every dataset version, training config, and export is deterministic and reproducible. No cloud lock-in, no hidden dependencies.
                                     </p>
                                 </div>
                             </article>
 
                             <article className="agenticCard">
                                 <div className="diffIcon diffIcon--shield" aria-hidden="true" />
-                                <h3 className="agenticCard__title">Ensure safety with enterprise-grade security, monitoring, and governance</h3>
+                                <h3 className="agenticCard__title">Enterprise-ready with full traceability</h3>
                                 <div className="agenticCard__bodyWrap">
                                     <p className="agenticCard__body">
-                                        Trace and monitor every workflow, input, and output — down to the underlying data — to ensure production quality and
-                                        meet enterprise compliance standards.
+                                        Track Dataset → Version → Training Run → Metrics → Export. Every artifact tied to immutable snapshots. Audit-ready for regulated environments.
                                     </p>
                                 </div>
                             </article>
@@ -399,14 +410,19 @@ function AgenticPage({ navigate }) {
                             {activeCenterTab === 'suite' && (
                                 <div className="agenticCenterSection">
                                     <h3 className="agenticCenterSection__title">
-                                        Teams that <span className="agenticCenterSection__highlight">build</span> agents
+                                        Teams that <span className="agenticCenterSection__highlight">build</span> Vision AI
                                     </h3>
-                                    <p className="agenticCenterSection__subtitle">Build enterprise-grade agents on your terms.</p>
+                                    <p className="agenticCenterSection__subtitle">Complete desktop-first IDE for reproducible Vision AI training and deployment. <strong>No coding required.</strong></p>
                                 </div>
                             )}
                             <p className="agenticCenterLead">
                                 <strong>{activeItem.headline}</strong> {activeItem.body}
                             </p>
+                            {activeCenterTab === 'suite' && (
+                                <p className="agenticCenterSubLead">
+                                    Code-first Vision AI workflow development tools. Build Vision AI pipelines anywhere with greater velocity, then seamlessly prepare them for deployment. <strong>No coding required</strong> — use the visual IDE or Python API.
+                                </p>
+                            )}
 
                             {activeCenterTab === 'governance' && (
                                 <p className="agenticCenterMonitorLead">
@@ -420,7 +436,7 @@ function AgenticPage({ navigate }) {
                                     className={`agenticCenterDemo ${activeCenterTab === 'suite' ? 'agenticCenterDemo--split' : 'agenticCenterDemo--single'}`}
                                 >
                                     {activeCenterTab === 'suite' && (
-                                        <div className="agenticSuiteGrid">
+                                        <>
                                             <div className="agenticToolList" aria-label="Tool list">
                                                 {activeItem.tools.map((tool) => (
                                                     <div key={tool.name} className="agenticToolCard">
@@ -458,7 +474,7 @@ function AgenticPage({ navigate }) {
                                                     <div className="agenticSuiteChart__value">847</div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </>
                                     )}
 
                                     {activeCenterTab === 'components' ? (
@@ -684,40 +700,40 @@ function AgenticPage({ navigate }) {
                                     <div className="agenticCenterRow">
                                         <div className="agenticCenterRow__left">
                                             <span className="agenticCenterRow__icon agenticCenterRow__icon--open" aria-hidden="true" />
-                                            <div className="agenticCenterRow__title">Open architecture</div>
+                                            <div className="agenticCenterRow__title">Local-first execution</div>
                                         </div>
                                         <div className="agenticCenterRow__body">
-                                            Call any LLM or AI tool deployed in DataRobot with authentication from any dev environment.
+                                            All training happens locally or on user-controlled infrastructure. No cloud dependencies, no hidden services.
                                         </div>
                                     </div>
 
                                     <div className="agenticCenterRow">
                                         <div className="agenticCenterRow__left">
                                             <span className="agenticCenterRow__icon agenticCenterRow__icon--data" aria-hidden="true" />
-                                            <div className="agenticCenterRow__title">Data registry</div>
+                                            <div className="agenticCenterRow__title">Versioned datasets</div>
                                         </div>
                                         <div className="agenticCenterRow__body">
-                                            Give agents seamless access to datasets, and prepare or transform them as needed.
+                                            Every dataset change creates a new version. Locked versions are immutable and guarantee reproducibility.
                                         </div>
                                     </div>
 
                                     <div className="agenticCenterRow">
                                         <div className="agenticCenterRow__left">
                                             <span className="agenticCenterRow__icon agenticCenterRow__icon--tool" aria-hidden="true" />
-                                            <div className="agenticCenterRow__title">Tool registry</div>
+                                            <div className="agenticCenterRow__title">Explicit configuration</div>
                                         </div>
                                         <div className="agenticCenterRow__body">
-                                            Easily manage and version control all of your AI tools by storing them in a single team accessible repository.
+                                            All training parameters are explicit and versioned. Same dataset + same config = same result, every time.
                                         </div>
                                     </div>
 
                                     <div className="agenticCenterRow">
                                         <div className="agenticCenterRow__left">
                                             <span className="agenticCenterRow__icon agenticCenterRow__icon--vector" aria-hidden="true" />
-                                            <div className="agenticCenterRow__title">Vector store</div>
+                                            <div className="agenticCenterRow__title">End-to-end lineage</div>
                                         </div>
                                         <div className="agenticCenterRow__body">
-                                            Power RAG workflows with vector databases, embedding models, and re-rankers.
+                                            Track Dataset → Version → Training Run → Metrics → Export. Every artifact tied to immutable snapshots.
                                         </div>
                                     </div>
                                 </div>
@@ -727,18 +743,18 @@ function AgenticPage({ navigate }) {
                                 <div className="agenticBenefitGrid" aria-label="Component capabilities">
                                     <article className="agenticBenefit">
                                         <div className="agenticBenefit__icon agenticBenefit__icon--chat" aria-hidden="true" />
-                                        <div className="agenticBenefit__title">Chat securely with data sources</div>
-                                        <div className="agenticBenefit__body">Empower data decision makers to query and analyze data across data sources, tables, or data warehouses in a self-service way.</div>
+                                        <div className="agenticBenefit__title">Dataset lifecycle management</div>
+                                        <div className="agenticBenefit__body">Import, validate, version, and manage image and video datasets with explicit metadata and deterministic splits.</div>
                                     </article>
                                     <article className="agenticBenefit">
                                         <div className="agenticBenefit__icon agenticBenefit__icon--forecast" aria-hidden="true" />
-                                        <div className="agenticBenefit__title">Incorporate high fidelity forecasts</div>
-                                        <div className="agenticBenefit__body">Incorporate time series predictions into your agentic AI apps with automatically generated summaries.</div>
+                                        <div className="agenticBenefit__title">Annotation with review gates</div>
+                                        <div className="agenticBenefit__body">Label images and videos with review-gated changes, full history, and dataset version safety.</div>
                                     </article>
                                     <article className="agenticBenefit">
                                         <div className="agenticBenefit__icon agenticBenefit__icon--content" aria-hidden="true" />
-                                        <div className="agenticBenefit__title">Generate personalized content</div>
-                                        <div className="agenticBenefit__body">Give your agents the ability to turn outputs or predictions into usable emails or personalized customer-facing content.</div>
+                                        <div className="agenticBenefit__title">Reproducible training runs</div>
+                                        <div className="agenticBenefit__body">Run training with explicit configs, tracked metrics, and immutable artifacts tied to dataset versions.</div>
                                     </article>
                                 </div>
                             )}

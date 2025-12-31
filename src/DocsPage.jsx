@@ -20,42 +20,42 @@ function DocsPage() {
 
     const pages = useMemo(
         () => ({
-            '/docs/getting-started/what-is-braintrain': {
+            '/docs/getting-started/what-is-mlforge': {
                 group: 'Getting started',
-                title: 'What is BrainTrain',
+                title: 'What is ML FORGE',
                 lede:
-                    'BrainTrain is a desktop-first Vision AI IDE built for local execution, deterministic pipelines, and reproducible results.',
+                    'ML FORGE is a desktop-first Vision AI IDE built for local execution, deterministic pipelines, and reproducible results.',
                 sections: [
                     {
                         title: 'Why this exists',
                         body:
-                            'Vision systems fail in production when data and training inputs drift. BrainTrain makes every input explicit and file-backed so you can reproduce results across machines and over time.',
+                            'Vision systems fail in production when data and training inputs drift. ML FORGE makes every input explicit and file-backed so you can reproduce results across machines and over time.',
                     },
                     {
-                        title: 'What BrainTrain is',
+                        title: 'What ML FORGE is',
                         body:
                             'A local-first IDE for the end-to-end computer vision workflow: dataset → annotation → review → train → evaluate → export. It is designed for offline, on-prem, and edge environments.',
                     },
                     {
-                        title: 'What BrainTrain does not try to solve',
+                        title: 'What ML FORGE does not try to solve',
                         body:
-                            'It is not a cloud SaaS, not AutoML, and not an agent/LLM orchestration platform. BrainTrain focuses on deterministic vision workflows and audit-ready artifacts.',
+                            'It is not a cloud SaaS, not AutoML, and not an agent/LLM orchestration platform. ML FORGE focuses on deterministic vision workflows and audit-ready artifacts.',
                     },
                     {
-                        title: 'Who BrainTrain is for',
+                        title: 'Who ML FORGE is for',
                         body:
                             'ML engineers, CV engineers, robotics teams, and applied AI teams building production vision systems in regulated or reliability-critical environments.',
                     },
                     {
-                        title: 'Who BrainTrain is not for',
+                        title: 'Who ML FORGE is not for',
                         body: 'Teams looking for hosted training infrastructure, cloud-managed pipelines, or generic ML platform features.',
                     },
                 ],
             },
             '/docs/getting-started/install': {
                 group: 'Getting started',
-                title: 'Install BrainTrain',
-                lede: 'Install BrainTrain locally. GPU is optional. CPU is supported.',
+                title: 'Install ML FORGE',
+                lede: 'Install ML FORGE locally. GPU is optional. CPU is supported.',
                 sections: [
                     {
                         title: 'Why this exists',
@@ -69,10 +69,10 @@ function DocsPage() {
                     {
                         title: 'Offline installation philosophy',
                         body:
-                            'BrainTrain is designed to run without cloud accounts. Installers and dependencies can be staged and installed offline when required by policy.',
+                            'ML FORGE is designed to run without cloud accounts. Installers and dependencies can be staged and installed offline when required by policy.',
                     },
                     {
-                        title: 'Where BrainTrain stores data locally',
+                        title: 'Where ML FORGE stores data locally',
                         body:
                             'All project state lives inside your workspace. Datasets, annotations, runs, exports, and configs are file-backed and reviewable.',
                     },
@@ -85,7 +85,7 @@ function DocsPage() {
             },
             '/docs/getting-started/workspace-overview': {
                 group: 'Getting started',
-                title: 'BrainTrain Workspace Overview',
+                title: 'ML FORGE Workspace Overview',
                 lede: 'A workspace is a root folder. Projects live inside it. Everything is file-backed.',
                 sections: [
                     {
@@ -108,12 +108,12 @@ function DocsPage() {
             '/docs/getting-started/first-project': {
                 group: 'Getting started',
                 title: 'Your First Vision AI Project',
-                lede: 'A step-by-step tutorial that mirrors the BrainTrain workflow.',
+                lede: 'A step-by-step tutorial that mirrors the ML FORGE workflow.',
                 sections: [
                     {
                         title: 'Why this exists',
                         body:
-                            'If you can do the workflow once end-to-end, you can reproduce it forever. This tutorial teaches the exact sequence BrainTrain enforces.',
+                            'If you can do the workflow once end-to-end, you can reproduce it forever. This tutorial teaches the exact sequence ML FORGE enforces.',
                     },
                     {
                         title: 'Step-by-step',
@@ -129,22 +129,22 @@ function DocsPage() {
             '/docs/core-workflow/dataset-manager': {
                 group: 'Core workflow',
                 title: 'Dataset Manager',
-                lede: 'The Dataset Manager is the foundation of BrainTrain. Every model, training run, evaluation, and export begins here.',
+                lede: 'The Dataset Manager is the foundation of ML FORGE. Every model, training run, evaluation, and export begins here.',
                 sections: [
                     {
                         title: 'Overview',
                         body:
-                            "BrainTrain treats datasets as versioned, immutable, and auditable assets — not folders of files.\n\nThe Dataset Manager provides a complete lifecycle for Vision AI datasets:\n\nImport raw images and videos\nSupport multiple task types and models\nReview, validate, and version data\nCreate deterministic splits\nManage classes and identities\nApply dataset tools safely\nGuarantee reproducibility across training and export\n\nAll dataset operations are explicit, traceable, and reproducible.",
+                            "ML FORGE treats datasets as versioned, immutable, and auditable assets — not folders of files.\n\nThe Dataset Manager provides a complete lifecycle for Vision AI datasets:\n\nImport raw images and videos\nSupport multiple task types and models\nReview, validate, and version data\nCreate deterministic splits\nManage classes and identities\nApply dataset tools safely\nGuarantee reproducibility across training and export\n\nAll dataset operations are explicit, traceable, and reproducible.",
                     },
                     {
                         title: 'Supported Dataset Types',
                         body:
-                            'BrainTrain supports multi-model and multi-task datasets:\n\nImage Classification\nObject Detection (YOLO-style)\nInstance Segmentation (future-ready)\nFace Recognition datasets\nMulti-task datasets (shared images, different labels)\nVideo datasets (frame-based)\n\nEach dataset explicitly declares its type and compatible models.',
+                            'ML FORGE supports multi-model and multi-task datasets:\n\nImage Classification\nObject Detection (YOLO-style)\nInstance Segmentation (future-ready)\nFace Recognition datasets\nMulti-task datasets (shared images, different labels)\nVideo datasets (frame-based)\n\nEach dataset explicitly declares its type and compatible models.',
                     },
                     {
                         title: 'Dataset Lifecycle',
                         body:
-                            'A dataset in BrainTrain follows this lifecycle:\n\nUpload dataset\nPreview & explore\nValidate structure\nManage classes\nConfigure splits\nApply tools (optional)\nCreate version snapshot\nLock for training\nUse in training and export\n\nOnce locked, a dataset version is immutable.',
+                            'A dataset in ML FORGE follows this lifecycle:\n\nUpload dataset\nPreview & explore\nValidate structure\nManage classes\nConfigure splits\nApply tools (optional)\nCreate version snapshot\nLock for training\nUse in training and export\n\nOnce locked, a dataset version is immutable.',
                     },
                     {
                         title: 'Your Datasets',
@@ -154,7 +154,7 @@ function DocsPage() {
                     {
                         title: 'Upload Dataset',
                         body:
-                            "Purpose\n\nUpload raw data into BrainTrain’s managed dataset system.\n\nSupported Inputs\n\nImage folders\nVideo files\nPre-labeled datasets (YOLO, COCO, custom JSON)\nFace recognition folder structures\n\nUpload Behavior\n\nFiles are copied into BrainTrain-managed storage\nMetadata is generated automatically\nDataset enters Draft state\nNo training is allowed at this stage\n\nUploading data does not make it training-ready.",
+                            "Purpose\n\nUpload raw data into ML FORGE’s managed dataset system.\n\nSupported Inputs\n\nImage folders\nVideo files\nPre-labeled datasets (YOLO, COCO, custom JSON)\nFace recognition folder structures\n\nUpload Behavior\n\nFiles are copied into ML FORGE-managed storage\nMetadata is generated automatically\nDataset enters Draft state\nNo training is allowed at this stage\n\nUploading data does not make it training-ready.",
                     },
                     {
                         title: 'Preview & Explore',
@@ -189,7 +189,7 @@ function DocsPage() {
                     {
                         title: 'Face Recognition Dataset Support',
                         body:
-                            'BrainTrain provides first-class support for face recognition datasets.\n\nFeatures\n\nIdentity-based dataset structure\nIdentity imbalance detection\nIdentity-aware train/val/test splits\nIdentity-level validation checks\nEmbedding visualization (planned)\n\nThis ensures fair and stable face recognition training.',
+                            'ML FORGE provides first-class support for face recognition datasets.\n\nFeatures\n\nIdentity-based dataset structure\nIdentity imbalance detection\nIdentity-aware train/val/test splits\nIdentity-level validation checks\nEmbedding visualization (planned)\n\nThis ensures fair and stable face recognition training.',
                     },
                     {
                         title: 'Multi-Model Dataset Support',
@@ -199,14 +199,14 @@ function DocsPage() {
                     {
                         title: 'Reproducibility Guarantee',
                         body:
-                            'Every dataset version records:\n\nInput files\nAnnotations\nClasses\nSplits\nTool operations\n\nTraining, evaluation, and export always link back to the exact dataset version.\n\nKey Design Principle\n\nIf you cannot reproduce the dataset, you cannot trust the model.\n\nBrainTrain enforces dataset discipline so production failures don’t happen silently.',
+                            'Every dataset version records:\n\nInput files\nAnnotations\nClasses\nSplits\nTool operations\n\nTraining, evaluation, and export always link back to the exact dataset version.\n\nKey Design Principle\n\nIf you cannot reproduce the dataset, you cannot trust the model.\n\nML FORGE enforces dataset discipline so production failures don’t happen silently.',
                     },
                 ],
             },
             '/docs/core-workflow/annotation-studio': {
                 group: 'Core workflow',
                 title: 'Annotation Studio',
-                lede: 'Annotation Studio is BrainTrain’s controlled environment for labeling vision datasets with review-gated changes, full history, and dataset version safety.',
+                lede: 'Annotation Studio is ML FORGE’s controlled environment for labeling vision datasets with review-gated changes, full history, and dataset version safety.',
                 sections: [
                     {
                         title: 'Purpose',
@@ -303,7 +303,7 @@ function DocsPage() {
                     {
                         title: 'Overview',
                         body:
-                            'It is designed for:\n\nDebugging failed runs\nUnderstanding training behavior\nAuditing experiments\nReproducing results exactly\n\nUnlike cloud dashboards, BrainTrain logs are local, explicit, and permanent.',
+                            'It is designed for:\n\nDebugging failed runs\nUnderstanding training behavior\nAuditing experiments\nReproducing results exactly\n\nUnlike cloud dashboards, ML FORGE logs are local, explicit, and permanent.',
                     },
                     {
                         title: 'Purpose of Training Logs',
@@ -361,16 +361,16 @@ function DocsPage() {
                             'Always review logs after a failed run\nExport logs for important experiments\nUse logs to compare behavior across model versions\nKeep logs alongside exported artifacts\nTreat logs as part of your experiment record',
                     },
                     {
-                        title: 'Why BrainTrain Logs Are Different',
+                        title: 'Why ML FORGE Logs Are Different',
                         body:
-                            'BrainTrain logs are:\n\nLocal-first\nDeterministic\nNon-aggregated\nFully auditable\nDeveloper-readable\n\nThey are designed for serious ML engineering, not marketing dashboards.',
+                            'ML FORGE logs are:\n\nLocal-first\nDeterministic\nNon-aggregated\nFully auditable\nDeveloper-readable\n\nThey are designed for serious ML engineering, not marketing dashboards.',
                     },
                 ],
             },
             '/docs/core-workflow/training-and-runs': {
                 group: 'Core workflow',
                 title: 'Training Engine (Training Dashboard)',
-                lede: 'The Training Engine is the execution core of BrainTrain. It transforms locked datasets and selected models into deterministic training runs with full metric tracking, GPU visibility, and export-ready artifacts.',
+                lede: 'The Training Engine is the execution core of ML FORGE. It transforms locked datasets and selected models into deterministic training runs with full metric tracking, GPU visibility, and export-ready artifacts.',
                 sections: [
                     {
                         title: 'Overview',
@@ -435,7 +435,7 @@ function DocsPage() {
                     {
                         title: 'Determinism & Reproducibility',
                         body:
-                            'BrainTrain guarantees:\n\nSame dataset version + same config = same result\nNo silent parameter changes\nNo mutable training state\nFull lineage tracking\n\nEvery run can be reproduced later.',
+                            'ML FORGE guarantees:\n\nSame dataset version + same config = same result\nNo silent parameter changes\nNo mutable training state\nFull lineage tracking\n\nEvery run can be reproduced later.',
                     },
                     {
                         title: 'Failure Handling',
@@ -462,7 +462,7 @@ function DocsPage() {
                     {
                         title: 'Why this exists',
                         body:
-                            'Without consistent benchmarks, teams ship regressions. BrainTrain ties comparisons to dataset version and config so results remain meaningful.',
+                            'Without consistent benchmarks, teams ship regressions. ML FORGE ties comparisons to dataset version and config so results remain meaningful.',
                     },
                     {
                         title: 'What you can do',
@@ -478,7 +478,7 @@ function DocsPage() {
                     {
                         title: 'Overview',
                         body:
-                            'BrainTrain exports models locally, with full reproducibility, explicit configuration, and zero cloud dependency.\n\nThe Export workflow enables you to:\n\nConvert models into industry-standard inference formats\nApply precision and quantization optimizations\nTarget CPU, GPU, or edge hardware\nTrack export jobs and logs\nProduce immutable, reusable artifacts\n\nAll exports are deterministic and tied to:\n\nModel version\nDataset snapshot\nTraining configuration\nExport configuration',
+                            'ML FORGE exports models locally, with full reproducibility, explicit configuration, and zero cloud dependency.\n\nThe Export workflow enables you to:\n\nConvert models into industry-standard inference formats\nApply precision and quantization optimizations\nTarget CPU, GPU, or edge hardware\nTrack export jobs and logs\nProduce immutable, reusable artifacts\n\nAll exports are deterministic and tied to:\n\nModel version\nDataset snapshot\nTraining configuration\nExport configuration',
                     },
                     {
                         title: 'Available Models Panel',
@@ -503,7 +503,7 @@ function DocsPage() {
                     {
                         title: 'Export Settings',
                         body:
-                            'Location: Below format selection\n\nDevice Selection\n\nChoose where the export should be optimized for:\n\nAuto – BrainTrain selects the optimal device\nCPU – CPU-only export\nGPU – GPU-optimized export\n\nQuantization\n\nControls numerical precision and model size.\n\nFP32 – Full Precision\nBest accuracy\nLargest file size\n\nFP16 – Half Precision\n2× smaller than FP32\nGood balance of speed and accuracy\n\nINT8 – Quantized\nSmallest size\nFastest inference\nMay reduce accuracy\n\nINT8 is recommended for edge and mobile deployment.\n\nDynamic Input Shapes\n\nAllow Variable Input Sizes\nEnables dynamic batch sizes\nSupports variable image dimensions\nUseful for real-world inference pipelines\n\nOptimization\n\nEnable Optimizations\nApplies:\n\nGraph simplification\nOperator fusion\nInference-time optimizations\n\nRecommended for production exports.',
+                            'Location: Below format selection\n\nDevice Selection\n\nChoose where the export should be optimized for:\n\nAuto – ML FORGE selects the optimal device\nCPU – CPU-only export\nGPU – GPU-optimized export\n\nQuantization\n\nControls numerical precision and model size.\n\nFP32 – Full Precision\nBest accuracy\nLargest file size\n\nFP16 – Half Precision\n2× smaller than FP32\nGood balance of speed and accuracy\n\nINT8 – Quantized\nSmallest size\nFastest inference\nMay reduce accuracy\n\nINT8 is recommended for edge and mobile deployment.\n\nDynamic Input Shapes\n\nAllow Variable Input Sizes\nEnables dynamic batch sizes\nSupports variable image dimensions\nUseful for real-world inference pipelines\n\nOptimization\n\nEnable Optimizations\nApplies:\n\nGraph simplification\nOperator fusion\nInference-time optimizations\n\nRecommended for production exports.',
                     },
                     {
                         title: 'Start Export',
@@ -540,12 +540,12 @@ function DocsPage() {
             '/docs/model-zoo': {
                 group: 'Models',
                 title: 'Model Zoo',
-                lede: 'Browse supported architectures, backbones, and task-specific presets that BrainTrain can train, evaluate, and export reproducibly.',
+                lede: 'Browse supported architectures, backbones, and task-specific presets that ML FORGE can train, evaluate, and export reproducibly.',
                 sections: [
                     {
                         title: 'Overview',
                         body:
-                            'The Model Zoo is a curated set of model definitions that BrainTrain can run locally. Each entry declares supported tasks, expected dataset formats, and export targets.',
+                            'The Model Zoo is a curated set of model definitions that ML FORGE can run locally. Each entry declares supported tasks, expected dataset formats, and export targets.',
                     },
                     {
                         title: 'What you get',
@@ -567,7 +567,7 @@ function DocsPage() {
                     {
                         title: 'Overview',
                         body:
-                            'Benchmarking in BrainTrain is:\n\nDataset-aware\nMetric-driven\nVersion-locked\nAudit-ready',
+                            'Benchmarking in ML FORGE is:\n\nDataset-aware\nMetric-driven\nVersion-locked\nAudit-ready',
                     },
                     {
                         title: 'Purpose of Benchmarking',
@@ -617,7 +617,7 @@ function DocsPage() {
                     {
                         title: 'Relationship to Other Tabs',
                         body:
-                            'Benchmark connects to:\n\nTraining Logs → understand why metrics differ\nInference → validate qualitative behavior\nExport → choose the best model to deploy\n\nBenchmarking is the decision layer of BrainTrain.',
+                            'Benchmark connects to:\n\nTraining Logs → understand why metrics differ\nInference → validate qualitative behavior\nExport → choose the best model to deploy\n\nBenchmarking is the decision layer of ML FORGE.',
                     },
                     {
                         title: 'Best Practices',
@@ -625,9 +625,9 @@ function DocsPage() {
                             'Always benchmark before exporting\nCompare against a known baseline\nKeep datasets fixed\nUse multiple metrics\nReview logs for anomalies',
                     },
                     {
-                        title: 'Why BrainTrain Benchmarking Is Different',
+                        title: 'Why ML FORGE Benchmarking Is Different',
                         body:
-                            'BrainTrain benchmarking is:\n\nLocal\nTransparent\nDeterministic\nDataset-version aware\n\nNo cloud black boxes. No hidden preprocessing.',
+                            'ML FORGE benchmarking is:\n\nLocal\nTransparent\nDeterministic\nDataset-version aware\n\nNo cloud black boxes. No hidden preprocessing.',
                     },
                 ],
             },
@@ -656,7 +656,7 @@ function DocsPage() {
                     {
                         title: 'Overview',
                         body:
-                            'It allows you to run predictions on images, folders, or streams using exact exported weights and configs.\n\nInference in BrainTrain is:\n\nLocal-first\nDeterministic\nArtifact-driven\nFully traceable back to training',
+                            'It allows you to run predictions on images, folders, or streams using exact exported weights and configs.\n\nInference in ML FORGE is:\n\nLocal-first\nDeterministic\nArtifact-driven\nFully traceable back to training',
                     },
                     {
                         title: 'Purpose of Inference',
@@ -666,7 +666,7 @@ function DocsPage() {
                     {
                         title: 'Supported Inference Modes',
                         body:
-                            'BrainTrain supports multiple inference workflows:\n\nImage Inference\n\nSingle image prediction\nVisual overlay (boxes, masks, landmarks)\nConfidence scores per class\n\nFolder / Batch Inference\n\nRun inference on a directory of images\nUseful for sanity checks and QA\nProduces aggregated results\n\nVideo Inference (optional)\n\nFrame-by-frame prediction\nTemporal consistency validation\nPerformance profiling\n\nCamera / Stream (optional)\n\nReal-time inference testing\nLatency and throughput validation',
+                            'ML FORGE supports multiple inference workflows:\n\nImage Inference\n\nSingle image prediction\nVisual overlay (boxes, masks, landmarks)\nConfidence scores per class\n\nFolder / Batch Inference\n\nRun inference on a directory of images\nUseful for sanity checks and QA\nProduces aggregated results\n\nVideo Inference (optional)\n\nFrame-by-frame prediction\nTemporal consistency validation\nPerformance profiling\n\nCamera / Stream (optional)\n\nReal-time inference testing\nLatency and throughput validation',
                     },
                     {
                         title: 'Model Selection',
@@ -714,9 +714,9 @@ function DocsPage() {
             {
                 title: 'Getting started',
                 items: [
-                    { title: 'What is BrainTrain', href: '/docs/getting-started/what-is-braintrain' },
-                    { title: 'Install BrainTrain', href: '/docs/getting-started/install' },
-                    { title: 'BrainTrain Workspace Overview', href: '/docs/getting-started/workspace-overview' },
+                    { title: 'What is ML FORGE', href: '/docs/getting-started/what-is-mlforge' },
+                    { title: 'Install ML FORGE', href: '/docs/getting-started/install' },
+                    { title: 'ML FORGE Workspace Overview', href: '/docs/getting-started/workspace-overview' },
                     { title: 'Your First Vision AI Project', href: '/docs/getting-started/first-project' },
                 ],
             },
@@ -752,7 +752,7 @@ function DocsPage() {
 
     const isIndex = path === '/docs' || path === '/docs/'
     const currentPage = pages[path]
-    const fallbackPage = pages['/docs/getting-started/what-is-braintrain']
+    const fallbackPage = pages['/docs/getting-started/what-is-mlforge']
 
     return (
         <div className="docsTheme docsTheme--dark">
@@ -764,7 +764,7 @@ function DocsPage() {
                                 <div className="docsIndexHeroCopy">
                                     <div className="docsIndexHeroCopy__accent" aria-hidden="true" />
                                     <div className="docsIndexHeroCopy__text">
-                                        <h1 className="docsIndexHero__title">Welcome to BrainTrain documentation</h1>
+                                        <h1 className="docsIndexHero__title">Welcome to ML FORGE documentation</h1>
                                         <p className="docsIndexHero__subtitle">
                                             Everything you need to build, train, evaluate, and ship Vision AI — locally and reproducibly.
                                         </p>
@@ -798,10 +798,10 @@ function DocsPage() {
                             <div className="docsIndexGrid">
                                 <a
                                     className="docsTopicCard"
-                                    href="/docs/getting-started/what-is-braintrain"
+                                    href="/docs/getting-started/what-is-mlforge"
                                     onClick={(e) => {
                                         e.preventDefault()
-                                        navigate('/docs/getting-started/what-is-braintrain')
+                                        navigate('/docs/getting-started/what-is-mlforge')
                                     }}
                                 >
                                     <div className="docsTopicCard__titleRow">
@@ -809,7 +809,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Install BrainTrain, understand the workspace, and run your first Vision AI pipeline.
+                                        Install ML FORGE, understand the workspace, and run your first Vision AI pipeline.
                                     </div>
                                 </a>
 
@@ -979,14 +979,14 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Detailed reference for BrainTrain UI panels, controls, and workflows.
+                                        Detailed reference for ML FORGE UI panels, controls, and workflows.
                                     </div>
                                 </a>
 
                             </div>
 
                             <div className="docsIndexBottom">
-                                <a className="docsIndexBottom__link" href="#">Looking for documentation from earlier BrainTrain builds?</a>
+                                <a className="docsIndexBottom__link" href="#">Looking for documentation from earlier ML FORGE builds?</a>
                             </div>
                         </div>
                     </section>
@@ -1017,7 +1017,7 @@ function DocsPage() {
 
                         <article className="docsContent" aria-label="Documentation content">
                             <div className="docsContent__meta">
-                                <span className="docsPill">BrainTrain Docs</span>
+                                <span className="docsPill">ML FORGE Docs</span>
                                 <span className="docsMetaDot" aria-hidden="true" />
                                 <span>{(currentPage || fallbackPage).group}</span>
                             </div>

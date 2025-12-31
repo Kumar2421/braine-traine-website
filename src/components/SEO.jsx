@@ -5,7 +5,7 @@ import { useEffect } from 'react'
  */
 export function SEO({ title, description, keywords, ogImage, path }) {
   useEffect(() => {
-    const baseTitle = 'BrainTrain — Desktop-first Vision AI training studio'
+    const baseTitle = 'ML FORGE — Desktop-first Vision AI training studio'
     const fullTitle = title ? `${title} | ${baseTitle}` : baseTitle
     const baseDescription =
       description ||
