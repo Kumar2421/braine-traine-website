@@ -714,6 +714,31 @@
   }
 }
 
+/* Show nav on mobile when toggled */
+.topbar--agentic .nav--open {
+  display: flex !important;
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(132, 247, 168, 0.98);
+  border-top: 1px solid rgba(11, 15, 18, 0.08);
+  padding: 16px;
+  gap: 12px;
+  z-index: 21;
+}
+
+@media (min-width: 1020px) {
+  .topbar--agentic .nav--open {
+    position: static;
+    flex-direction: row;
+    background: transparent;
+    border-top: none;
+    padding: 0;
+  }
+}
+
 .topbar--agentic .nav__link {
   padding: 8px 10px;
   border-radius: 999px;
@@ -813,6 +838,7 @@
 
 /* Agentic page nav toggle styling */
 .topbar--agentic .navToggle {
+  display: flex;
   border-color: rgba(11, 15, 18, 0.18);
   background: rgba(11, 15, 18, 0.06);
   color: rgba(11, 15, 18, 0.95);
@@ -2868,11 +2894,15 @@
 
 .agenticCenterSection__title {
   margin: 0 0 8px;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.95) !important;
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
+}
+
+.agenticCenterSection__title * {
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .agenticCenterSection__highlight {
@@ -2881,35 +2911,47 @@
 
 .agenticCenterSection__subtitle {
   margin: 0;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.88) !important;
   font-size: 18px;
   font-weight: 500;
   line-height: 1.4;
 }
 
+.agenticCenterSection__subtitle * {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.agenticCenterSection__subtitle strong {
+  color: rgba(132, 247, 168, 0.95) !important;
+}
+
 .agenticCenterLead {
   margin: 0 0 18px;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.75) !important;
   line-height: 1.6;
   font-size: 16px;
   font-weight: 400;
 }
 
 .agenticCenterLead strong {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95) !important;
   font-weight: 600;
+}
+
+.agenticCenterLead * {
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .agenticCenterSubLead {
   margin: 0 0 20px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.7) !important;
   line-height: 1.6;
   font-size: 15px;
   font-weight: 400;
 }
 
 .agenticCenterSubLead strong {
-  color: rgba(132, 247, 168, 0.95);
+  color: rgba(132, 247, 168, 0.95) !important;
   font-weight: 600;
 }
 
@@ -7570,6 +7612,638 @@
   .agenticCodePanel__code {
     font-size: 11px;
     padding: 12px;
+    overflow-x: auto;
+  }
+
+  /* Agentic Hero Band */
+  .agenticHeroBand__inner {
+    flex-direction: column;
+    gap: 20px;
+    padding: 0 16px;
+  }
+
+  .agenticHeroBand__copy {
+    order: 2;
+  }
+
+  .agenticHeroBand__text {
+    font-size: clamp(14px, 3.5vw, 16px);
+    line-height: 1.6;
+  }
+
+  .agenticHeroBand__visual {
+    order: 1;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Difference Section */
+  .differenceSection {
+    padding: 24px 0 28px;
+  }
+
+  .differenceSection__header {
+    padding: 6px 16px 16px;
+  }
+
+  .differenceSection__title {
+    font-size: clamp(24px, 6vw, 32px);
+  }
+
+  .differenceSection__frame {
+    padding: 16px;
+    margin: 0 16px;
+  }
+
+  .differenceSection .agenticGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .differenceSection .agenticCard {
+    padding: 20px;
+    min-height: auto;
+  }
+
+  .differenceSection .agenticCard__title {
+    font-size: 14px;
+  }
+
+  .differenceSection .agenticCard__body {
+    font-size: 12px;
+  }
+
+  /* Agentic Center Section */
+  .agenticCenter {
+    padding: 12px 0 18px;
+  }
+
+  .agenticCenter__inner {
+    padding: 0 16px;
+  }
+
+  .agenticCenter__right {
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+
+  .agenticCenterHeader {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .agenticCenterHeader__icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .agenticCenterHeader__title {
+    font-size: clamp(20px, 5vw, 24px);
+  }
+
+  .agenticCenterSection__title {
+    font-size: clamp(20px, 5vw, 24px);
+  }
+
+  .agenticCenterSection__subtitle {
+    font-size: clamp(14px, 3.5vw, 16px);
+  }
+
+  .agenticCenterLead {
+    font-size: clamp(14px, 3.5vw, 15px);
+    margin-bottom: 14px;
+  }
+
+  .agenticCenterSubLead {
+    font-size: clamp(13px, 3vw, 14px);
+    margin-bottom: 16px;
+  }
+
+  .agenticCenterMonitorLead {
+    font-size: clamp(13px, 3vw, 14px);
+  }
+
+  /* Agentic Demo Frame */
+  .agenticDemoFrame {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .agenticCenterDemo {
+    gap: 14px;
+  }
+
+  /* Agentic Tool List */
+  .agenticToolList {
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .agenticToolCard {
+    padding: 12px;
+  }
+
+  .agenticToolCard__name {
+    font-size: 13px;
+  }
+
+  .agenticToolCard__desc {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .agenticToolCard__pill {
+    font-size: 10px;
+    padding: 0 8px;
+    height: 20px;
+  }
+
+  /* Agentic Suite Charts */
+  .agenticSuiteCharts {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .agenticSuiteChart {
+    padding: 10px;
+  }
+
+  .agenticSuiteChart__title {
+    font-size: 10px;
+  }
+
+  .agenticSuiteChart__value {
+    font-size: 16px;
+  }
+
+  /* Agentic Gallery */
+  .agenticGallery {
+    padding: 12px;
+  }
+
+  .agenticGallery__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .agenticGallery__top {
+    font-size: 13px;
+  }
+
+  .agenticGallery__action {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .agenticGallery__grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .agenticGallery__card {
+    padding: 12px;
+  }
+
+  .agenticGallery__name {
+    font-size: 13px;
+  }
+
+  .agenticGallery__desc {
+    font-size: 11px;
+  }
+
+  /* Agentic Chart Panel */
+  .agenticChartPanel {
+    padding: 12px;
+  }
+
+  .agenticChartPanel__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .agenticChartPanel__title {
+    font-size: 11px;
+  }
+
+  .agenticChartPanel__pill {
+    font-size: 10px;
+    padding: 0 6px;
+    height: 18px;
+  }
+
+  .agenticChartPanel__chart {
+    height: 100px;
+    padding: 10px;
+  }
+
+  .agenticChartPanel__chart--training {
+    height: 200px;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .agenticChartPanel__yaxis {
+    flex-direction: row;
+    min-width: auto;
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .agenticChartPanel__svg {
+    height: 140px;
+  }
+
+  .agenticChartPanel__xaxis {
+    font-size: 10px;
+    margin-top: 6px;
+  }
+
+  .agenticChartPanel__legend {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+
+  .agenticChartPanel__legendItem {
+    font-size: 10px;
+  }
+
+  .agenticChartPanel__meta {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .agenticChartMetaItem {
+    padding: 8px;
+  }
+
+  .agenticChartMetaItem__label {
+    font-size: 10px;
+  }
+
+  .agenticChartMetaItem__value {
+    font-size: 12px;
+  }
+
+  .agenticChartPanel__formats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .agenticChartFormatCard {
+    padding: 12px;
+  }
+
+  .agenticChartFormatCard__name {
+    font-size: 13px;
+  }
+
+  .agenticChartFormatCard__desc {
+    font-size: 11px;
+  }
+
+  .agenticChartFormatCard__tags span {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  /* Agentic Trace Panel */
+  .agenticTracePanel {
+    padding: 12px;
+  }
+
+  .agenticTracePanel__frame {
+    border-radius: 10px;
+  }
+
+  .agenticTracePanel__top {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .agenticTracePanel__body {
+    height: auto;
+    min-height: 200px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .agenticTracePanel__col {
+    padding: 10px;
+  }
+
+  .agenticTracePanel__col--mid {
+    order: 1;
+  }
+
+  .agenticTracePanel__col--left {
+    order: 2;
+  }
+
+  .agenticTracePanel__col--right {
+    order: 3;
+  }
+
+  .agenticTracePanel__list {
+    gap: 6px;
+  }
+
+  .agenticTracePanel__item {
+    padding: 8px;
+  }
+
+  .agenticTracePanel__itemStatus {
+    font-size: 10px;
+  }
+
+  .agenticTracePanel__itemTime {
+    font-size: 10px;
+  }
+
+  .agenticTracePanel__itemDuration {
+    font-size: 9px;
+  }
+
+  .agenticTracePanel__timeline {
+    gap: 12px;
+  }
+
+  .agenticTracePanel__timelineLabel {
+    font-size: 10px;
+  }
+
+  .agenticTracePanel__timelineBar {
+    height: 5px;
+  }
+
+  .agenticTracePanel__details {
+    gap: 10px;
+  }
+
+  .agenticTracePanel__detailTitle {
+    font-size: 10px;
+  }
+
+  .agenticTracePanel__detailValue {
+    font-size: 12px;
+  }
+
+  /* Agentic Code Panel */
+  .agenticCodePanel {
+    border-radius: 10px;
+  }
+
+  .agenticCodePanel__top {
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+
+  .agenticCodePanel__code {
+    font-size: 10px;
+    line-height: 1.5;
+    padding: 10px;
+    overflow-x: auto;
+    word-break: break-word;
+    white-space: pre;
+    max-width: 100%;
+  }
+
+  .agenticCodePanel {
+    overflow-x: auto;
+  }
+
+  /* Agentic Gov Top */
+  .agenticGovTop {
+    padding-top: 12px;
+  }
+
+  .agenticGovTopRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .agenticGovTopRow__left {
+    gap: 10px;
+  }
+
+  .agenticGovTopRow__icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .agenticGovTopRow__title {
+    font-size: 13px;
+  }
+
+  .agenticGovTopRow__body {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* Agentic Center Rows */
+  .agenticCenterRows {
+    margin-top: 12px;
+  }
+
+  .agenticCenterRow {
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .agenticCenterRow__left {
+    gap: 10px;
+  }
+
+  .agenticCenterRow__icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .agenticCenterRow__title {
+    font-size: 14px;
+  }
+
+  .agenticCenterRow__body {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Agentic Benefit Grid */
+  .agenticBenefitGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .agenticBenefit {
+    padding: 12px;
+  }
+
+  .agenticBenefit__icon {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 10px;
+  }
+
+  .agenticBenefit__title {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .agenticBenefit__body {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 640px) {
+  .agenticHero {
+    padding: 16px 0 0;
+  }
+
+  .agenticHeroBand {
+    padding: 12px 0 16px;
+  }
+
+  .agenticCenter {
+    padding: 10px 0 14px;
+  }
+
+  .agenticCenter__right {
+    padding: 16px 12px;
+  }
+
+  .agenticCenterTab {
+    min-width: 140px;
+    padding: 8px 10px;
+  }
+
+  .agenticCenterTab__icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .agenticCenterTab__label {
+    font-size: 10px;
+  }
+
+  .agenticCenterHeader__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .agenticCenterHeader__title {
+    font-size: clamp(18px, 4.5vw, 20px);
+  }
+
+  .agenticCenterSection__title {
+    font-size: clamp(18px, 4.5vw, 20px);
+  }
+
+  .agenticToolCard {
+    padding: 10px;
+  }
+
+  .agenticToolCard__name {
+    font-size: 12px;
+  }
+
+  .agenticToolCard__desc {
+    font-size: 10px;
+  }
+
+  .agenticChartPanel__chart--training {
+    height: 180px;
+    padding: 10px;
+  }
+
+  .agenticChartPanel__svg {
+    height: 120px;
+  }
+
+  .agenticTracePanel__body {
+    min-height: 180px;
+    padding: 8px;
+  }
+
+  .agenticCodePanel__code {
+    font-size: 9px;
+    padding: 8px;
+    overflow-x: auto;
+    white-space: pre;
+    max-width: 100%;
+  }
+
+  .agenticCodePanel {
+    overflow-x: auto;
+  }
+
+  .differenceSection .agenticCard {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .agenticHero__title {
+    font-size: clamp(32px, 8vw, 40px);
+  }
+
+  .agenticCenterTab {
+    min-width: 120px;
+    padding: 6px 8px;
+  }
+
+  .agenticCenterTab__label {
+    font-size: 9px;
+  }
+
+  .agenticCenterHeader__title {
+    font-size: clamp(16px, 4vw, 18px);
+  }
+
+  .agenticCenterSection__title {
+    font-size: clamp(16px, 4vw, 18px);
+  }
+
+  .agenticToolCard {
+    padding: 8px;
+  }
+
+  .agenticChartPanel__chart--training {
+    height: 160px;
+  }
+
+  .agenticChartPanel__svg {
+    height: 100px;
+  }
+
+  .agenticTracePanel__body {
+    min-height: 160px;
+  }
+
+  .agenticCodePanel__code {
+    font-size: 8px;
+    padding: 6px;
+    overflow-x: auto;
+    white-space: pre;
+    max-width: 100%;
+  }
+
+  .agenticCodePanel {
+    overflow-x: auto;
   }
 }
 
