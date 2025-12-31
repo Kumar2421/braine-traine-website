@@ -576,13 +576,6 @@ function App() {
             </nav>
 
             <div className="topbar__actions">
-              <button
-                className={`iconButton ${isAgentic ? 'iconButton--agentic' : ''}`}
-                type="button"
-                aria-label="Change language"
-              >
-                <span aria-hidden="true">◎</span>
-              </button>
               {session ? (
                 <a
                   className={`button ${isAgentic ? 'button--agenticPill' : 'button--ghost'}`}
@@ -591,8 +584,10 @@ function App() {
                     e.preventDefault()
                     navigate('/dashboard')
                   }}
+                  aria-label="Account"
                 >
-                  Account
+                  <span className="button__icon" aria-hidden="true">👤</span>
+                  <span className="button__text">Account</span>
                 </a>
               ) : (
                 <a
@@ -602,8 +597,16 @@ function App() {
                     e.preventDefault()
                     navigate('/login')
                   }}
+                  aria-label="Log In"
                 >
-                  Log In
+                  <span className="button__icon" aria-hidden="true">
+                    <img
+                      src="https://img.icons8.com/?size=100&id=ZrksPzH5Aadq&format=png&color=000000"
+                      alt=""
+                      className="button__iconImg"
+                    />
+                  </span>
+                  <span className="button__text">Log In</span>
                 </a>
               )}
               <a
@@ -613,8 +616,16 @@ function App() {
                   e.preventDefault()
                   navigate('/download')
                 }}
+                aria-label="Download"
               >
-                Download
+                <span className="button__icon" aria-hidden="true">
+                  <img
+                    src="https://img.icons8.com/?size=100&id=80618&format=png&color=000000"
+                    alt=""
+                    className="button__iconImg"
+                  />
+                </span>
+                <span className="button__text">Download</span>
               </a>
             </div>
           </div>
