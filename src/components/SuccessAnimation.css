@@ -1,0 +1,126 @@
+/* Success Animation Styles */
+.success-animation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.success-animation-container {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease-out;
+    max-width: 400px;
+    width: 90%;
+}
+
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    position: relative;
+}
+
+.success-checkmark-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #10b981;
+    position: relative;
+    animation: scaleIn 0.3s ease-out;
+}
+
+.success-checkmark-stem {
+    position: absolute;
+    width: 4px;
+    height: 24px;
+    background: #ffffff;
+    left: 32px;
+    top: 40px;
+    transform: rotate(45deg);
+    transform-origin: bottom;
+    animation: drawStem 0.3s ease-out 0.3s both;
+}
+
+.success-checkmark-kick {
+    position: absolute;
+    width: 4px;
+    height: 16px;
+    background: #ffffff;
+    left: 44px;
+    top: 48px;
+    transform: rotate(-45deg);
+    transform-origin: bottom;
+    animation: drawKick 0.3s ease-out 0.5s both;
+}
+
+.success-animation-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #000000;
+    margin: 0 0 8px 0;
+}
+
+.success-animation-message {
+    font-size: 16px;
+    color: #666666;
+    margin: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes drawStem {
+    from {
+        height: 0;
+    }
+    to {
+        height: 24px;
+    }
+}
+
+@keyframes drawKick {
+    from {
+        height: 0;
+    }
+    to {
+        height: 16px;
+    }
+}
+

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { supabase } from './supabaseClient'
 import { useToast } from './utils/toast.jsx'
-import { isAdmin } from './utils/adminApi'
+import { isAdmin } from './utils/adminAuth'
 
 function LoginPage() {
     const toast = useToast()

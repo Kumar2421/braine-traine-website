@@ -2,11 +2,12 @@ import { supabase } from '../supabaseClient'
 
 /**
  * Check if current user is admin
+ * @deprecated Use adminAuth.isAdmin() for enhanced security
  */
 export async function isAdmin() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-    return user.user_metadata?.is_admin === true
+    // Import from adminAuth for consistency
+    const { isAdmin: checkAdmin } = await import('./adminAuth.js')
+    return await checkAdmin()
 }
 
 /**

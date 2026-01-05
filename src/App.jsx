@@ -1,24 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import './App.css'
-import DocsPage from './DocsPage'
-import AgenticPage from './AgenticPage'
-import AboutPage from './AboutPage'
-import DownloadPage from './DownloadPage'
-import LoginPage from './LoginPage'
-import SignupPage from './SignupPage'
-import DashboardPage from './DashboardPage'
-import DownloadHubPage from './DownloadHubPage'
-import PricingPage from './PricingPage'
-import WhyPage from './WhyPage'
-import LicensePage from './LicensePage'
-import SecurityPage from './SecurityPage'
-import AuthRedirectPage from './AuthRedirectPage'
-import RequestAccessPage from './RequestAccessPage'
-import AdminPage from './AdminPage'
 import { SEO } from './components/SEO.jsx'
-import { isAdmin } from './utils/adminApi'
-
+import { isAdmin } from './utils/adminAuth'
+import { LoadingSpinner } from './components/LoadingSpinner'
 import { supabase } from './supabaseClient'
+
+// Lazy load pages for code splitting and performance
+const DocsPage = lazy(() => import('./DocsPage'))
+const AgenticPage = lazy(() => import('./AgenticPage'))
+const AboutPage = lazy(() => import('./AboutPage'))
+const DownloadPage = lazy(() => import('./DownloadPage'))
+const LoginPage = lazy(() => import('./LoginPage'))
+const SignupPage = lazy(() => import('./SignupPage'))
+const DashboardPage = lazy(() => import('./DashboardPage'))
+const DownloadHubPage = lazy(() => import('./DownloadHubPage'))
+const PricingPage = lazy(() => import('./PricingPage'))
+const WhyPage = lazy(() => import('./WhyPage'))
+const LicensePage = lazy(() => import('./LicensePage'))
+const SecurityPage = lazy(() => import('./SecurityPage'))
+const AuthRedirectPage = lazy(() => import('./AuthRedirectPage'))
+const RequestAccessPage = lazy(() => import('./RequestAccessPage'))
+const AdminPage = lazy(() => import('./AdminPage'))
+const SubscriptionPage = lazy(() => import('./SubscriptionPage'))
+const CheckoutPage = lazy(() => import('./CheckoutPage'))
+const TeamManagement = lazy(() => import('./components/TeamManagement').then(m => ({ default: m.TeamManagement })))
 
 function App() {
   const [path, setPath] = useState(() => window.location.pathname || '/')
@@ -75,9 +80,13 @@ function App() {
   const isAuthRedirect = path === '/auth-redirect'
   const isRequestAccess = path === '/request-access'
   const isAdminPath = path === '/admin'
+  const isSubscription = path === '/subscription' || path === '/dashboard/subscription'
+  const isCheckout = path === '/checkout'
+  const isTeams = path === '/teams' || path === '/dashboard/teams'
+  const isHelpCenter = path === '/help' || path === '/help-center' || path === '/faq'
 
   const authed = !!session
-  const needsAuth = isDashboard || isDashboardLicense
+  const needsAuth = isDashboard || isDashboardLicense || isSubscription || isCheckout
 
   useEffect(() => {
     if (isDownloads) {
@@ -378,7 +387,7 @@ function App() {
         }
         path={path}
       />
-      {!isLogin && !isSignup && (
+      {!isLogin && !isSignup && !isCheckout && (
         <header className={`topbar topbar--phase1 ${isAgentic ? 'topbar--agentic' : ''}`}>
           <div className="container topbar__inner">
             <a
@@ -633,155 +642,165 @@ function App() {
       )}
 
       <main>
-        {isHome ? (
-          <>
-            <section className="hero">
-              <div className="container hero__inner">
-                <div className="hero__copy">
-                  <h1 className="hero__title">
-                    Build, train, and ship Vision AI — locally, reproducibly, without cloud lock-in.
-                  </h1>
-                  <p className="hero__subtitle">
-                    ML FORGE is a desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export — designed for
-                    deterministic workflows in real-world environments. <strong>No coding required.</strong>
-                  </p>
-                  <div className="hero__cta">
-                    <a
-                      className="button button--primary"
-                      href="/download"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        navigate('/download')
-                      }}
-                    >
-                      Download ML FORGE
-                    </a>
-                    <a
-                      className="button button--outline"
-                      href="/agentic-ai"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        navigate('/agentic-ai')
-                      }}
-                    >
-                      View Workflow
-                    </a>
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><LoadingSpinner /></div>}>
+          {isHome ? (
+            <>
+              <section className="hero">
+                <div className="container hero__inner">
+                  <div className="hero__copy">
+                    <h1 className="hero__title">
+                      Build, train, and ship Vision AI — locally, reproducibly, without cloud lock-in.
+                    </h1>
+                    <p className="hero__subtitle">
+                      ML FORGE is a desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export — designed for
+                      deterministic workflows in real-world environments. <strong>No coding required.</strong>
+                    </p>
+                    <div className="hero__cta">
+                      <a
+                        className="button button--primary"
+                        href="/download"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          navigate('/download')
+                        }}
+                      >
+                        Download ML FORGE
+                      </a>
+                      <a
+                        className="button button--outline"
+                        href="/agentic-ai"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          navigate('/agentic-ai')
+                        }}
+                      >
+                        View Workflow
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            <div className="heroBand" aria-hidden="true">
-              <div className="heroBand__viewport">
-                <div className="heroBand__track" />
-              </div>
-            </div>
-
-            <section className="unify unify--dark">
-              <div className="container">
-                <h2 className="unifyHeading">
-                  Designed for real-world <span className="unifyHeading__muted">Vision AI</span>
-                  <br />
-                  workflows
-                </h2>
-
-                <div className="unifyGrid">
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Dataset Management</div>
-                    <p className="unifyCard__body">
-                      Versioned datasets with explicit metadata.
-                      No silent changes. No hidden preprocessing. <strong>No coding required.</strong>
-                    </p>
-                  </article>
-
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Annotation Studio</div>
-                    <p className="unifyCard__body">
-                      Reviewable labeling with audit-ready change history.
-                      Built for iteration, not one-off labeling. <strong>Visual interface — no coding required.</strong>
-                    </p>
-                    <div className="unifyPartner">
-                      <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
-                      <div className="unifyPartner__meta">
-                        <div className="unifyPartner__kicker">Review-gated changes</div>
-                        <div className="unifyPartner__body">Audit-ready labeling history for regulated workflows.</div>
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Deterministic Training</div>
-                    <p className="unifyCard__body">
-                      Explicit configs, locked inputs, and reproducible runs — every time. <strong>Configure visually or via code.</strong>
-                    </p>
-                  </article>
-
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Evaluation &amp; Benchmarks</div>
-                    <p className="unifyCard__body">
-                      Compare runs, metrics, and artifacts with full provenance. <strong>Visual comparison tools — no coding required.</strong>
-                    </p>
-                    <div className="unifyPartner unifyPartner--inline">
-                      <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
-                      <div className="unifyPartner__meta">
-                        <div className="unifyPartner__kicker">Provenance by default</div>
-                        <div className="unifyPartner__body">Artifacts stay tied to configs, data, and metrics.</div>
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Local-First Execution</div>
-                    <p className="unifyCard__body">
-                      Runs fully offline. GPU optional. No cloud dependency. <strong>One-click execution — no coding required.</strong>
-                    </p>
-                  </article>
-
-                  <article className="unifyCard">
-                    <div className="unifyCard__kicker">Production-Ready Exports</div>
-                    <p className="unifyCard__body">
-                      Export models, configs, and metrics together — ready for deployment. <strong>Visual export wizard — no coding required.</strong>
-                    </p>
-                  </article>
+              <div className="heroBand" aria-hidden="true">
+                <div className="heroBand__viewport">
+                  <div className="heroBand__track" />
                 </div>
               </div>
-            </section>
-          </>
-        ) : isDocs ? (
-          <DocsPage />
-        ) : isLogin ? (
-          <LoginPage />
-        ) : isSignup ? (
-          <SignupPage />
-        ) : isLogout ? (
-          <></>
-        ) : isDownload ? (
-          <DownloadHubPage navigate={navigate} />
-        ) : isDashboard ? (
-          <DashboardPage session={session} navigate={navigate} />
-        ) : isPricing ? (
-          <PricingPage navigate={navigate} />
-        ) : isWhy ? (
-          <WhyPage />
-        ) : isSecurity ? (
-          <SecurityPage />
-        ) : isAuthRedirect ? (
-          <AuthRedirectPage navigate={navigate} />
-        ) : isRequestAccess ? (
-          <RequestAccessPage session={session} navigate={navigate} />
-        ) : isDashboardLicense ? (
-          <LicensePage session={session} navigate={navigate} />
-        ) : isDownloads ? (
-          <DownloadPage />
-        ) : isAbout ? (
-          <AboutPage />
-        ) : isAgentic ? (
-          <AgenticPage navigate={navigate} />
-        ) : isAdminPath ? (
-          <AdminPage session={session} navigate={navigate} />
-        ) : (
-          <></>
-        )}
+
+              <section className="unify unify--dark">
+                <div className="container">
+                  <h2 className="unifyHeading">
+                    Designed for real-world <span className="unifyHeading__muted">Vision AI</span>
+                    <br />
+                    workflows
+                  </h2>
+
+                  <div className="unifyGrid">
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Dataset Management</div>
+                      <p className="unifyCard__body">
+                        Versioned datasets with explicit metadata.
+                        No silent changes. No hidden preprocessing. <strong>No coding required.</strong>
+                      </p>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Annotation Studio</div>
+                      <p className="unifyCard__body">
+                        Reviewable labeling with audit-ready change history.
+                        Built for iteration, not one-off labeling. <strong>Visual interface — no coding required.</strong>
+                      </p>
+                      <div className="unifyPartner">
+                        <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
+                        <div className="unifyPartner__meta">
+                          <div className="unifyPartner__kicker">Review-gated changes</div>
+                          <div className="unifyPartner__body">Audit-ready labeling history for regulated workflows.</div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Deterministic Training</div>
+                      <p className="unifyCard__body">
+                        Explicit configs, locked inputs, and reproducible runs — every time. <strong>Configure visually or via code.</strong>
+                      </p>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Evaluation &amp; Benchmarks</div>
+                      <p className="unifyCard__body">
+                        Compare runs, metrics, and artifacts with full provenance. <strong>Visual comparison tools — no coding required.</strong>
+                      </p>
+                      <div className="unifyPartner unifyPartner--inline">
+                        <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
+                        <div className="unifyPartner__meta">
+                          <div className="unifyPartner__kicker">Provenance by default</div>
+                          <div className="unifyPartner__body">Artifacts stay tied to configs, data, and metrics.</div>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Local-First Execution</div>
+                      <p className="unifyCard__body">
+                        Runs fully offline. GPU optional. No cloud dependency. <strong>One-click execution — no coding required.</strong>
+                      </p>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Production-Ready Exports</div>
+                      <p className="unifyCard__body">
+                        Export models, configs, and metrics together — ready for deployment. <strong>Visual export wizard — no coding required.</strong>
+                      </p>
+                    </article>
+                  </div>
+                </div>
+              </section>
+            </>
+          ) : isDocs ? (
+            <DocsPage />
+          ) : isLogin ? (
+            <LoginPage />
+          ) : isSignup ? (
+            <SignupPage />
+          ) : isLogout ? (
+            <></>
+          ) : isDownload ? (
+            <DownloadHubPage navigate={navigate} />
+          ) : isDashboard ? (
+            <DashboardPage session={session} navigate={navigate} />
+          ) : isPricing ? (
+            <PricingPage navigate={navigate} />
+          ) : isWhy ? (
+            <WhyPage />
+          ) : isSecurity ? (
+            <SecurityPage />
+          ) : isAuthRedirect ? (
+            <AuthRedirectPage navigate={navigate} />
+          ) : isRequestAccess ? (
+            <RequestAccessPage session={session} navigate={navigate} />
+          ) : isDashboardLicense ? (
+            <LicensePage session={session} navigate={navigate} />
+          ) : isDownloads ? (
+            <DownloadPage />
+          ) : isAbout ? (
+            <AboutPage />
+          ) : isAgentic ? (
+            <AgenticPage navigate={navigate} />
+          ) : isAdminPath ? (
+            <AdminPage session={session} navigate={navigate} />
+          ) : isSubscription ? (
+            <SubscriptionPage session={session} navigate={navigate} />
+          ) : isCheckout ? (
+            <CheckoutPage navigate={navigate} />
+          ) : isTeams ? (
+            <TeamManagement session={session} navigate={navigate} />
+          ) : isHelpCenter ? (
+            <HelpCenterPage navigate={navigate} />
+          ) : (
+            <></>
+          )}
+        </Suspense>
 
         {isHome && (
           <>
@@ -980,9 +999,9 @@ function App() {
           </>
         )}
 
-        {!isLogin && !isSignup && !isHome && footer}
+        {!isLogin && !isSignup && !isHome && !isCheckout && footer}
 
-        {isHome && !isLogin && !isSignup && footer}
+        {isHome && !isLogin && !isSignup && !isCheckout && footer}
       </main>
     </div>
   )

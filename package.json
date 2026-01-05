@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^8.0.0",
     "@supabase/supabase-js": "^2.39.0",
+    "razorpay": "^2.9.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.182.0",

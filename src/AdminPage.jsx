@@ -8,29 +8,66 @@ import {
     adminUsageApi,
     adminActionsApi
 } from './utils/adminApi'
+import {
+    getSubscriptionAnalytics,
+    getRevenueAnalytics,
+    getGPUUsageStats,
+    getUserActivityStats,
+    exportToCSV,
+} from './utils/analyticsApi'
+import {
+    getPlatformUsageStats,
+    getUserLevelAnalytics,
+    getFeatureAdoptionStats,
+    getSystemHealthMetrics,
+    getIDESyncStatus,
+    getRevenueAnalytics as getRevenueAnalyticsEnhanced,
+    exportAdminDataToCSV,
+} from './utils/adminAnalytics'
+import { UsageChart } from './components/UsageChart'
 import { useToast } from './utils/toast'
 import { LoadingSpinner } from './components/LoadingSpinner'
 
 function AdminPage({ session, navigate }) {
     const [loading, setLoading] = useState(true)
     const [isUserAdmin, setIsUserAdmin] = useState(false)
-    const [activeTab, setActiveTab] = useState('users') // users, licenses, features, usage, audit
+    const [activeTab, setActiveTab] = useState('users') // users, licenses, subscriptions, features, usage, audit, analytics, gpu-usage, activity
     const [users, setUsers] = useState([])
     const [featureFlags, setFeatureFlags] = useState([])
     const [platformStats, setPlatformStats] = useState(null)
     const [auditLog, setAuditLog] = useState([])
     const [userUsage, setUserUsage] = useState({})
+    const [subscriptions, setSubscriptions] = useState([])
+    const [billingHistory, setBillingHistory] = useState([])
+    const [subscriptionAnalytics, setSubscriptionAnalytics] = useState(null)
+    const [revenueAnalytics, setRevenueAnalytics] = useState(null)
+    const [gpuUsage, setGpuUsage] = useState(null)
+    const [userActivity, setUserActivity] = useState(null)
+    const [analyticsLoading, setAnalyticsLoading] = useState(false)
+    
+    // Enhanced analytics state
+    const [platformUsageStats, setPlatformUsageStats] = useState(null)
+    const [userLevelAnalytics, setUserLevelAnalytics] = useState([])
+    const [featureAdoption, setFeatureAdoption] = useState(null)
+    const [systemHealth, setSystemHealth] = useState(null)
+    const [ideSyncStatus, setIdeSyncStatus] = useState(null)
+    const [revenueAnalyticsEnhanced, setRevenueAnalyticsEnhanced] = useState(null)
+    
+    // Filters for user analytics
+    const [userSearchFilter, setUserSearchFilter] = useState('')
+    const [userPlanFilter, setUserPlanFilter] = useState('')
+    const [userStatusFilter, setUserStatusFilter] = useState('')
+    
     const toast = useToast()
 
-    // Check admin access
+    // Check admin access with enterprise-grade verification
     useEffect(() => {
         const checkAdmin = async () => {
-            const admin = await isAdmin()
-            setIsUserAdmin(admin)
+            const hasAccess = await checkAdminAccess(navigate)
+            setIsUserAdmin(hasAccess)
             setLoading(false)
-            if (!admin) {
+            if (!hasAccess) {
                 toast.error('Access denied. Admin privileges required.')
-                navigate('/dashboard')
             }
         }
         checkAdmin()
@@ -113,6 +150,109 @@ function AdminPage({ session, navigate }) {
             loadUsage()
         }
     }, [isUserAdmin, activeTab, users])
+
+    // Load subscriptions when viewing subscriptions tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'subscriptions') return
+        const loadSubscriptions = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('subscriptions')
+                    .select(`
+                        *,
+                        user:user_id (
+                            email
+                        )
+                    `)
+                    .order('created_at', { ascending: false })
+                
+                if (error) throw error
+                setSubscriptions(data || [])
+            } catch (e) {
+                console.error('Failed to load subscriptions:', e)
+                toast.error('Failed to load subscriptions: ' + e.message)
+            }
+        }
+        loadSubscriptions()
+    }, [isUserAdmin, activeTab, toast])
+
+    // Load billing history when viewing subscriptions tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'subscriptions') return
+        const loadBilling = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('billing_history')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(50)
+                
+                if (error) throw error
+                setBillingHistory(data || [])
+            } catch (e) {
+                console.error('Failed to load billing history:', e)
+            }
+        }
+        loadBilling()
+    }, [isUserAdmin, activeTab])
+
+    // Load analytics when viewing analytics tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'analytics') return
+        const loadAnalytics = async () => {
+            setAnalyticsLoading(true)
+            try {
+                const [subAnalytics, revAnalytics] = await Promise.all([
+                    getSubscriptionAnalytics(),
+                    getRevenueAnalytics(),
+                ])
+                if (subAnalytics.data) setSubscriptionAnalytics(subAnalytics.data)
+                if (revAnalytics.data) setRevenueAnalytics(revAnalytics.data)
+            } catch (e) {
+                console.error('Failed to load analytics:', e)
+                toast.error('Failed to load analytics')
+            } finally {
+                setAnalyticsLoading(false)
+            }
+        }
+        loadAnalytics()
+    }, [isUserAdmin, activeTab, toast])
+
+    // Load GPU usage when viewing GPU usage tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'gpu-usage') return
+        const loadGPUUsage = async () => {
+            setAnalyticsLoading(true)
+            try {
+                const result = await getGPUUsageStats({})
+                if (result.data) setGpuUsage(result.data)
+            } catch (e) {
+                console.error('Failed to load GPU usage:', e)
+                toast.error('Failed to load GPU usage')
+            } finally {
+                setAnalyticsLoading(false)
+            }
+        }
+        loadGPUUsage()
+    }, [isUserAdmin, activeTab, toast])
+
+    // Load user activity when viewing activity tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'activity') return
+        const loadActivity = async () => {
+            setAnalyticsLoading(true)
+            try {
+                const result = await getUserActivityStats({})
+                if (result.data) setUserActivity(result.data)
+            } catch (e) {
+                console.error('Failed to load user activity:', e)
+                toast.error('Failed to load user activity')
+            } finally {
+                setAnalyticsLoading(false)
+            }
+        }
+        loadActivity()
+    }, [isUserAdmin, activeTab, toast])
 
     const handleToggleUser = async (userId, currentActive) => {
         try {
@@ -334,6 +474,12 @@ function AdminPage({ session, navigate }) {
                             Licenses
                         </button>
                         <button
+                            className={`adminTab ${activeTab === 'subscriptions' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('subscriptions')}
+                        >
+                            Subscriptions
+                        </button>
+                        <button
                             className={`adminTab ${activeTab === 'features' ? 'adminTab--active' : ''}`}
                             onClick={() => setActiveTab('features')}
                         >
@@ -350,6 +496,60 @@ function AdminPage({ session, navigate }) {
                             onClick={() => setActiveTab('audit')}
                         >
                             Audit Log
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'analytics' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('analytics')}
+                        >
+                            Analytics
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'gpu-usage' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('gpu-usage')}
+                        >
+                            GPU Usage
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'activity' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('activity')}
+                        >
+                            Activity
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'platform-analytics' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('platform-analytics')}
+                        >
+                            Platform Analytics
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'user-analytics' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('user-analytics')}
+                        >
+                            User Analytics
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'feature-adoption' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('feature-adoption')}
+                        >
+                            Feature Adoption
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'system-health' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('system-health')}
+                        >
+                            System Health
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'ide-sync' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('ide-sync')}
+                        >
+                            IDE Sync Status
+                        </button>
+                        <button
+                            className={`adminTab ${activeTab === 'revenue' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('revenue')}
+                        >
+                            Revenue
                         </button>
                     </div>
 
@@ -458,7 +658,9 @@ function AdminPage({ session, navigate }) {
                                                     >
                                                         <option value="">Assign Plan</option>
                                                         <option value="free">Free</option>
-                                                        <option value="pro">Pro</option>
+                                                        <option value="data_pro">Data Pro</option>
+                                                        <option value="train_pro">Train Pro</option>
+                                                        <option value="deploy_pro">Deploy Pro</option>
                                                         <option value="enterprise">Enterprise</option>
                                                     </select>
                                                     <button
@@ -486,6 +688,86 @@ function AdminPage({ session, navigate }) {
                                             </div>
                                         )
                                     })
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Subscriptions Tab */}
+                    {activeTab === 'subscriptions' && (
+                        <div className="adminContent">
+                            <h3 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Active Subscriptions</h3>
+                            <div className="dashTable">
+                                <div className="dashTable__head">
+                                    <div>User</div>
+                                    <div>Plan</div>
+                                    <div>Status</div>
+                                    <div>Period Start</div>
+                                    <div>Period End</div>
+                                    <div>Razorpay ID</div>
+                                </div>
+                                {subscriptions.length === 0 ? (
+                                    <div className="dashTable__row dashTable__row--empty">
+                                        <div className="dashMuted">No subscriptions found.</div>
+                                        <div />
+                                        <div />
+                                        <div />
+                                        <div />
+                                        <div />
+                                    </div>
+                                ) : (
+                                    subscriptions.map((sub) => (
+                                        <div key={sub.subscription_id} className="dashTable__row">
+                                            <div>{sub.user?.email || `User ${sub.user_id?.substring(0, 8)}`}</div>
+                                            <div>{sub.plan_type.replace('_', ' ')}</div>
+                                            <div>
+                                                <span className={`dashStatus dashStatus--${sub.status === 'active' ? 'active' : 'archived'}`}>
+                                                    {sub.status}
+                                                </span>
+                                            </div>
+                                            <div>{formatDate(sub.current_period_start)}</div>
+                                            <div>{formatDate(sub.current_period_end)}</div>
+                                            <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+                                                {sub.razorpay_subscription_id ? sub.razorpay_subscription_id.substring(0, 20) + '...' : '—'}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <h3 style={{ marginTop: '48px', marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Recent Payments</h3>
+                            <div className="dashTable">
+                                <div className="dashTable__head">
+                                    <div>Date</div>
+                                    <div>User</div>
+                                    <div>Amount</div>
+                                    <div>Status</div>
+                                    <div>Payment ID</div>
+                                </div>
+                                {billingHistory.length === 0 ? (
+                                    <div className="dashTable__row dashTable__row--empty">
+                                        <div className="dashMuted">No payments found.</div>
+                                        <div />
+                                        <div />
+                                        <div />
+                                        <div />
+                                    </div>
+                                ) : (
+                                    billingHistory.map((payment) => (
+                                        <div key={payment.billing_id} className="dashTable__row">
+                                            <div>{formatDate(payment.created_at)}</div>
+                                            <div>{payment.user_id?.substring(0, 8)}</div>
+                                            <div>₹{(payment.amount / 100).toFixed(2)}</div>
+                                            <div>
+                                                <span className={`dashStatus dashStatus--${payment.status === 'paid' ? 'active' : 'archived'}`}>
+                                                    {payment.status}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+                                                {payment.razorpay_payment_id ? payment.razorpay_payment_id.substring(0, 20) + '...' : '—'}
+                                            </div>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         </div>
@@ -602,6 +884,1447 @@ function AdminPage({ session, navigate }) {
                                     ))
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Analytics Tab */}
+                    {activeTab === 'analytics' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Analytics Dashboard</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Quick Stats */}
+                                    <div className="analytics-dashboard">
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Total Subscriptions</div>
+                                            <div className="analytics-card__value">
+                                                {subscriptions.length}
+                                            </div>
+                                            <div className="analytics-card__change">Active subscriptions</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Total Revenue</div>
+                                            <div className="analytics-card__value">
+                                                {revenueAnalytics
+                                                    ? `₹${((revenueAnalytics.reduce((sum, r) => sum + (r.paid_revenue_paise || 0), 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                    : '₹0.00'}
+                                            </div>
+                                            <div className="analytics-card__change">All time</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Active Users</div>
+                                            <div className="analytics-card__value">
+                                                {users.filter(u => u.is_active).length}
+                                            </div>
+                                            <div className="analytics-card__change">Out of {users.length} total</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Monthly Recurring Revenue</div>
+                                            <div className="analytics-card__value">
+                                                {revenueAnalytics
+                                                    ? `₹${((revenueAnalytics.filter(r => r.month === new Date().toISOString().slice(0, 7)).reduce((sum, r) => sum + (r.paid_revenue_paise || 0), 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                    : '₹0.00'}
+                                            </div>
+                                            <div className="analytics-card__change">This month</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Subscription Analytics Chart */}
+                                    {subscriptionAnalytics && subscriptionAnalytics.length > 0 && (
+                                        <div style={{ marginTop: '32px' }}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
+                                                Subscription Trends
+                                            </h3>
+                                            <UsageChart
+                                                data={subscriptionAnalytics.map(a => ({
+                                                    date: a.date,
+                                                    label: new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                                    value: a.new_subscriptions || 0,
+                                                }))}
+                                                type="bar"
+                                                title="New Subscriptions"
+                                                height={250}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Revenue Chart */}
+                                    {revenueAnalytics && revenueAnalytics.length > 0 && (
+                                        <div style={{ marginTop: '32px' }}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
+                                                Revenue Trends
+                                            </h3>
+                                            <UsageChart
+                                                data={revenueAnalytics.map(r => ({
+                                                    date: r.date,
+                                                    label: new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                                    value: (r.paid_revenue_paise || 0) / 100,
+                                                }))}
+                                                type="line"
+                                                title="Daily Revenue (₹)"
+                                                height={250}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Export Buttons */}
+                                    <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
+                                        <button
+                                            className="button button--outline"
+                                            onClick={() => {
+                                                if (subscriptionAnalytics) {
+                                                    exportToCSV(subscriptionAnalytics, 'subscription-analytics.csv')
+                                                    toast.success('Subscription analytics exported')
+                                                }
+                                            }}
+                                        >
+                                            Export Subscription Analytics
+                                        </button>
+                                        <button
+                                            className="button button--outline"
+                                            onClick={() => {
+                                                if (revenueAnalytics) {
+                                                    exportToCSV(revenueAnalytics, 'revenue-analytics.csv')
+                                                    toast.success('Revenue analytics exported')
+                                                }
+                                            }}
+                                        >
+                                            Export Revenue Analytics
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* GPU Usage Tab */}
+                    {activeTab === 'gpu-usage' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>GPU Usage Tracking</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : gpuUsage ? (
+                                <>
+                                    {/* GPU Usage Stats */}
+                                    <div className="analytics-dashboard">
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Total GPU Hours</div>
+                                            <div className="analytics-card__value">
+                                                {gpuUsage.totals.totalHours.toFixed(2)}
+                                            </div>
+                                            <div className="analytics-card__change">All time</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Total Cost</div>
+                                            <div className="analytics-card__value">
+                                                ₹{gpuUsage.totals.totalCost.toFixed(2)}
+                                            </div>
+                                            <div className="analytics-card__change">GPU costs</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Usage Sessions</div>
+                                            <div className="analytics-card__value">
+                                                {gpuUsage.totals.count}
+                                            </div>
+                                            <div className="analytics-card__change">Total sessions</div>
+                                        </div>
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Avg Cost/Session</div>
+                                            <div className="analytics-card__value">
+                                                ₹{gpuUsage.totals.count > 0 ? (gpuUsage.totals.totalCost / gpuUsage.totals.count).toFixed(2) : '0.00'}
+                                            </div>
+                                            <div className="analytics-card__change">Average</div>
+                                        </div>
+                                    </div>
+
+                                    {/* GPU Usage Table */}
+                                    <div style={{ marginTop: '32px' }}>
+                                        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
+                                            Recent GPU Usage
+                                        </h3>
+                                        <div className="dashTable">
+                                            <div className="dashTable__head">
+                                                <div>User</div>
+                                                <div>GPU Type</div>
+                                                <div>Hours</div>
+                                                <div>Cost</div>
+                                                <div>Date</div>
+                                                <div>Status</div>
+                                            </div>
+                                            {gpuUsage.usage && gpuUsage.usage.length > 0 ? (
+                                                gpuUsage.usage.slice(0, 50).map((usage) => (
+                                                    <div key={usage.usage_id} className="dashTable__row">
+                                                        <div>{usage.user_id?.substring(0, 8)}...</div>
+                                                        <div>{usage.gpu_type} x{usage.gpu_count}</div>
+                                                        <div>{parseFloat(usage.hours_used || 0).toFixed(2)}</div>
+                                                        <div>₹{parseFloat(usage.total_cost || 0).toFixed(2)}</div>
+                                                        <div>{formatDate(usage.usage_start)}</div>
+                                                        <div>
+                                                            <span className={`dashStatus dashStatus--${usage.status === 'completed' ? 'active' : 'archived'}`}>
+                                                                {usage.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="dashTable__row dashTable__row--empty">
+                                                    <div className="dashMuted">No GPU usage recorded yet.</div>
+                                                    <div />
+                                                    <div />
+                                                    <div />
+                                                    <div />
+                                                    <div />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Export Button */}
+                                    <div style={{ marginTop: '24px' }}>
+                                        <button
+                                            className="button button--outline"
+                                            onClick={() => {
+                                                if (gpuUsage.usage) {
+                                                    exportToCSV(gpuUsage.usage, 'gpu-usage.csv')
+                                                    toast.success('GPU usage data exported')
+                                                }
+                                            }}
+                                        >
+                                            Export GPU Usage Data
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No GPU usage data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Platform Analytics Tab */}
+                    {activeTab === 'platform-analytics' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : platformUsageStats ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Users</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalUsers}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Active Subscriptions</div>
+                                            <div className="stat-card__value">{platformUsageStats.activeSubscriptions}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Projects</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalProjects}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Models</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalModels}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Training Runs</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalTrainingRuns}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Exports</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalExports}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total GPU Hours</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalGpuHours}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Plan Distribution */}
+                                    {Object.keys(platformUsageStats.planDistribution || {}).length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Plan Distribution</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
+                                                    <div key={plan} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <span style={{ fontWeight: '500' }}>
+                                                            {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>{count} users</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No platform statistics available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* User Analytics Tab */}
+                    {activeTab === 'user-analytics' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>User-Level Analytics</h2>
+                                <button
+                                    className="button button--outline"
+                                    onClick={() => exportAdminDataToCSV(userLevelAnalytics, 'user-analytics.csv')}
+                                    disabled={userLevelAnalytics.length === 0}
+                                >
+                                    Export CSV
+                                </button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                gap: '16px',
+                                marginBottom: '24px',
+                                padding: '16px',
+                                backgroundColor: 'var(--dr-surface-2)',
+                                borderRadius: '8px'
+                            }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search by email..."
+                                    value={userSearchFilter}
+                                    onChange={(e) => setUserSearchFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                                <select
+                                    value={userPlanFilter}
+                                    onChange={(e) => setUserPlanFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    <option value="">All Plans</option>
+                                    <option value="free">Free</option>
+                                    <option value="data_pro">Data Pro</option>
+                                    <option value="train_pro">Train Pro</option>
+                                    <option value="deploy_pro">Deploy Pro</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                                <select
+                                    value={userStatusFilter}
+                                    onChange={(e) => setUserStatusFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="trialing">Trialing</option>
+                                    <option value="canceled">Canceled</option>
+                                    <option value="past_due">Past Due</option>
+                                </select>
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : userLevelAnalytics.length > 0 ? (
+                                <div className="dashTable">
+                                    <div className="dashTable__head">
+                                        <div>Email</div>
+                                        <div>Plan</div>
+                                        <div>Status</div>
+                                        <div>Projects</div>
+                                        <div>Exports</div>
+                                        <div>GPU Hours</div>
+                                        <div>Training Runs</div>
+                                        <div>Models</div>
+                                    </div>
+                                    {userLevelAnalytics.map((user) => (
+                                        <div key={user.userId} className="dashTable__row">
+                                            <div>{user.email}</div>
+                                            <div>{user.planType.replace('_', ' ')}</div>
+                                            <div>
+                                                <span className={`dashStatus dashStatus--${user.subscriptionStatus === 'active' ? 'active' : 'archived'}`}>
+                                                    {user.subscriptionStatus}
+                                                </span>
+                                            </div>
+                                            <div>{user.projectsCount}</div>
+                                            <div>{user.exportsCount}</div>
+                                            <div>{user.gpuHoursUsed}</div>
+                                            <div>{user.trainingRunsCount}</div>
+                                            <div>{user.modelsCount}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No users found.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Feature Adoption Tab */}
+                    {activeTab === 'feature-adoption' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Feature Adoption Tracking</h2>
+                                {featureAdoption && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(featureAdoption.features, 'feature-adoption.csv')}
+                                    >
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : featureAdoption ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Feature Checks</div>
+                                            <div className="stat-card__value">{featureAdoption.totalFeatureChecks}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Unique Features</div>
+                                            <div className="stat-card__value">{featureAdoption.uniqueFeatures}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Top Features */}
+                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                        <h3 className="dashCard__title">Top Features by Usage</h3>
+                                        <div style={{ padding: '16px 0' }}>
+                                            {featureAdoption.features.slice(0, 20).map((feature) => (
+                                                <div key={feature.feature} style={{ 
+                                                    padding: '16px 0',
+                                                    borderBottom: '1px solid var(--dr-border-weak)'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                        <span style={{ fontWeight: '500', fontSize: '14px' }}>
+                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
+                                                            {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ 
+                                                        width: '100%', 
+                                                        height: '6px', 
+                                                        backgroundColor: 'var(--dr-border-weak)',
+                                                        borderRadius: '3px',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        <div style={{
+                                                            width: `${feature.adoptionRate}%`,
+                                                            height: '100%',
+                                                            backgroundColor: feature.adoptionRate > 80 ? '#14b8a6' : feature.adoptionRate > 50 ? '#f59e0b' : '#ef4444',
+                                                            transition: 'width 0.3s ease'
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Most Requested Features */}
+                                    {featureAdoption.mostRequested && featureAdoption.mostRequested.length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {featureAdoption.mostRequested.map((feature) => (
+                                                    <div key={feature.feature} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <span style={{ fontWeight: '500' }}>
+                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>
+                                                            {feature.denied} denied requests
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No feature adoption data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* System Health Tab */}
+                    {activeTab === 'system-health' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : systemHealth ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Sync Success Rate</div>
+                                            <div className="stat-card__value">{systemHealth.syncHealth.successRate}%</div>
+                                            <div className="stat-card__subtext">
+                                                {systemHealth.syncHealth.successfulSyncs} / {systemHealth.syncHealth.totalSyncs}
+                                            </div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Active IDE Sessions</div>
+                                            <div className="stat-card__value">{systemHealth.activeSessions}</div>
+                                            <div className="stat-card__subtext">Last hour</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Access Denial Rate</div>
+                                            <div className="stat-card__value">{systemHealth.accessDenialRate}%</div>
+                                            <div className="stat-card__subtext">Last 7 days</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">API Error Rate</div>
+                                            <div className="stat-card__value">{systemHealth.apiErrorRate}%</div>
+                                            <div className="stat-card__subtext">Last 7 days</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Database Health</div>
+                                            <div className="stat-card__value">
+                                                <span style={{ 
+                                                    color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {systemHealth.dbHealth.toUpperCase()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Sync Health Details */}
+                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                        <h3 className="dashCard__title">Sync Health Details</h3>
+                                        <div style={{ padding: '16px 0' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
+                                                <span>Total Syncs (24h)</span>
+                                                <span style={{ fontWeight: '500' }}>{systemHealth.syncHealth.totalSyncs}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
+                                                <span>Successful</span>
+                                                <span style={{ color: '#14b8a6', fontWeight: '500' }}>{systemHealth.syncHealth.successfulSyncs}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                                                <span>Failed</span>
+                                                <span style={{ color: '#ef4444', fontWeight: '500' }}>{systemHealth.syncHealth.failedSyncs}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ fontSize: '12px', color: 'var(--dr-muted)', textAlign: 'right' }}>
+                                        Last updated: {formatDateTime(systemHealth.lastUpdated)}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No system health data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* IDE Sync Status Tab */}
+                    {activeTab === 'ide-sync' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>IDE Sync Status Dashboard</h2>
+                                {ideSyncStatus && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(ideSyncStatus.events, 'ide-sync-events.csv')}
+                                    >
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : ideSyncStatus ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Events</div>
+                                            <div className="stat-card__value">{ideSyncStatus.totalEvents}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Unique Users</div>
+                                            <div className="stat-card__value">{ideSyncStatus.uniqueUsers}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Successful</div>
+                                            <div className="stat-card__value" style={{ color: '#14b8a6' }}>
+                                                {ideSyncStatus.byStatus.success}
+                                            </div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Failed</div>
+                                            <div className="stat-card__value" style={{ color: '#ef4444' }}>
+                                                {ideSyncStatus.byStatus.failed}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Events by Type */}
+                                    {Object.keys(ideSyncStatus.byEventType || {}).length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Events by Type</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
+                                                    <div key={type} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: '500' }}>
+                                                                {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </span>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
+                                                                {stats.success} success, {stats.failed} failed
+                                                            </div>
+                                                        </div>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>{stats.total} total</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Recent Errors */}
+                                    {ideSyncStatus.recentErrors && ideSyncStatus.recentErrors.length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Recent Errors</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {ideSyncStatus.recentErrors.map((error) => (
+                                                    <div key={error.id} style={{ 
+                                                        padding: '12px',
+                                                        marginBottom: '12px',
+                                                        backgroundColor: '#fef2f2',
+                                                        border: '1px solid #fecaca',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                                            <span style={{ fontWeight: '500', fontSize: '14px' }}>{error.user}</span>
+                                                            <span style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
+                                                                {formatDateTime(error.timestamp)}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
+                                                            {error.type}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#991b1b' }}>
+                                                            {error.error}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No IDE sync data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Revenue Tab */}
+                    {activeTab === 'revenue' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Revenue Analytics</h2>
+                                {revenueAnalyticsEnhanced && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(revenueAnalyticsEnhanced.revenueTrend, 'revenue-trend.csv')}
+                                    >
+                                        Export Revenue Trend
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : revenueAnalyticsEnhanced ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Monthly Recurring Revenue (MRR)</div>
+                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Annual Recurring Revenue (ARR)</div>
+                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.arr).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Subscriptions</div>
+                                            <div className="stat-card__value">{revenueAnalyticsEnhanced.totalSubscriptions}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Revenue Trend Chart */}
+                                    {revenueAnalyticsEnhanced.revenueTrend && revenueAnalyticsEnhanced.revenueTrend.length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Revenue Trend (Last 12 Months)</h3>
+                                            <UsageChart
+                                                data={revenueAnalyticsEnhanced.revenueTrend}
+                                                type="line"
+                                                title="MRR"
+                                                height={300}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Revenue by Plan */}
+                                    {Object.keys(revenueAnalyticsEnhanced.revenueByPlan || {}).length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Revenue by Plan</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
+                                                    <div key={plan} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: '500' }}>
+                                                                {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </span>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
+                                                                {revenue.count} subscriptions
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: '500' }}>
+                                                                ₹{((revenue.monthly || 0) + (revenue.yearly || 0) / 12).toFixed(2)}
+                                                            </div>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
+                                                                Monthly
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No revenue data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Platform Analytics Tab */}
+                    {activeTab === 'platform-analytics' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : platformUsageStats ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Users</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalUsers}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Active Subscriptions</div>
+                                            <div className="stat-card__value">{platformUsageStats.activeSubscriptions}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Projects</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalProjects}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Models</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalModels}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Training Runs</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalTrainingRuns}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Exports</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalExports}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total GPU Hours</div>
+                                            <div className="stat-card__value">{platformUsageStats.totalGpuHours}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Plan Distribution */}
+                                    {Object.keys(platformUsageStats.planDistribution || {}).length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Plan Distribution</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
+                                                    <div key={plan} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <span style={{ fontWeight: '500' }}>
+                                                            {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>{count} users</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No platform statistics available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* User Analytics Tab */}
+                    {activeTab === 'user-analytics' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>User-Level Analytics</h2>
+                                <button
+                                    className="button button--outline"
+                                    onClick={() => exportAdminDataToCSV(userLevelAnalytics, 'user-analytics.csv')}
+                                    disabled={userLevelAnalytics.length === 0}
+                                >
+                                    Export CSV
+                                </button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                gap: '16px',
+                                marginBottom: '24px',
+                                padding: '16px',
+                                backgroundColor: 'var(--dr-surface-2)',
+                                borderRadius: '8px'
+                            }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search by email..."
+                                    value={userSearchFilter}
+                                    onChange={(e) => setUserSearchFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                                <select
+                                    value={userPlanFilter}
+                                    onChange={(e) => setUserPlanFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    <option value="">All Plans</option>
+                                    <option value="free">Free</option>
+                                    <option value="data_pro">Data Pro</option>
+                                    <option value="train_pro">Train Pro</option>
+                                    <option value="deploy_pro">Deploy Pro</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                                <select
+                                    value={userStatusFilter}
+                                    onChange={(e) => setUserStatusFilter(e.target.value)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        border: '1px solid var(--dr-border)',
+                                        borderRadius: '4px',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="trialing">Trialing</option>
+                                    <option value="canceled">Canceled</option>
+                                    <option value="past_due">Past Due</option>
+                                </select>
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : userLevelAnalytics.length > 0 ? (
+                                <div className="dashTable">
+                                    <div className="dashTable__head">
+                                        <div>Email</div>
+                                        <div>Plan</div>
+                                        <div>Status</div>
+                                        <div>Projects</div>
+                                        <div>Exports</div>
+                                        <div>GPU Hours</div>
+                                        <div>Training Runs</div>
+                                        <div>Models</div>
+                                    </div>
+                                    {userLevelAnalytics.map((user) => (
+                                        <div key={user.userId} className="dashTable__row">
+                                            <div>{user.email}</div>
+                                            <div>{user.planType.replace('_', ' ')}</div>
+                                            <div>
+                                                <span className={`dashStatus dashStatus--${user.subscriptionStatus === 'active' ? 'active' : 'archived'}`}>
+                                                    {user.subscriptionStatus}
+                                                </span>
+                                            </div>
+                                            <div>{user.projectsCount}</div>
+                                            <div>{user.exportsCount}</div>
+                                            <div>{user.gpuHoursUsed}</div>
+                                            <div>{user.trainingRunsCount}</div>
+                                            <div>{user.modelsCount}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No users found.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Feature Adoption Tab */}
+                    {activeTab === 'feature-adoption' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Feature Adoption Tracking</h2>
+                                {featureAdoption && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(featureAdoption.features, 'feature-adoption.csv')}
+                                    >
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : featureAdoption ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Feature Checks</div>
+                                            <div className="stat-card__value">{featureAdoption.totalFeatureChecks}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Unique Features</div>
+                                            <div className="stat-card__value">{featureAdoption.uniqueFeatures}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Top Features */}
+                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                        <h3 className="dashCard__title">Top Features by Usage</h3>
+                                        <div style={{ padding: '16px 0' }}>
+                                            {featureAdoption.features.slice(0, 20).map((feature) => (
+                                                <div key={feature.feature} style={{ 
+                                                    padding: '16px 0',
+                                                    borderBottom: '1px solid var(--dr-border-weak)'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                        <span style={{ fontWeight: '500', fontSize: '14px' }}>
+                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
+                                                            {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ 
+                                                        width: '100%', 
+                                                        height: '6px', 
+                                                        backgroundColor: 'var(--dr-border-weak)',
+                                                        borderRadius: '3px',
+                                                        overflow: 'hidden'
+                                                    }}>
+                                                        <div style={{
+                                                            width: `${feature.adoptionRate}%`,
+                                                            height: '100%',
+                                                            backgroundColor: feature.adoptionRate > 80 ? '#14b8a6' : feature.adoptionRate > 50 ? '#f59e0b' : '#ef4444',
+                                                            transition: 'width 0.3s ease'
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Most Requested Features */}
+                                    {featureAdoption.mostRequested && featureAdoption.mostRequested.length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {featureAdoption.mostRequested.map((feature) => (
+                                                    <div key={feature.feature} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <span style={{ fontWeight: '500' }}>
+                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                        </span>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>
+                                                            {feature.denied} denied requests
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No feature adoption data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* System Health Tab */}
+                    {activeTab === 'system-health' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : systemHealth ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Sync Success Rate</div>
+                                            <div className="stat-card__value">{systemHealth.syncHealth.successRate}%</div>
+                                            <div className="stat-card__subtext">
+                                                {systemHealth.syncHealth.successfulSyncs} / {systemHealth.syncHealth.totalSyncs}
+                                            </div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Active IDE Sessions</div>
+                                            <div className="stat-card__value">{systemHealth.activeSessions}</div>
+                                            <div className="stat-card__subtext">Last hour</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Access Denial Rate</div>
+                                            <div className="stat-card__value">{systemHealth.accessDenialRate}%</div>
+                                            <div className="stat-card__subtext">Last 7 days</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">API Error Rate</div>
+                                            <div className="stat-card__value">{systemHealth.apiErrorRate}%</div>
+                                            <div className="stat-card__subtext">Last 7 days</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Database Health</div>
+                                            <div className="stat-card__value">
+                                                <span style={{ 
+                                                    color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {systemHealth.dbHealth.toUpperCase()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Sync Health Details */}
+                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                        <h3 className="dashCard__title">Sync Health Details</h3>
+                                        <div style={{ padding: '16px 0' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
+                                                <span>Total Syncs (24h)</span>
+                                                <span style={{ fontWeight: '500' }}>{systemHealth.syncHealth.totalSyncs}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
+                                                <span>Successful</span>
+                                                <span style={{ color: '#14b8a6', fontWeight: '500' }}>{systemHealth.syncHealth.successfulSyncs}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                                                <span>Failed</span>
+                                                <span style={{ color: '#ef4444', fontWeight: '500' }}>{systemHealth.syncHealth.failedSyncs}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ fontSize: '12px', color: 'var(--dr-muted)', textAlign: 'right' }}>
+                                        Last updated: {formatDateTime(systemHealth.lastUpdated)}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No system health data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* IDE Sync Status Tab */}
+                    {activeTab === 'ide-sync' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>IDE Sync Status Dashboard</h2>
+                                {ideSyncStatus && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(ideSyncStatus.events, 'ide-sync-events.csv')}
+                                    >
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : ideSyncStatus ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Events</div>
+                                            <div className="stat-card__value">{ideSyncStatus.totalEvents}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Unique Users</div>
+                                            <div className="stat-card__value">{ideSyncStatus.uniqueUsers}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Successful</div>
+                                            <div className="stat-card__value" style={{ color: '#14b8a6' }}>
+                                                {ideSyncStatus.byStatus.success}
+                                            </div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Failed</div>
+                                            <div className="stat-card__value" style={{ color: '#ef4444' }}>
+                                                {ideSyncStatus.byStatus.failed}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Events by Type */}
+                                    {Object.keys(ideSyncStatus.byEventType || {}).length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Events by Type</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
+                                                    <div key={type} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: '500' }}>
+                                                                {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </span>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
+                                                                {stats.success} success, {stats.failed} failed
+                                                            </div>
+                                                        </div>
+                                                        <span style={{ color: 'var(--dr-muted)' }}>{stats.total} total</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Recent Errors */}
+                                    {ideSyncStatus.recentErrors && ideSyncStatus.recentErrors.length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Recent Errors</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {ideSyncStatus.recentErrors.map((error) => (
+                                                    <div key={error.id} style={{ 
+                                                        padding: '12px',
+                                                        marginBottom: '12px',
+                                                        backgroundColor: '#fef2f2',
+                                                        border: '1px solid #fecaca',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                                            <span style={{ fontWeight: '500', fontSize: '14px' }}>{error.user}</span>
+                                                            <span style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
+                                                                {formatDateTime(error.timestamp)}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
+                                                            {error.type}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#991b1b' }}>
+                                                            {error.error}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No IDE sync data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Revenue Tab */}
+                    {activeTab === 'revenue' && (
+                        <div className="adminContent">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Revenue Analytics</h2>
+                                {revenueAnalyticsEnhanced && (
+                                    <button
+                                        className="button button--outline"
+                                        onClick={() => exportAdminDataToCSV(revenueAnalyticsEnhanced.revenueTrend, 'revenue-trend.csv')}
+                                    >
+                                        Export Revenue Trend
+                                    </button>
+                                )}
+                            </div>
+
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : revenueAnalyticsEnhanced ? (
+                                <>
+                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Monthly Recurring Revenue (MRR)</div>
+                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Annual Recurring Revenue (ARR)</div>
+                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.arr).toLocaleString('en-IN')}</div>
+                                        </div>
+                                        <div className="stat-card">
+                                            <div className="stat-card__label">Total Subscriptions</div>
+                                            <div className="stat-card__value">{revenueAnalyticsEnhanced.totalSubscriptions}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Revenue Trend Chart */}
+                                    {revenueAnalyticsEnhanced.revenueTrend && revenueAnalyticsEnhanced.revenueTrend.length > 0 && (
+                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
+                                            <h3 className="dashCard__title">Revenue Trend (Last 12 Months)</h3>
+                                            <UsageChart
+                                                data={revenueAnalyticsEnhanced.revenueTrend}
+                                                type="line"
+                                                title="MRR"
+                                                height={300}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Revenue by Plan */}
+                                    {Object.keys(revenueAnalyticsEnhanced.revenueByPlan || {}).length > 0 && (
+                                        <div className="dashCard">
+                                            <h3 className="dashCard__title">Revenue by Plan</h3>
+                                            <div style={{ padding: '16px 0' }}>
+                                                {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
+                                                    <div key={plan} style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        padding: '12px 0',
+                                                        borderBottom: '1px solid var(--dr-border-weak)'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: '500' }}>
+                                                                {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </span>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
+                                                                {revenue.count} subscriptions
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: '500' }}>
+                                                                ₹{((revenue.monthly || 0) + (revenue.yearly || 0) / 12).toFixed(2)}
+                                                            </div>
+                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
+                                                                Monthly
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No revenue data available.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Activity Tab */}
+                    {activeTab === 'activity' && (
+                        <div className="adminContent">
+                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>User Activity</h2>
+                            
+                            {analyticsLoading ? (
+                                <div style={{ padding: '48px', textAlign: 'center' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : userActivity ? (
+                                <>
+                                    {/* Activity Stats */}
+                                    <div className="analytics-dashboard">
+                                        <div className="analytics-card">
+                                            <div className="analytics-card__title">Total Activities</div>
+                                            <div className="analytics-card__value">
+                                                {userActivity.total}
+                                            </div>
+                                            <div className="analytics-card__change">All time</div>
+                                        </div>
+                                        {Object.entries(userActivity.grouped || {}).slice(0, 3).map(([type, count]) => (
+                                            <div key={type} className="analytics-card">
+                                                <div className="analytics-card__title">{type.replace(/_/g, ' ')}</div>
+                                                <div className="analytics-card__value">{count}</div>
+                                                <div className="analytics-card__change">Events</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Activity Feed */}
+                                    <div style={{ marginTop: '32px' }}>
+                                        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
+                                            Recent Activity
+                                        </h3>
+                                        <div className="activity-feed">
+                                            {userActivity.activities && userActivity.activities.length > 0 ? (
+                                                userActivity.activities.slice(0, 50).map((activity) => (
+                                                    <div key={activity.activity_id} className="activity-item">
+                                                        <div className="activity-item__icon">
+                                                            {activity.activity_type === 'login' ? '🔐' : 
+                                                             activity.activity_type === 'feature_used' ? '⚡' :
+                                                             activity.activity_type === 'project_created' ? '📁' : '📊'}
+                                                        </div>
+                                                        <div className="activity-item__content">
+                                                            <div className="activity-item__title">
+                                                                {activity.activity_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                            </div>
+                                                            <div className="activity-item__time">
+                                                                {formatDateTime(activity.created_at)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                                    No activity recorded yet.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Export Button */}
+                                    <div style={{ marginTop: '24px' }}>
+                                        <button
+                                            className="button button--outline"
+                                            onClick={() => {
+                                                if (userActivity.activities) {
+                                                    exportToCSV(userActivity.activities, 'user-activity.csv')
+                                                    toast.success('User activity data exported')
+                                                }
+                                            }}
+                                        >
+                                            Export Activity Data
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
+                                    No activity data available.
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
