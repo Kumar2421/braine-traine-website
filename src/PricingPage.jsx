@@ -173,7 +173,9 @@ function PricingPage({ navigate }) {
                     <div className="container pricingHeroBand__inner">
                         <div className="pricingHeroBand__copy">
                             <p className="pricingHeroBand__text">
-                                Try the full pipeline for free. Upgrade to unlock advanced features progressively. <strong>No gotchas — limitations are explicit.</strong>
+                                Start free and validate your local workflow. Upgrade only when you need deeper data prep, training control, or production exports.
+                                <strong>No gotchas — limitations are explicit.</strong>
+                                Typical workflow: train and deploy a YOLO model locally. NVIDIA GPU recommended for training; CPU-only is supported (slower).
                             </p>
                         </div>
                     </div>
@@ -206,7 +208,7 @@ function PricingPage({ navigate }) {
                             const isFree = plan.plan_key === 'free'
                             const isHighlight = plan.plan_key === 'data_pro'
                             const isPremium = plan.plan_key === 'deploy_pro'
-                            
+
                             return (
                                 <article
                                     key={plan.plan_id}
@@ -235,7 +237,7 @@ function PricingPage({ navigate }) {
                                             onClick={() => handleSelectPricing(plan.plan_key)}
                                             disabled={processingPlan === plan.plan_key}
                                         >
-                                            {processingPlan === plan.plan_key ? 'Processing...' : 'Select Pricing'}
+                                            {processingPlan === plan.plan_key ? 'Processing...' : 'Choose this plan'}
                                         </button>
                                     )}
                                 </article>
@@ -243,100 +245,100 @@ function PricingPage({ navigate }) {
                         }) : (
                             // Fallback display if plans haven't loaded yet
                             <>
-                        <article className="pricingCard">
-                            <div className="pricingCard__top">
-                                <div className="pricingCard__tier">Free — Explore</div>
-                                <div className="pricingCard__price">$0</div>
-                                <div className="pricingCard__note">Build, label, and train locally — evaluate ML FORGE before committing.</div>
-                            </div>
-                            <ul className="pricingList">
-                                <li>✅ Model Zoo access (most pre-trained models)</li>
-                                <li>✅ Dataset Manager (full core access)</li>
-                                <li>✅ Annotation Studio (basic tools)</li>
-                                <li>✅ Basic augmentations</li>
-                                <li>✅ Training access (small & medium models)</li>
-                                <li>✅ Inference execution allowed</li>
-                                <li className="pricingList__limitation">❌ Face dataset conversion</li>
-                                <li className="pricingList__limitation">❌ Advanced augmentations</li>
-                                <li className="pricingList__limitation">❌ Export formats</li>
-                                <li className="pricingList__limitation">❌ benchmarking</li>
-                            </ul>
+                                <article className="pricingCard">
+                                    <div className="pricingCard__top">
+                                        <div className="pricingCard__tier">Free — Explore</div>
+                                        <div className="pricingCard__price">$0</div>
+                                        <div className="pricingCard__note">Build, label, and train locally — evaluate ML FORGE before committing.</div>
+                                    </div>
+                                    <ul className="pricingList">
+                                        <li>✅ Model Zoo access (most pre-trained models)</li>
+                                        <li>✅ Dataset Manager (full core access)</li>
+                                        <li>✅ Annotation Studio (basic tools)</li>
+                                        <li>✅ Basic augmentations</li>
+                                        <li>✅ Training access (small & medium models)</li>
+                                        <li>✅ Inference execution allowed</li>
+                                        <li className="pricingList__limitation">❌ Face dataset conversion</li>
+                                        <li className="pricingList__limitation">❌ Advanced augmentations</li>
+                                        <li className="pricingList__limitation">❌ Export formats</li>
+                                        <li className="pricingList__limitation">❌ benchmarking</li>
+                                    </ul>
                                     <button className="button button--primary" onClick={() => handleSelectPricing('free')}>
-                                        Select Pricing
+                                        Choose this plan
                                     </button>
-                        </article>
+                                </article>
 
-                        <article className="pricingCard pricingCard--highlight">
-                            <div className="pricingCard__top">
-                                <div className="pricingCard__tier">Data Pro — Prepare</div>
+                                <article className="pricingCard pricingCard--highlight">
+                                    <div className="pricingCard__top">
+                                        <div className="pricingCard__tier">Data Pro — Prepare</div>
                                         <div className="pricingCard__price">$49/month</div>
-                                <div className="pricingCard__note">Advanced dataset preparation and transformation for serious projects.</div>
-                            </div>
-                            <ul className="pricingList">
-                                <li>✅ Everything in Free</li>
-                                <li>✅ Full Dataset Manager</li>
-                                <li>✅ Face recognition dataset creation</li>
-                                <li>✅ Full augmentation suite</li>
-                                <li>✅ Advanced preprocessing tools</li>
-                                <li>✅ Dataset version locking</li>
-                                <li className="pricingList__limitation">❌ Advanced training (auto-tuning)</li>
-                                <li className="pricingList__limitation">❌ Full benchmarking</li>
-                                <li className="pricingList__limitation">❌ Export & deployment</li>
-                            </ul>
+                                        <div className="pricingCard__note">Advanced dataset preparation and transformation for serious projects.</div>
+                                    </div>
+                                    <ul className="pricingList">
+                                        <li>✅ Everything in Free</li>
+                                        <li>✅ Full Dataset Manager</li>
+                                        <li>✅ Face recognition dataset creation</li>
+                                        <li>✅ Full augmentation suite</li>
+                                        <li>✅ Advanced preprocessing tools</li>
+                                        <li>✅ Dataset version locking</li>
+                                        <li className="pricingList__limitation">❌ Advanced training (auto-tuning)</li>
+                                        <li className="pricingList__limitation">❌ Full benchmarking</li>
+                                        <li className="pricingList__limitation">❌ Export & deployment</li>
+                                    </ul>
                                     <button className="button button--primary" onClick={() => handleSelectPricing('data_pro')}>
-                                        Select Pricing
+                                        Choose this plan
                                     </button>
-                        </article>
+                                </article>
 
-                        <article className="pricingCard">
-                            <div className="pricingCard__top">
-                                <div className="pricingCard__tier">Train Pro — Build</div>
+                                <article className="pricingCard">
+                                    <div className="pricingCard__top">
+                                        <div className="pricingCard__tier">Train Pro — Build</div>
                                         <div className="pricingCard__price">$99/month</div>
-                                <div className="pricingCard__note">Train, tune, and analyze models with full visibility and logs.</div>
-                            </div>
-                            <ul className="pricingList">
-                                <li>✅ Everything in Data Pro</li>
-                                <li>✅ Full Annotation Studio</li>
-                                <li>✅ Review & approval workflows</li>
-                                <li>✅ Team collaboration</li>
-                                <li>✅ Advanced training engine</li>
-                                <li>✅ Auto-tuning</li>
-                                <li>✅ Shared GPU access</li>
-                                <li>✅ Full training logs</li>
-                                <li>✅ Full inference visibility</li>
-                                <li className="pricingList__limitation">❌ Limited export formats</li>
-                                <li className="pricingList__limitation">❌ Limited benchmarking presets</li>
-                            </ul>
+                                        <div className="pricingCard__note">Train, tune, and analyze models with full visibility and logs.</div>
+                                    </div>
+                                    <ul className="pricingList">
+                                        <li>✅ Everything in Data Pro</li>
+                                        <li>✅ Full Annotation Studio</li>
+                                        <li>✅ Review & approval workflows</li>
+                                        <li>✅ Team collaboration</li>
+                                        <li>✅ Advanced training engine</li>
+                                        <li>✅ Auto-tuning</li>
+                                        <li>✅ Shared GPU access</li>
+                                        <li>✅ Full training logs</li>
+                                        <li>✅ Full inference visibility</li>
+                                        <li className="pricingList__limitation">❌ Limited export formats</li>
+                                        <li className="pricingList__limitation">❌ Limited benchmarking presets</li>
+                                    </ul>
                                     <button className="button button--primary" onClick={() => handleSelectPricing('train_pro')}>
-                                        Select Pricing
+                                        Choose this plan
                                     </button>
-                        </article>
+                                </article>
 
-                        <article className="pricingCard pricingCard--premium">
-                            <div className="pricingCard__top">
-                                <div className="pricingCard__tier">Deploy Pro — Ship</div>
+                                <article className="pricingCard pricingCard--premium">
+                                    <div className="pricingCard__top">
+                                        <div className="pricingCard__tier">Deploy Pro — Ship</div>
                                         <div className="pricingCard__price">$199/month</div>
-                                <div className="pricingCard__note">Production-grade export, benchmarking, and deployment.</div>
-                            </div>
-                            <ul className="pricingList">
-                                <li>✅ Everything unlocked</li>
-                                <li>✅ Full export formats (ONNX, TensorRT, CoreML, etc.)</li>
-                                <li>✅ Full inference & benchmarking</li>
-                                <li>✅ Edge, on-prem, offline deployment</li>
-                                <li>✅ Full audit logs</li>
-                                <li>✅ Priority GPU scheduling</li>
-                            </ul>
+                                        <div className="pricingCard__note">Production-grade export, benchmarking, and deployment.</div>
+                                    </div>
+                                    <ul className="pricingList">
+                                        <li>✅ Everything unlocked</li>
+                                        <li>✅ Full export formats (ONNX, TensorRT, CoreML, etc.)</li>
+                                        <li>✅ Full inference & benchmarking</li>
+                                        <li>✅ Edge, on-prem, offline deployment</li>
+                                        <li>✅ Full audit logs</li>
+                                        <li>✅ Priority GPU scheduling</li>
+                                    </ul>
                                     <button className="button button--primary" onClick={() => handleSelectPricing('deploy_pro')}>
-                                        Select Pricing
+                                        Choose this plan
                                     </button>
-                        </article>
+                                </article>
                             </>
                         )}
                     </div>
 
                     <div className="pricingComparison">
                         <h2 className="pricingComparison__title">Feature Comparison</h2>
-                        <p className="pricingComparison__subtitle">See what's included in each plan. Upgrade messaging is clear — no surprises.</p>
+                        <p className="pricingComparison__subtitle">See what’s included in each plan. Upgrade when you outgrow your current workflow — no surprises.</p>
 
                         <div className="pricingTableWrapper">
                             <div className="pricingTable">

@@ -69,22 +69,37 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle()
 
+      let errorMessage = 'Invalid or expired OTP code'
+      
       if (anyOtp) {
+        const isExpired = new Date(anyOtp.expires_at) < new Date()
+        const isUsed = anyOtp.used
+        const codeMatches = anyOtp.code === normalizedCode
+        
         console.error('OTP found but invalid:', {
-          codeMatch: anyOtp.code === normalizedCode,
-          expired: new Date(anyOtp.expires_at) < new Date(),
-          used: anyOtp.used,
+          codeMatch: codeMatches,
+          expired: isExpired,
+          used: isUsed,
           expiresAt: anyOtp.expires_at,
           now: new Date().toISOString()
         })
+        
+        if (isUsed) {
+          errorMessage = 'This OTP code has already been used. Please request a new code.'
+        } else if (isExpired) {
+          errorMessage = 'This OTP code has expired. Please request a new code.'
+        } else if (!codeMatches) {
+          errorMessage = 'Invalid OTP code. Please check the code and try again.'
+        }
       } else {
         console.error('No OTP found for email:', normalizedEmail)
+        errorMessage = 'No OTP code found for this email. Please request a new code.'
       }
 
       return new Response(
         JSON.stringify({
-          error: 'Invalid or expired OTP code',
-          debug: findError ? findError.message : 'OTP not found or expired'
+          success: false,
+          error: errorMessage
         }),
         {
           status: 400,
@@ -160,7 +175,17 @@ serve(async (req) => {
         if (!updateUserResponse.ok) {
           const errorData = await updateUserResponse.json().catch(() => ({ message: 'Failed to set password' }))
           console.error('Failed to set password for OAuth user:', errorData)
-          throw new Error(errorData.message || 'Failed to set password')
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Failed to set password. Please try logging in with Google, or contact support if you need help.',
+              requiresLogin: true
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
         }
 
         const updatedUserData = await updateUserResponse.json()
@@ -172,28 +197,52 @@ serve(async (req) => {
           .update({ used: true })
           .eq('id', otpData.id)
 
-        // Create session using password grant
-        const sessionResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseAnonKey,
-          },
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: password,
-          }),
-        })
+        // Wait a moment for password to be available in Supabase Auth
+        // Sometimes there's a slight delay before password login is available
+        await new Promise(resolve => setTimeout(resolve, 1500))
 
-        if (!sessionResponse.ok) {
-          const errorData = await sessionResponse.json().catch(() => ({ message: 'Failed to create session' }))
-          console.error('Session creation error after setting password:', errorData)
+        // Try to create session using password grant (with retries)
+        let sessionResult = null
+        let sessionCreated = false
+        const maxRetries = 3
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          const sessionResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseAnonKey,
+            },
+            body: JSON.stringify({
+              email: normalizedEmail,
+              password: password,
+            }),
+          })
+
+          if (sessionResponse.ok) {
+            sessionResult = await sessionResponse.json()
+            sessionCreated = true
+            break
+          } else {
+            const errorData = await sessionResponse.json().catch(() => ({ message: 'Failed to create session' }))
+            console.error(`Session creation attempt ${attempt} failed:`, errorData)
+            
+            // If not the last attempt, wait before retrying
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt)) // Exponential backoff
+            }
+          }
+        }
+
+        if (!sessionCreated) {
+          // Password was set but session creation failed - user needs to log in manually
+          console.error('Session creation failed after setting password')
           return new Response(
             JSON.stringify({
               success: true,
               user: updatedUserData,
               requiresPasswordLogin: true,
-              message: 'Password set successfully. Please log in with your password.'
+              message: 'Password set successfully! Please log in with your email and password to continue.'
             }),
             {
               status: 200,
@@ -201,8 +250,6 @@ serve(async (req) => {
             }
           )
         }
-
-        const sessionResult = await sessionResponse.json()
 
         return new Response(
           JSON.stringify({
@@ -223,10 +270,19 @@ serve(async (req) => {
         )
       } else {
         // User exists and has password - ask them to log in
+        // Check if they also have OAuth to provide better message
+        const hasOAuth = existingUser.identities?.some(
+          (identity: any) => identity.provider === 'google' || identity.provider === 'oauth'
+        )
+        
+        const errorMessage = hasOAuth
+          ? 'An account with this email already exists. Please log in with your password or use "Continue with Google".'
+          : 'An account with this email already exists. Please log in instead.'
+        
         return new Response(
           JSON.stringify({
             success: false,
-            error: 'An account with this email already exists. Please log in instead.',
+            error: errorMessage,
             requiresLogin: true
           }),
           {
@@ -298,32 +354,51 @@ serve(async (req) => {
 
     // Create session for the new user using password grant
     // Note: There might be a slight delay before the password is available for login
-    // So we'll try to create a session, but if it fails, we'll return the user data
+    // So we'll try to create a session with retries, but if it fails, we'll return the user data
     // and let the frontend handle the login
-    const sessionResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseAnonKey,
-      },
-      body: JSON.stringify({
-        email: normalizedEmail,
-        password: password,
-      }),
-    })
+    await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second for password to be available
+    
+    let sessionResult = null
+    let sessionCreated = false
+    const maxRetries = 3
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const sessionResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: password,
+        }),
+      })
 
-    if (!sessionResponse.ok) {
-      const errorData = await sessionResponse.json().catch(() => ({ message: 'Failed to create session' }))
-      console.error('Session creation error:', errorData)
-      console.error('This might be normal - password may need a moment to be available')
+      if (sessionResponse.ok) {
+        sessionResult = await sessionResponse.json()
+        sessionCreated = true
+        break
+      } else {
+        const errorData = await sessionResponse.json().catch(() => ({ message: 'Failed to create session' }))
+        console.error(`Session creation attempt ${attempt} failed:`, errorData)
+        
+        // If not the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)) // Exponential backoff
+        }
+      }
+    }
 
+    if (!sessionCreated) {
+      console.error('Session creation failed after retries - user will need to log in manually')
       // Return user data without session - frontend can try logging in
       return new Response(
         JSON.stringify({
           success: true,
           user: userData,
           requiresPasswordLogin: true,
-          message: 'Account created successfully. Please log in with your password.'
+          message: 'Account created successfully! Please log in with your email and password to continue.'
         }),
         {
           status: 200,
@@ -331,8 +406,6 @@ serve(async (req) => {
         }
       )
     }
-
-    const sessionResult = await sessionResponse.json()
 
     return new Response(
       JSON.stringify({

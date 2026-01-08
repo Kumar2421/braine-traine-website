@@ -766,7 +766,8 @@ function DocsPage() {
                                     <div className="docsIndexHeroCopy__text">
                                         <h1 className="docsIndexHero__title">Welcome to ML FORGE documentation</h1>
                                         <p className="docsIndexHero__subtitle">
-                                            Everything you need to build, train, evaluate, and ship Vision AI — locally and reproducibly.
+                                            Everything you need to build, train, evaluate, and ship Vision AI — with deterministic, local-first workflows.
+                                            Start here if you’re training and deploying a YOLO model locally.
                                         </p>
                                     </div>
                                 </div>
@@ -809,7 +810,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Install ML FORGE, understand the workspace, and run your first Vision AI pipeline.
+                                        Install ML FORGE, understand the workspace model, and run your first reproducible Vision AI project.
                                     </div>
                                 </a>
 
@@ -826,7 +827,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Import, organize, version, and snapshot image and video datasets with explicit metadata.
+                                        Import, organize, version, and snapshot image and video datasets with explicit metadata and repeatable inputs.
                                     </div>
                                 </a>
 
@@ -843,7 +844,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Label and review vision data with review-gated changes and full history.
+                                        Label and review vision data with review-gated changes, audit history, and fewer labeling regressions.
                                     </div>
                                 </a>
 
@@ -877,7 +878,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Real-time, immutable training logs for debugging, auditing, and reproducible experimentation.
+                                        Real-time, immutable training logs for debugging, auditing, and reproducing any run.
                                     </div>
                                 </a>
 
@@ -894,7 +895,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Run local training with explicit configs, tracked metrics, and immutable artifacts.
+                                        Run training with explicit configs, tracked metrics, and immutable artifacts — locally or on-prem.
                                     </div>
                                 </a>
 
@@ -911,7 +912,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Compare runs, metrics, and models tied directly to the dataset and config that produced them.
+                                        Compare runs, metrics, and models tied directly to the dataset snapshot and config that produced them.
                                     </div>
                                 </a>
 
@@ -928,7 +929,7 @@ function DocsPage() {
                                         <span className="docsTopicCard__arrow" aria-hidden="true">→</span>
                                     </div>
                                     <div className="docsTopicCard__body">
-                                        Export models with configs and metrics for edge, on-prem, or offline deployment.
+                                        Export models with configs and metrics for edge, on-prem, or offline deployment — without cloud lock-in.
                                     </div>
                                 </a>
 

@@ -29,6 +29,30 @@ CREATE INDEX IF NOT EXISTS feature_flags_enabled_idx ON public.feature_flags(ena
 -- Enable RLS
 ALTER TABLE public.feature_flags ENABLE ROW LEVEL SECURITY;
 
+-- SECURITY DEFINER admin check (avoid direct auth.users access in RLS policies)
+CREATE OR REPLACE FUNCTION public.can_access_admin_panel()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    user_id_val UUID;
+    is_admin_val boolean;
+BEGIN
+    user_id_val := auth.uid();
+    IF user_id_val IS NULL THEN
+        RETURN false;
+    END IF;
+
+    SELECT COALESCE((u.raw_user_meta_data->>'is_admin')::boolean, false)
+    INTO is_admin_val
+    FROM auth.users u
+    WHERE u.id = user_id_val;
+
+    RETURN is_admin_val;
+END;
+$$;
+
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS admin_feature_flags_all ON public.feature_flags;
 DROP POLICY IF EXISTS users_read_feature_flags ON public.feature_flags;
@@ -38,11 +62,7 @@ CREATE POLICY admin_feature_flags_all
     ON public.feature_flags
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Users can read their own feature flags (for IDE)
@@ -84,11 +104,7 @@ CREATE POLICY admin_read_own_actions
     ON public.admin_actions
     FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Allow admins to insert actions
@@ -98,11 +114,7 @@ CREATE POLICY admin_insert_actions
     ON public.admin_actions
     FOR INSERT
     WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Add offline_enabled column to licenses if not exists
@@ -176,4 +188,54 @@ LEFT JOIN LATERAL (
 
 -- Grant access to admin users view
 GRANT SELECT ON public.admin_users_view TO authenticated;
+
+-- Admin RPC to list users (SECURITY DEFINER so it can read auth.users)
+CREATE OR REPLACE FUNCTION public.admin_get_users()
+RETURNS TABLE (
+    user_id UUID,
+    email TEXT,
+    user_created_at TIMESTAMPTZ,
+    raw_user_meta_data JSONB,
+    license_id UUID,
+    license_type TEXT,
+    is_active BOOLEAN,
+    expires_at TIMESTAMPTZ,
+    issued_at TIMESTAMPTZ,
+    offline_enabled BOOLEAN,
+    is_admin BOOLEAN
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF NOT public.can_access_admin_panel() THEN
+        RAISE EXCEPTION 'Access denied';
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        u.id as user_id,
+        u.email::text,
+        u.created_at as user_created_at,
+        u.raw_user_meta_data,
+        l.license_id,
+        COALESCE(l.license_type::text, 'free') as license_type,
+        COALESCE(l.is_active, false) as is_active,
+        l.expires_at,
+        l.issued_at,
+        COALESCE(l.offline_enabled, false) as offline_enabled,
+        COALESCE((u.raw_user_meta_data->>'is_admin')::boolean, false) as is_admin
+    FROM auth.users u
+    LEFT JOIN LATERAL (
+        SELECT *
+        FROM public.licenses
+        WHERE licenses.user_id = u.id
+        ORDER BY licenses.issued_at DESC
+        LIMIT 1
+    ) l ON true
+    ORDER BY u.created_at DESC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_users() TO authenticated;
 

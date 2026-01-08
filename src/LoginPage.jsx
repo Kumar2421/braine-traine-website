@@ -249,7 +249,7 @@ function LoginPage() {
                 <div className="loginPanel">
                     <div className="loginBrand">ML FORGE</div>
                     <h1 className="loginTitle">Log in</h1>
-                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Complete sign-in to open the ML FORGE IDE.' : 'Welcome back!'}</p>
+                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Sign in to continue in the ML FORGE desktop app.' : 'Sign in to continue.'}</p>
 
                     <button
                         className="loginAccount"
@@ -268,7 +268,7 @@ function LoginPage() {
                             <div className="loginAccount__avatar" aria-hidden="true" />
                             <div className="loginAccount__text">
                                 <div className="loginAccount__name">Continue with Google</div>
-                                <div className="loginAccount__email">Use a Google account</div>
+                                <div className="loginAccount__email">Fastest way to sign in</div>
                             </div>
                         </div>
                         <span className="loginAccount__google" aria-hidden="true">
@@ -307,15 +307,24 @@ function LoginPage() {
                                 if (signInError) {
                                     // Provide more specific error messages
                                     let errorMessage = signInError.message
+
                                     if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Invalid')) {
-                                        errorMessage = 'Invalid email or password. Please check your credentials and try again. If you just signed up, wait a moment and try again, or use "Forgot Password" to reset.'
+                                        // Provide helpful message that covers both wrong password and OAuth-only accounts
+                                        errorMessage = 'Invalid email or password. If you signed up with Google, please use "Continue with Google" to log in. Otherwise, check your credentials and try again, or use "Forgot Password" to reset.'
                                         setAccountExists(false)
                                     } else if (signInError.message.includes('Email not confirmed')) {
-                                        errorMessage = 'Please verify your email address before logging in.'
+                                        errorMessage = 'Please verify your email address before logging in. Check your inbox for a verification email.'
                                     } else if (signInError.message.includes('User not found')) {
                                         errorMessage = 'No account found with this email. Please sign up first.'
                                         setAccountExists(false)
+                                    } else if (signInError.message.includes('Too many requests') || signInError.message.includes('rate limit')) {
+                                        errorMessage = 'Too many login attempts. Please wait a few minutes and try again.'
+                                    } else if (signInError.message.includes('Network') || signInError.message.includes('fetch') || signInError.message.includes('Failed to fetch')) {
+                                        errorMessage = 'Network error. Please check your internet connection and try again.'
+                                    } else if (signInError.message.includes('Email rate limit')) {
+                                        errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
                                     }
+
                                     setError(errorMessage)
                                     toast.error(errorMessage)
                                     console.error('Login error details:', signInError)
@@ -401,6 +410,20 @@ function LoginPage() {
                         {submitted && !passwordOk && <div className="loginHint">Password must be at least 6 characters.</div>}
 
                         {error && <div className="loginHint">{error}</div>}
+
+                        <div className="loginRow" style={{ justifyContent: 'space-between' }}>
+                            <span className="loginMuted" />
+                            <a
+                                className="loginLink"
+                                href="/forgot-password"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    go('/forgot-password')
+                                }}
+                            >
+                                Forgot password?
+                            </a>
+                        </div>
 
                         <button className="button button--primary loginSubmit" type="submit" disabled={!canSubmit || isLoading}>
                             {isLoading ? 'Logging in…' : 'Log in'}

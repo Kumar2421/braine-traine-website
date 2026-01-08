@@ -8,6 +8,7 @@ import {
     adminUsageApi,
     adminActionsApi
 } from './utils/adminApi'
+import { checkAdminAccess } from './utils/adminAuth'
 import {
     getSubscriptionAnalytics,
     getRevenueAnalytics,
@@ -39,12 +40,14 @@ function AdminPage({ session, navigate }) {
     const [userUsage, setUserUsage] = useState({})
     const [subscriptions, setSubscriptions] = useState([])
     const [billingHistory, setBillingHistory] = useState([])
+    const [inboxMessages, setInboxMessages] = useState([])
+    const [inboxLoading, setInboxLoading] = useState(false)
     const [subscriptionAnalytics, setSubscriptionAnalytics] = useState(null)
     const [revenueAnalytics, setRevenueAnalytics] = useState(null)
     const [gpuUsage, setGpuUsage] = useState(null)
     const [userActivity, setUserActivity] = useState(null)
     const [analyticsLoading, setAnalyticsLoading] = useState(false)
-    
+
     // Enhanced analytics state
     const [platformUsageStats, setPlatformUsageStats] = useState(null)
     const [userLevelAnalytics, setUserLevelAnalytics] = useState([])
@@ -52,12 +55,12 @@ function AdminPage({ session, navigate }) {
     const [systemHealth, setSystemHealth] = useState(null)
     const [ideSyncStatus, setIdeSyncStatus] = useState(null)
     const [revenueAnalyticsEnhanced, setRevenueAnalyticsEnhanced] = useState(null)
-    
+
     // Filters for user analytics
     const [userSearchFilter, setUserSearchFilter] = useState('')
     const [userPlanFilter, setUserPlanFilter] = useState('')
     const [userStatusFilter, setUserStatusFilter] = useState('')
-    
+
     const toast = useToast()
 
     // Check admin access with enterprise-grade verification
@@ -158,14 +161,9 @@ function AdminPage({ session, navigate }) {
             try {
                 const { data, error } = await supabase
                     .from('subscriptions')
-                    .select(`
-                        *,
-                        user:user_id (
-                            email
-                        )
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false })
-                
+
                 if (error) throw error
                 setSubscriptions(data || [])
             } catch (e) {
@@ -186,7 +184,7 @@ function AdminPage({ session, navigate }) {
                     .select('*')
                     .order('created_at', { ascending: false })
                     .limit(50)
-                
+
                 if (error) throw error
                 setBillingHistory(data || [])
             } catch (e) {
@@ -195,6 +193,89 @@ function AdminPage({ session, navigate }) {
         }
         loadBilling()
     }, [isUserAdmin, activeTab])
+
+    // Load inbox when viewing inbox tab
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'inbox') return
+        const loadInbox = async () => {
+            setInboxLoading(true)
+            try {
+                const { data, error } = await supabase
+                    .from('access_requests')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(200)
+
+                if (error) throw error
+                setInboxMessages(data || [])
+            } catch (e) {
+                console.error('Failed to load inbox:', e)
+                toast.error('Failed to load inbox: ' + e.message)
+            } finally {
+                setInboxLoading(false)
+            }
+        }
+        loadInbox()
+    }, [isUserAdmin, activeTab, toast])
+
+    const handleResendInboxMessage = async (requestId) => {
+        try {
+            const nowIso = new Date().toISOString()
+            const currentUserId = session?.user?.id || null
+
+            const current = inboxMessages.find((m) => m.request_id === requestId)
+            const nextResendCount = (current?.resend_count || 0) + 1
+
+            const { error } = await supabase
+                .from('access_requests')
+                .update({
+                    resend_count: nextResendCount,
+                    resent_at: nowIso,
+                    resent_by: currentUserId,
+                })
+                .eq('request_id', requestId)
+
+            if (error) throw error
+
+            setInboxMessages((prev) =>
+                prev.map((m) => (m.request_id === requestId ? { ...m, resend_count: nextResendCount, resent_at: nowIso, resent_by: currentUserId } : m))
+            )
+
+            await adminActionsApi.logAction('inbox_resend', null, { request_id: requestId })
+            toast.success('Resend recorded')
+        } catch (e) {
+            console.error('Failed to resend:', e)
+            toast.error('Failed to resend: ' + e.message)
+        }
+    }
+
+    const handleMarkInboxHandled = async (requestId, handled) => {
+        try {
+            const nowIso = new Date().toISOString()
+            const currentUserId = session?.user?.id || null
+
+            const update = handled
+                ? { status: 'handled', handled_at: nowIso, handled_by: currentUserId }
+                : { status: 'new', handled_at: null, handled_by: null }
+
+            const { error } = await supabase
+                .from('access_requests')
+                .update(update)
+                .eq('request_id', requestId)
+
+            if (error) throw error
+
+            setInboxMessages((prev) =>
+                prev.map((m) => (m.request_id === requestId ? { ...m, ...update } : m))
+            )
+
+            await adminActionsApi.logAction('inbox_status_update', null, { request_id: requestId, status: handled ? 'handled' : 'new' })
+            toast.success(handled ? 'Marked handled' : 'Marked new')
+        } catch (e) {
+            console.error('Failed to update inbox status:', e)
+            toast.error('Failed to update inbox status: ' + e.message)
+        }
+    }
 
     // Load analytics when viewing analytics tab
     useEffect(() => {
@@ -392,6 +473,12 @@ function AdminPage({ session, navigate }) {
         }
     }
 
+    const getUserEmailById = (userId) => {
+        if (!userId) return null
+        const match = users.find(u => (u?.users?.id || u?.user_id) === userId)
+        return match?.users?.email || null
+    }
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
@@ -480,6 +567,12 @@ function AdminPage({ session, navigate }) {
                             Subscriptions
                         </button>
                         <button
+                            className={`adminTab ${activeTab === 'inbox' ? 'adminTab--active' : ''}`}
+                            onClick={() => setActiveTab('inbox')}
+                        >
+                            Inbox
+                        </button>
+                        <button
                             className={`adminTab ${activeTab === 'features' ? 'adminTab--active' : ''}`}
                             onClick={() => setActiveTab('features')}
                         >
@@ -566,7 +659,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {users.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No users found.</div>
+                                        <div className="dashMuted">No users found. If this is a new environment, create a test account and log in once to populate user metadata.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -624,7 +717,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {users.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No licenses found.</div>
+                                        <div className="dashMuted">No licenses found. Licenses are created when a user activates the desktop app or when an admin assigns a plan.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -708,7 +801,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {subscriptions.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No subscriptions found.</div>
+                                        <div className="dashMuted">No subscriptions found. This is expected for a new install before anyone purchases a plan.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -718,7 +811,7 @@ function AdminPage({ session, navigate }) {
                                 ) : (
                                     subscriptions.map((sub) => (
                                         <div key={sub.subscription_id} className="dashTable__row">
-                                            <div>{sub.user?.email || `User ${sub.user_id?.substring(0, 8)}`}</div>
+                                            <div>{users.find(u => u.user_id === sub.user_id)?.users?.email || `User ${sub.user_id?.substring(0, 8)}`}</div>
                                             <div>{sub.plan_type.replace('_', ' ')}</div>
                                             <div>
                                                 <span className={`dashStatus dashStatus--${sub.status === 'active' ? 'active' : 'archived'}`}>
@@ -746,7 +839,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {billingHistory.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No payments found.</div>
+                                        <div className="dashMuted">No payments found. Once a subscription is created, payments will appear here as invoices settle.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -770,6 +863,83 @@ function AdminPage({ session, navigate }) {
                                     ))
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Inbox Tab */}
+                    {activeTab === 'inbox' && (
+                        <div className="adminContent">
+                            <h3 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Inbox</h3>
+                            {inboxLoading ? (
+                                <div style={{ padding: '24px' }}>
+                                    <LoadingSpinner />
+                                </div>
+                            ) : (
+                                <div className="dashTable">
+                                    <div className="dashTable__head">
+                                        <div>Time</div>
+                                        <div>Type</div>
+                                        <div>Email</div>
+                                        <div>Company</div>
+                                        <div>Status</div>
+                                        <div>Resends</div>
+                                        <div>Actions</div>
+                                    </div>
+                                    {inboxMessages.length === 0 ? (
+                                        <div className="dashTable__row dashTable__row--empty">
+                                            <div className="dashMuted">No messages found. Access requests (e.g., air-gapped/offline licensing) will show up here.</div>
+                                            <div />
+                                            <div />
+                                            <div />
+                                            <div />
+                                            <div />
+                                            <div />
+                                        </div>
+                                    ) : (
+                                        inboxMessages.map((msg) => (
+                                            <div key={msg.request_id} className="dashTable__row">
+                                                <div>{formatDateTime(msg.created_at)}</div>
+                                                <div>{(msg.request_type || '').replace(/_/g, ' ')}</div>
+                                                <div>{msg.email}</div>
+                                                <div>{msg.company || '—'}</div>
+                                                <div>
+                                                    <span className={`dashStatus dashStatus--${msg.status === 'handled' ? 'active' : 'archived'}`}>
+                                                        {msg.status || 'new'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)' }}>{msg.resend_count || 0}</div>
+                                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
+                                                        {msg.resent_at ? `Last: ${formatDateTime(msg.resent_at)}` : '—'}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <button
+                                                        className="button button--outline"
+                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
+                                                        onClick={() => handleResendInboxMessage(msg.request_id)}
+                                                    >
+                                                        Resend
+                                                    </button>
+                                                    <button
+                                                        className="button button--outline"
+                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
+                                                        onClick={() => handleMarkInboxHandled(msg.request_id, msg.status !== 'handled')}
+                                                    >
+                                                        {msg.status === 'handled' ? 'Mark New' : 'Mark Handled'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {inboxMessages.length > 0 && (
+                                <div style={{ marginTop: '16px', color: 'rgba(255,255,255,0.65)', fontSize: '12px' }}>
+                                    Tip: Open “Resend” to track follow-ups in the inbox. For full email sending integration, we can wire this to an email provider.
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -824,7 +994,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {users.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No users found.</div>
+                                        <div className="dashMuted">No users found. Create a test account to verify usage tracking and admin controls end-to-end.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -864,7 +1034,7 @@ function AdminPage({ session, navigate }) {
                                 </div>
                                 {auditLog.length === 0 ? (
                                     <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No audit log entries found.</div>
+                                        <div className="dashMuted">No audit log entries found. Admin actions (plan assignment, user toggles, token resets) will appear here.</div>
                                         <div />
                                         <div />
                                         <div />
@@ -874,9 +1044,9 @@ function AdminPage({ session, navigate }) {
                                     auditLog.map((action) => (
                                         <div key={action.action_id} className="dashTable__row">
                                             <div>{formatDateTime(action.created_at)}</div>
-                                            <div>{action.admin_user?.email || 'N/A'}</div>
+                                            <div>{getUserEmailById(action.admin_user_id) || 'N/A'}</div>
                                             <div>{action.action_type.replace(/_/g, ' ')}</div>
-                                            <div>{action.target_user?.email || '—'}</div>
+                                            <div>{getUserEmailById(action.target_user_id) || '—'}</div>
                                             <div style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {action.details ? JSON.stringify(action.details).substring(0, 50) + '...' : '—'}
                                             </div>
@@ -891,7 +1061,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'analytics' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Analytics Dashboard</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -1006,7 +1176,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'gpu-usage' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>GPU Usage Tracking</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -1114,7 +1284,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'platform-analytics' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -1158,9 +1328,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Plan Distribution</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
-                                                    <div key={plan} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={plan} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1198,9 +1368,9 @@ function AdminPage({ session, navigate }) {
                             </div>
 
                             {/* Filters */}
-                            <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                                 gap: '16px',
                                 marginBottom: '24px',
                                 padding: '16px',
@@ -1332,7 +1502,7 @@ function AdminPage({ session, navigate }) {
                                         <h3 className="dashCard__title">Top Features by Usage</h3>
                                         <div style={{ padding: '16px 0' }}>
                                             {featureAdoption.features.slice(0, 20).map((feature) => (
-                                                <div key={feature.feature} style={{ 
+                                                <div key={feature.feature} style={{
                                                     padding: '16px 0',
                                                     borderBottom: '1px solid var(--dr-border-weak)'
                                                 }}>
@@ -1344,9 +1514,9 @@ function AdminPage({ session, navigate }) {
                                                             {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
                                                         </span>
                                                     </div>
-                                                    <div style={{ 
-                                                        width: '100%', 
-                                                        height: '6px', 
+                                                    <div style={{
+                                                        width: '100%',
+                                                        height: '6px',
                                                         backgroundColor: 'var(--dr-border-weak)',
                                                         borderRadius: '3px',
                                                         overflow: 'hidden'
@@ -1369,9 +1539,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {featureAdoption.mostRequested.map((feature) => (
-                                                    <div key={feature.feature} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={feature.feature} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1400,7 +1570,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'system-health' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -1433,7 +1603,7 @@ function AdminPage({ session, navigate }) {
                                         <div className="stat-card">
                                             <div className="stat-card__label">Database Health</div>
                                             <div className="stat-card__value">
-                                                <span style={{ 
+                                                <span style={{
                                                     color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
                                                     fontWeight: '600'
                                                 }}>
@@ -1524,9 +1694,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Events by Type</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
-                                                    <div key={type} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={type} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1552,7 +1722,7 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Recent Errors</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {ideSyncStatus.recentErrors.map((error) => (
-                                                    <div key={error.id} style={{ 
+                                                    <div key={error.id} style={{
                                                         padding: '12px',
                                                         marginBottom: '12px',
                                                         backgroundColor: '#fef2f2',
@@ -1640,9 +1810,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Revenue by Plan</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
-                                                    <div key={plan} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={plan} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1681,7 +1851,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'platform-analytics' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -1725,9 +1895,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Plan Distribution</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
-                                                    <div key={plan} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={plan} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1765,9 +1935,9 @@ function AdminPage({ session, navigate }) {
                             </div>
 
                             {/* Filters */}
-                            <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                                 gap: '16px',
                                 marginBottom: '24px',
                                 padding: '16px',
@@ -1899,7 +2069,7 @@ function AdminPage({ session, navigate }) {
                                         <h3 className="dashCard__title">Top Features by Usage</h3>
                                         <div style={{ padding: '16px 0' }}>
                                             {featureAdoption.features.slice(0, 20).map((feature) => (
-                                                <div key={feature.feature} style={{ 
+                                                <div key={feature.feature} style={{
                                                     padding: '16px 0',
                                                     borderBottom: '1px solid var(--dr-border-weak)'
                                                 }}>
@@ -1911,9 +2081,9 @@ function AdminPage({ session, navigate }) {
                                                             {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
                                                         </span>
                                                     </div>
-                                                    <div style={{ 
-                                                        width: '100%', 
-                                                        height: '6px', 
+                                                    <div style={{
+                                                        width: '100%',
+                                                        height: '6px',
                                                         backgroundColor: 'var(--dr-border-weak)',
                                                         borderRadius: '3px',
                                                         overflow: 'hidden'
@@ -1936,9 +2106,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {featureAdoption.mostRequested.map((feature) => (
-                                                    <div key={feature.feature} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={feature.feature} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -1967,7 +2137,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'system-health' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -2000,7 +2170,7 @@ function AdminPage({ session, navigate }) {
                                         <div className="stat-card">
                                             <div className="stat-card__label">Database Health</div>
                                             <div className="stat-card__value">
-                                                <span style={{ 
+                                                <span style={{
                                                     color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
                                                     fontWeight: '600'
                                                 }}>
@@ -2091,9 +2261,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Events by Type</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
-                                                    <div key={type} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={type} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -2119,7 +2289,7 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Recent Errors</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {ideSyncStatus.recentErrors.map((error) => (
-                                                    <div key={error.id} style={{ 
+                                                    <div key={error.id} style={{
                                                         padding: '12px',
                                                         marginBottom: '12px',
                                                         backgroundColor: '#fef2f2',
@@ -2207,9 +2377,9 @@ function AdminPage({ session, navigate }) {
                                             <h3 className="dashCard__title">Revenue by Plan</h3>
                                             <div style={{ padding: '16px 0' }}>
                                                 {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
-                                                    <div key={plan} style={{ 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
+                                                    <div key={plan} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         padding: '12px 0',
                                                         borderBottom: '1px solid var(--dr-border-weak)'
@@ -2248,7 +2418,7 @@ function AdminPage({ session, navigate }) {
                     {activeTab === 'activity' && (
                         <div className="adminContent">
                             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>User Activity</h2>
-                            
+
                             {analyticsLoading ? (
                                 <div style={{ padding: '48px', textAlign: 'center' }}>
                                     <LoadingSpinner />
@@ -2283,9 +2453,9 @@ function AdminPage({ session, navigate }) {
                                                 userActivity.activities.slice(0, 50).map((activity) => (
                                                     <div key={activity.activity_id} className="activity-item">
                                                         <div className="activity-item__icon">
-                                                            {activity.activity_type === 'login' ? '🔐' : 
-                                                             activity.activity_type === 'feature_used' ? '⚡' :
-                                                             activity.activity_type === 'project_created' ? '📁' : '📊'}
+                                                            {activity.activity_type === 'login' ? '🔐' :
+                                                                activity.activity_type === 'feature_used' ? '⚡' :
+                                                                    activity.activity_type === 'project_created' ? '📁' : '📊'}
                                                         </div>
                                                         <div className="activity-item__content">
                                                             <div className="activity-item__title">

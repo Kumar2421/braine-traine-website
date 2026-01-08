@@ -31,7 +31,9 @@ serve(async (req) => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email.trim())) {
+    const normalizedEmail = email.toLowerCase().trim()
+    
+    if (!emailRegex.test(normalizedEmail)) {
       return new Response(
         JSON.stringify({ error: 'Invalid email format' }),
         {
@@ -39,6 +41,65 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // Validate password
+    if (!password || password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Check if user already exists (optional - we'll handle this in verify-otp too)
+    // This is just to provide early feedback
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (supabaseServiceKey) {
+      try {
+        const checkUserResponse = await fetch(
+          `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(normalizedEmail)}`,
+          {
+            method: 'GET',
+            headers: {
+              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+          }
+        )
+
+        if (checkUserResponse.ok) {
+          const usersData = await checkUserResponse.json()
+          const existingUser = usersData.users?.[0] || null
+          
+          if (existingUser) {
+            // Check if user has email/password identity
+            const hasEmailPassword = existingUser.identities?.some(
+              (identity: any) => identity.provider === 'email'
+            )
+            
+            if (hasEmailPassword) {
+              // User has password - they should log in instead
+              return new Response(
+                JSON.stringify({ 
+                  error: 'An account with this email already exists. Please log in instead.',
+                  requiresLogin: true
+                }),
+                {
+                  status: 400,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+              )
+            }
+            // If user has OAuth only, allow them to continue - verify-otp will handle setting password
+          }
+        }
+      } catch (checkError) {
+        // If check fails, continue with OTP send - verify-otp will handle account existence
+        console.log('Could not check existing user, continuing with OTP send:', checkError)
+      }
     }
 
     // Generate 6-digit OTP
@@ -50,10 +111,23 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    // Clean up old unused OTPs for this email (optional - helps keep DB clean)
+    try {
+      await supabase
+        .from('otp_codes')
+        .delete()
+        .eq('email', normalizedEmail)
+        .eq('used', false)
+        .lt('expires_at', new Date().toISOString())
+    } catch (cleanupError) {
+      // Non-critical - continue even if cleanup fails
+      console.log('OTP cleanup error (non-critical):', cleanupError)
+    }
+
     const { error: dbError } = await supabase
       .from('otp_codes')
       .insert({
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         code: otp,
         expires_at: expiresAt.toISOString(),
         user_data: { firstName: firstName?.trim() || '', lastName: lastName?.trim() || '', password }

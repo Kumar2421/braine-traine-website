@@ -51,6 +51,7 @@ CREATE INDEX IF NOT EXISTS trials_trial_end_idx ON public.trials(trial_end);
 
 ALTER TABLE public.trials ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS trials_select_own ON public.trials;
 CREATE POLICY trials_select_own
     ON public.trials
     FOR SELECT
@@ -89,21 +90,19 @@ CREATE INDEX IF NOT EXISTS coupons_valid_until_idx ON public.coupons(valid_until
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can read active coupons
+DROP POLICY IF EXISTS coupons_select_active ON public.coupons;
 CREATE POLICY coupons_select_active
     ON public.coupons
     FOR SELECT
     USING (is_active = true AND (valid_until IS NULL OR valid_until > now()));
 
 -- Admin can manage coupons
+DROP POLICY IF EXISTS coupons_admin_all ON public.coupons;
 CREATE POLICY coupons_admin_all
     ON public.coupons
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Coupon usage tracking
@@ -123,6 +122,7 @@ CREATE INDEX IF NOT EXISTS coupon_usage_subscription_id_idx ON public.coupon_usa
 
 ALTER TABLE public.coupon_usage ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS coupon_usage_select_own ON public.coupon_usage;
 CREATE POLICY coupon_usage_select_own
     ON public.coupon_usage
     FOR SELECT
@@ -172,15 +172,14 @@ CREATE INDEX IF NOT EXISTS team_members_status_idx ON public.team_members(status
 
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS team_members_select_own ON public.team_members;
 CREATE POLICY team_members_select_own
     ON public.team_members
     FOR SELECT
     USING (
-        auth.uid() = user_id OR
-        EXISTS (
-            SELECT 1 FROM public.teams
-            WHERE teams.team_id = team_members.team_id
-            AND teams.owner_id = auth.uid()
+        auth.uid() = user_id
+        OR auth.uid() IN (
+            SELECT owner_id FROM public.teams WHERE team_id = team_members.team_id
         )
     );
 
@@ -205,6 +204,7 @@ CREATE INDEX IF NOT EXISTS user_activity_created_at_idx ON public.user_activity(
 
 ALTER TABLE public.user_activity ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS user_activity_select_own ON public.user_activity;
 CREATE POLICY user_activity_select_own
     ON public.user_activity
     FOR SELECT
@@ -234,6 +234,7 @@ CREATE INDEX IF NOT EXISTS gpu_usage_status_idx ON public.gpu_usage(status);
 
 ALTER TABLE public.gpu_usage ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS gpu_usage_select_own ON public.gpu_usage;
 CREATE POLICY gpu_usage_select_own
     ON public.gpu_usage
     FOR SELECT
@@ -255,16 +256,18 @@ GROUP BY DATE_TRUNC('day', created_at), plan_type, billing_interval;
 -- Revenue analytics view
 CREATE OR REPLACE VIEW public.revenue_analytics AS
 SELECT 
-    DATE_TRUNC('day', created_at) as date,
-    DATE_TRUNC('month', created_at) as month,
-    plan_type,
+    DATE_TRUNC('day', bh.created_at) as date,
+    DATE_TRUNC('month', bh.created_at) as month,
+    s.plan_type,
     COUNT(*) as transactions,
-    SUM(amount) as total_revenue_paise,
-    AVG(amount) as avg_transaction_paise,
-    SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as paid_revenue_paise,
-    SUM(CASE WHEN status = 'failed' THEN amount ELSE 0 END) as failed_amount_paise
-FROM public.billing_history
-GROUP BY DATE_TRUNC('day', created_at), DATE_TRUNC('month', created_at), plan_type;
+    SUM(bh.amount) as total_revenue_paise,
+    AVG(bh.amount) as avg_transaction_paise,
+    SUM(CASE WHEN bh.status = 'paid' THEN bh.amount ELSE 0 END) as paid_revenue_paise,
+    SUM(CASE WHEN bh.status = 'failed' THEN bh.amount ELSE 0 END) as failed_amount_paise
+FROM public.billing_history bh
+LEFT JOIN public.subscriptions s
+    ON s.subscription_id = bh.subscription_id
+GROUP BY DATE_TRUNC('day', bh.created_at), DATE_TRUNC('month', bh.created_at), s.plan_type;
 
 -- ============================================
 -- 6. SUBSCRIPTION CHANGE HISTORY
@@ -293,6 +296,7 @@ CREATE INDEX IF NOT EXISTS subscription_changes_effective_date_idx ON public.sub
 
 ALTER TABLE public.subscription_changes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS subscription_changes_select_own ON public.subscription_changes;
 CREATE POLICY subscription_changes_select_own
     ON public.subscription_changes
     FOR SELECT
@@ -339,6 +343,7 @@ CREATE INDEX IF NOT EXISTS notifications_created_at_idx ON public.notifications(
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS notifications_select_own ON public.notifications;
 CREATE POLICY notifications_select_own
     ON public.notifications
     FOR SELECT
@@ -373,15 +378,15 @@ CREATE INDEX IF NOT EXISTS enterprise_contracts_end_date_idx ON public.enterpris
 
 ALTER TABLE public.enterprise_contracts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS enterprise_contracts_select_team ON public.enterprise_contracts;
 CREATE POLICY enterprise_contracts_select_team
     ON public.enterprise_contracts
     FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM public.team_members
-            WHERE team_members.team_id = enterprise_contracts.team_id
-            AND team_members.user_id = auth.uid()
-            AND team_members.status = 'active'
+        auth.uid() IN (
+            SELECT user_id FROM public.team_members
+            WHERE team_id = enterprise_contracts.team_id
+            AND status = 'active'
         )
     );
 
@@ -476,16 +481,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Add updated_at triggers
+DROP TRIGGER IF EXISTS update_coupons_updated_at ON public.coupons;
 CREATE TRIGGER update_coupons_updated_at
     BEFORE UPDATE ON public.coupons
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_teams_updated_at ON public.teams;
 CREATE TRIGGER update_teams_updated_at
     BEFORE UPDATE ON public.teams
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_enterprise_contracts_updated_at ON public.enterprise_contracts;
 CREATE TRIGGER update_enterprise_contracts_updated_at
     BEFORE UPDATE ON public.enterprise_contracts
     FOR EACH ROW
@@ -564,26 +572,20 @@ GRANT SELECT ON public.subscription_analytics TO authenticated;
 GRANT SELECT ON public.revenue_analytics TO authenticated;
 
 -- Admin policies for analytics tables
+DROP POLICY IF EXISTS user_activity_admin_all ON public.user_activity;
 CREATE POLICY user_activity_admin_all
     ON public.user_activity
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
+DROP POLICY IF EXISTS gpu_usage_admin_all ON public.gpu_usage;
 CREATE POLICY gpu_usage_admin_all
     ON public.gpu_usage
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 COMMENT ON TABLE public.subscriptions IS 'Stores user subscriptions with support for recurring billing, upgrades, downgrades, and trials';

@@ -44,11 +44,15 @@ export async function sendOTP(email, firstName, lastName, password) {
     const data = await response.json()
 
     if (!response.ok) {
+      // Check if it's an existing account error
+      if (data?.requiresLogin) {
+        return { success: false, error: data.error || 'An account with this email already exists', requiresLogin: true }
+      }
       throw new Error(data.error || data.message || 'Failed to send OTP')
     }
 
     if (data?.error) {
-      return { success: false, error: data.error }
+      return { success: false, error: data.error, requiresLogin: data.requiresLogin || false }
     }
 
     return { success: true }

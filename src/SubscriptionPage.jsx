@@ -123,55 +123,55 @@ function SubscriptionPage({ session, navigate }) {
         // Create chart data from GPU usage
         const last30Days = []
         const today = new Date()
-        
+
         for (let i = 29; i >= 0; i--) {
             const date = new Date(today)
             date.setDate(date.getDate() - i)
             const dateStr = date.toISOString().split('T')[0]
-            
+
             // Find usage for this date
             const dayUsage = usageData.gpuUsage?.filter(usage => {
                 const usageDate = new Date(usage.usage_start).toISOString().split('T')[0]
                 return usageDate === dateStr
             }) || []
-            
+
             const totalHours = dayUsage.reduce((sum, u) => sum + parseFloat(u.hours_used || 0), 0)
-            
+
             last30Days.push({
                 date: dateStr,
                 label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 value: totalHours,
             })
         }
-        
+
         return last30Days
     }
 
     const generateBillingCalendar = () => {
         if (!subscription) return []
-        
+
         const calendar = []
         const start = new Date(subscription.current_period_start)
         const end = new Date(subscription.current_period_end)
         const today = new Date()
-        
+
         // Get all days in the billing period
         const currentDate = new Date(start)
         while (currentDate <= end) {
             const isBillingDay = currentDate.getTime() === end.getTime()
             const isTrialEnd = activeTrial && new Date(activeTrial.trial_end).toDateString() === currentDate.toDateString()
             const isPast = currentDate < today
-            
+
             calendar.push({
                 date: new Date(currentDate),
                 isBillingDay,
                 isTrialEnd,
                 isPast,
             })
-            
+
             currentDate.setDate(currentDate.getDate() + 1)
         }
-        
+
         return calendar
     }
 
@@ -439,7 +439,7 @@ function SubscriptionPage({ session, navigate }) {
                                                 navigate('/pricing')
                                             }}
                                         >
-                                            Upgrade Plan
+                                            Compare plans
                                         </a>
                                     )}
                                 </div>
@@ -478,7 +478,7 @@ function SubscriptionPage({ session, navigate }) {
                                 {usageWithLimits && (
                                     <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--dr-border-weak)' }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px' }}>Current Usage Limits</h3>
-                                        
+
                                         {/* Projects Limit */}
                                         <div style={{ marginBottom: '16px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -487,9 +487,9 @@ function SubscriptionPage({ session, navigate }) {
                                                     {usageWithLimits.usage.projects_count || 0} / {usageWithLimits.limits.max_projects === -1 ? '∞' : usageWithLimits.limits.max_projects}
                                                 </span>
                                             </div>
-                                            <div style={{ 
-                                                width: '100%', 
-                                                height: '6px', 
+                                            <div style={{
+                                                width: '100%',
+                                                height: '6px',
                                                 backgroundColor: 'var(--dr-border-weak)',
                                                 borderRadius: '3px',
                                                 overflow: 'hidden',
@@ -498,11 +498,11 @@ function SubscriptionPage({ session, navigate }) {
                                                 <div style={{
                                                     width: `${getUsagePercentage(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)}%`,
                                                     height: '100%',
-                                                    backgroundColor: isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) 
-                                                        ? '#ef4444' 
+                                                    backgroundColor: isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)
+                                                        ? '#ef4444'
                                                         : isSoftLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)
-                                                        ? '#f59e0b'
-                                                        : '#14b8a6',
+                                                            ? '#f59e0b'
+                                                            : '#14b8a6',
                                                     transition: 'width 0.3s ease'
                                                 }} />
                                             </div>
@@ -525,9 +525,9 @@ function SubscriptionPage({ session, navigate }) {
                                                     {usageWithLimits.usage.exports_count || 0} / {usageWithLimits.limits.max_exports_per_month === -1 ? '∞' : usageWithLimits.limits.max_exports_per_month}
                                                 </span>
                                             </div>
-                                            <div style={{ 
-                                                width: '100%', 
-                                                height: '6px', 
+                                            <div style={{
+                                                width: '100%',
+                                                height: '6px',
                                                 backgroundColor: 'var(--dr-border-weak)',
                                                 borderRadius: '3px',
                                                 overflow: 'hidden',
@@ -536,11 +536,11 @@ function SubscriptionPage({ session, navigate }) {
                                                 <div style={{
                                                     width: `${getUsagePercentage(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)}%`,
                                                     height: '100%',
-                                                    backgroundColor: isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) 
-                                                        ? '#ef4444' 
+                                                    backgroundColor: isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)
+                                                        ? '#ef4444'
                                                         : isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)
-                                                        ? '#f59e0b'
-                                                        : '#14b8a6',
+                                                            ? '#f59e0b'
+                                                            : '#14b8a6',
                                                     transition: 'width 0.3s ease'
                                                 }} />
                                             </div>
@@ -564,9 +564,9 @@ function SubscriptionPage({ session, navigate }) {
                                                     {parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0').toFixed(1)} / {usageWithLimits.limits.max_gpu_hours_per_month === -1 ? '∞' : usageWithLimits.limits.max_gpu_hours_per_month}
                                                 </span>
                                             </div>
-                                            <div style={{ 
-                                                width: '100%', 
-                                                height: '6px', 
+                                            <div style={{
+                                                width: '100%',
+                                                height: '6px',
                                                 backgroundColor: 'var(--dr-border-weak)',
                                                 borderRadius: '3px',
                                                 overflow: 'hidden',
@@ -575,11 +575,11 @@ function SubscriptionPage({ session, navigate }) {
                                                 <div style={{
                                                     width: `${getUsagePercentage(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)}%`,
                                                     height: '100%',
-                                                    backgroundColor: isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) 
-                                                        ? '#ef4444' 
+                                                    backgroundColor: isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                                        ? '#ef4444'
                                                         : isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                                        ? '#f59e0b'
-                                                        : '#14b8a6',
+                                                            ? '#f59e0b'
+                                                            : '#14b8a6',
                                                     transition: 'width 0.3s ease'
                                                 }} />
                                             </div>
@@ -597,32 +597,32 @@ function SubscriptionPage({ session, navigate }) {
 
                                         {/* Upgrade Prompt if approaching limits */}
                                         {(isSoftLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
-                                          isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
-                                          isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) ||
-                                          isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
-                                          isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
-                                          isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)) && (
-                                            <UpgradePrompt
-                                                title={[
-                                                    isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                                    isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                                    isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                                ].some(Boolean) ? "Usage Limit Reached" : "Approaching Usage Limits"}
-                                                message={[
-                                                    isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                                    isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                                    isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                                ].some(Boolean) 
-                                                    ? "You've reached one or more usage limits. Upgrade your plan to continue using all features."
-                                                    : "You're approaching your usage limits. Upgrade your plan to get more resources and avoid interruptions."}
-                                                variant={[
-                                                    isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                                    isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                                    isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                                ].some(Boolean) ? 'error' : 'warning'}
-                                                onUpgrade={() => navigate('/pricing')}
-                                            />
-                                        )}
+                                            isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
+                                            isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) ||
+                                            isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
+                                            isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
+                                            isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)) && (
+                                                <UpgradePrompt
+                                                    title={[
+                                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                                    ].some(Boolean) ? "Usage Limit Reached" : "Approaching Usage Limits"}
+                                                    message={[
+                                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                                    ].some(Boolean)
+                                                        ? "You've reached one or more usage limits. Choose a plan with higher limits to continue."
+                                                        : "You're approaching your usage limits. Compare plans if you want higher limits."}
+                                                    variant={[
+                                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                                    ].some(Boolean) ? 'error' : 'warning'}
+                                                    onUpgrade={() => navigate('/pricing')}
+                                                />
+                                            )}
                                     </div>
                                 )}
                             </article>
@@ -654,7 +654,7 @@ function SubscriptionPage({ session, navigate }) {
                                                 navigate('/pricing')
                                             }}
                                         >
-                                            Subscribe Now
+                                            Choose a plan
                                         </a>
                                     </div>
                                 </article>
@@ -668,17 +668,15 @@ function SubscriptionPage({ session, navigate }) {
                                         {generateBillingCalendar().map((day, idx) => (
                                             <div
                                                 key={idx}
-                                                className={`calendar-day ${
-                                                    day.isBillingDay ? 'calendar-day--billing' : ''
-                                                } ${day.isTrialEnd ? 'calendar-day--trial' : ''} ${
-                                                    day.isPast ? 'calendar-day--past' : ''
-                                                }`}
+                                                className={`calendar-day ${day.isBillingDay ? 'calendar-day--billing' : ''
+                                                    } ${day.isTrialEnd ? 'calendar-day--trial' : ''} ${day.isPast ? 'calendar-day--past' : ''
+                                                    }`}
                                                 title={
                                                     day.isBillingDay
                                                         ? 'Billing Date'
                                                         : day.isTrialEnd
-                                                        ? 'Trial Ends'
-                                                        : day.date.toLocaleDateString()
+                                                            ? 'Trial Ends'
+                                                            : day.date.toLocaleDateString()
                                                 }
                                             >
                                                 {day.date.getDate()}
@@ -795,9 +793,8 @@ function SubscriptionPage({ session, navigate }) {
                                             <div>{formatPrice(invoice.amount, invoice.currency)}</div>
                                             <div>
                                                 <span
-                                                    className={`dashStatus dashStatus--${
-                                                        invoice.status === 'paid' ? 'active' : 'archived'
-                                                    }`}
+                                                    className={`dashStatus dashStatus--${invoice.status === 'paid' ? 'active' : 'archived'
+                                                        }`}
                                                 >
                                                     {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                                                 </span>
@@ -902,13 +899,12 @@ function SubscriptionPage({ session, navigate }) {
                                             <div>{formatDateTime(change.created_at)}</div>
                                             <div>
                                                 <span
-                                                    className={`dashStatus dashStatus--${
-                                                        change.change_type === 'upgrade'
+                                                    className={`dashStatus dashStatus--${change.change_type === 'upgrade'
                                                             ? 'active'
                                                             : change.change_type === 'downgrade'
-                                                            ? 'warning'
-                                                            : 'archived'
-                                                    }`}
+                                                                ? 'warning'
+                                                                : 'archived'
+                                                        }`}
                                                 >
                                                     {change.change_type.charAt(0).toUpperCase() +
                                                         change.change_type.slice(1).replace('_', ' ')}

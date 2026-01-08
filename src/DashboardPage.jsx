@@ -47,7 +47,7 @@ function DashboardPage({ session, navigate }) {
     const [usageWithLimits, setUsageWithLimits] = useState(null)
     const [models, setModels] = useState([])
     const [trainingRuns, setTrainingRuns] = useState([])
-    
+
     // Analytics data
     const [analyticsPeriod, setAnalyticsPeriod] = useState('30d') // '1d', '7d', '30d', 'all'
     const [gpuHoursData, setGpuHoursData] = useState([])
@@ -56,7 +56,7 @@ function DashboardPage({ session, navigate }) {
     const [exportFormats, setExportFormats] = useState([])
     const [featureUsage, setFeatureUsage] = useState([])
     const [activityTimeline, setActivityTimeline] = useState([])
-    
+
     const [loading, setLoading] = useState({
         license: true,
         subscription: true,
@@ -256,9 +256,9 @@ function DashboardPage({ session, navigate }) {
         let mounted = true
         const run = async () => {
             if (!userId || !subscriptionSummary?.subscription_id) return
-            
+
             setLoading((prev) => ({ ...prev, usage: true, activity: true }))
-            
+
             try {
                 // Load subscription usage
                 const usageResult = await getSubscriptionUsage(subscriptionSummary.subscription_id)
@@ -375,28 +375,28 @@ function DashboardPage({ session, navigate }) {
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button 
+                                    <button
                                         className={`button ${analyticsPeriod === '1d' ? 'button--primary' : 'button--outline'}`}
                                         style={{ fontSize: '12px', padding: '6px 12px' }}
                                         onClick={() => setAnalyticsPeriod('1d')}
                                     >
                                         1d
                                     </button>
-                                    <button 
+                                    <button
                                         className={`button ${analyticsPeriod === '7d' ? 'button--primary' : 'button--outline'}`}
                                         style={{ fontSize: '12px', padding: '6px 12px' }}
                                         onClick={() => setAnalyticsPeriod('7d')}
                                     >
                                         7d
                                     </button>
-                                    <button 
+                                    <button
                                         className={`button ${analyticsPeriod === '30d' ? 'button--primary' : 'button--outline'}`}
                                         style={{ fontSize: '12px', padding: '6px 12px' }}
                                         onClick={() => setAnalyticsPeriod('30d')}
                                     >
                                         30d
                                     </button>
-                                    <button 
+                                    <button
                                         className={`button ${analyticsPeriod === 'all' ? 'button--primary' : 'button--outline'}`}
                                         style={{ fontSize: '12px', padding: '6px 12px' }}
                                         onClick={() => setAnalyticsPeriod('all')}
@@ -416,15 +416,15 @@ function DashboardPage({ session, navigate }) {
                                         </span>
                                     </div>
                                     <div className="usage-progress">
-                                        <div 
+                                        <div
                                             className="usage-progress__bar"
-                                            style={{ 
+                                            style={{
                                                 width: `${getUsagePercentage(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)}%`,
-                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) 
-                                                    ? '#ef4444' 
+                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)
+                                                    ? '#ef4444'
                                                     : isSoftLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects)
-                                                    ? '#f59e0b'
-                                                    : '#14b8a6'
+                                                        ? '#f59e0b'
+                                                        : '#14b8a6'
                                             }}
                                         />
                                     </div>
@@ -447,15 +447,15 @@ function DashboardPage({ session, navigate }) {
                                         </span>
                                     </div>
                                     <div className="usage-progress">
-                                        <div 
+                                        <div
                                             className="usage-progress__bar"
-                                            style={{ 
+                                            style={{
                                                 width: `${getUsagePercentage(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)}%`,
-                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) 
-                                                    ? '#ef4444' 
+                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)
+                                                    ? '#ef4444'
                                                     : isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month)
-                                                    ? '#f59e0b'
-                                                    : '#14b8a6'
+                                                        ? '#f59e0b'
+                                                        : '#14b8a6'
                                             }}
                                         />
                                     </div>
@@ -479,15 +479,15 @@ function DashboardPage({ session, navigate }) {
                                         </span>
                                     </div>
                                     <div className="usage-progress">
-                                        <div 
+                                        <div
                                             className="usage-progress__bar"
-                                            style={{ 
+                                            style={{
                                                 width: `${getUsagePercentage(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)}%`,
-                                                backgroundColor: isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) 
-                                                    ? '#ef4444' 
+                                                backgroundColor: isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                                    ? '#ef4444'
                                                     : isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                                    ? '#f59e0b'
-                                                    : '#14b8a6'
+                                                        ? '#f59e0b'
+                                                        : '#14b8a6'
                                             }}
                                         />
                                     </div>
@@ -511,15 +511,15 @@ function DashboardPage({ session, navigate }) {
                                         </span>
                                     </div>
                                     <div className="usage-progress">
-                                        <div 
+                                        <div
                                             className="usage-progress__bar"
-                                            style={{ 
+                                            style={{
                                                 width: `${getUsagePercentage(usageWithLimits.usage.training_runs_count || 0, usageWithLimits.limits.max_training_runs_per_month)}%`,
-                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.training_runs_count || 0, usageWithLimits.limits.max_training_runs_per_month) 
-                                                    ? '#ef4444' 
+                                                backgroundColor: isHardLimitReached(usageWithLimits.usage.training_runs_count || 0, usageWithLimits.limits.max_training_runs_per_month)
+                                                    ? '#ef4444'
                                                     : isSoftLimitReached(usageWithLimits.usage.training_runs_count || 0, usageWithLimits.limits.max_training_runs_per_month)
-                                                    ? '#f59e0b'
-                                                    : '#14b8a6'
+                                                        ? '#f59e0b'
+                                                        : '#14b8a6'
                                             }}
                                         />
                                     </div>
@@ -537,32 +537,32 @@ function DashboardPage({ session, navigate }) {
 
                             {/* Upgrade Prompt if approaching or at limits */}
                             {(isSoftLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
-                              isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
-                              isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) ||
-                              isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
-                              isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
-                              isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)) && (
-                                <UpgradePrompt
-                                    title={[
-                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                    ].some(Boolean) ? "Usage Limit Reached" : "Approaching Usage Limits"}
-                                    message={[
-                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                    ].some(Boolean) 
-                                        ? "You've reached one or more usage limits. Upgrade your plan to continue using all features."
-                                        : "You're approaching your usage limits. Upgrade your plan to get more resources and avoid interruptions."}
-                                    variant={[
-                                        isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
-                                        isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
-                                        isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
-                                    ].some(Boolean) ? 'error' : 'warning'}
-                                    onUpgrade={() => navigate('/pricing')}
-                                />
-                            )}
+                                isSoftLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
+                                isSoftLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month) ||
+                                isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects) ||
+                                isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month) ||
+                                isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)) && (
+                                    <UpgradePrompt
+                                        title={[
+                                            isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                            isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                            isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                        ].some(Boolean) ? "Usage Limit Reached" : "Approaching Usage Limits"}
+                                        message={[
+                                            isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                            isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                            isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                        ].some(Boolean)
+                                            ? "You've reached one or more usage limits. Upgrade your plan to continue using all features."
+                                            : "You're approaching your usage limits. Upgrade your plan to get more resources and avoid interruptions."}
+                                        variant={[
+                                            isHardLimitReached(usageWithLimits.usage.projects_count || 0, usageWithLimits.limits.max_projects),
+                                            isHardLimitReached(usageWithLimits.usage.exports_count || 0, usageWithLimits.limits.max_exports_per_month),
+                                            isHardLimitReached(parseFloat(usageWithLimits.usage.gpu_hours_used?.toString() || '0'), usageWithLimits.limits.max_gpu_hours_per_month)
+                                        ].some(Boolean) ? 'error' : 'warning'}
+                                        onUpgrade={() => navigate('/pricing')}
+                                    />
+                                )}
                         </article>
                     )}
 
@@ -591,7 +591,7 @@ function DashboardPage({ session, navigate }) {
                             <div className="stat-card__subtext">
                                 {subscriptionSummary?.plan_type === 'free' ? (
                                     <a href="/pricing" onClick={(e) => { e.preventDefault(); navigate('/pricing') }} style={{ color: '#14b8a6', textDecoration: 'underline' }}>
-                                        Upgrade now →
+                                        Compare plans →
                                     </a>
                                 ) : (
                                     'Active'
@@ -606,10 +606,10 @@ function DashboardPage({ session, navigate }) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '600' }}>
-                                        Unlock Full Potential
+                                        Optional: unlock higher limits
                                     </h3>
                                     <p style={{ margin: 0, color: 'var(--dr-muted)' }}>
-                                        Upgrade to a paid plan to access advanced features, priority support, and more.
+                                        If you’re hitting limits (projects, exports, GPU hours), pick a plan that matches your workload.
                                     </p>
                                 </div>
                                 <a
@@ -620,7 +620,7 @@ function DashboardPage({ session, navigate }) {
                                         navigate('/pricing')
                                     }}
                                 >
-                                    View Plans
+                                    See plans
                                 </a>
                             </div>
                         </div>
@@ -635,7 +635,7 @@ function DashboardPage({ session, navigate }) {
                                         Trial Period Active
                                     </h3>
                                     <p style={{ margin: 0, color: 'var(--dr-muted)' }}>
-                                        Your trial ends on {formatDate(activeTrial.trial_end)}. Subscribe now to continue using all features.
+                                        Your trial ends on {formatDate(activeTrial.trial_end)}. Choose a plan if you want higher limits after the trial.
                                     </p>
                                 </div>
                                 <a
@@ -646,7 +646,7 @@ function DashboardPage({ session, navigate }) {
                                         navigate('/pricing')
                                     }}
                                 >
-                                    Subscribe Now
+                                    Choose a plan
                                 </a>
                             </div>
                         </div>
@@ -766,7 +766,17 @@ function DashboardPage({ session, navigate }) {
                                     </div>
                                     {projects.length === 0 ? (
                                         <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">No projects yet.</div>
+                                            <div className="dashMuted">
+                                                No projects yet. Create one in the ML FORGE desktop app — it will appear here once the IDE syncs metadata.
+                                                <div style={{ marginTop: '10px' }}>
+                                                    <strong>First run checklist</strong>
+                                                    <div style={{ marginTop: '8px' }}>
+                                                        <div>1) Create your first dataset</div>
+                                                        <div>2) Run your first training (YOLO)</div>
+                                                        <div>3) Export your first model (ONNX / TensorRT)</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div />
                                             <div />
                                             <div />
@@ -806,7 +816,7 @@ function DashboardPage({ session, navigate }) {
                                     </div>
                                     {downloads.length === 0 ? (
                                         <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">No downloads recorded yet.</div>
+                                            <div className="dashMuted">No downloads recorded yet. Grab an installer from the Download Hub to see download metadata here.</div>
                                             <div />
                                             <div />
                                         </div>
@@ -837,7 +847,12 @@ function DashboardPage({ session, navigate }) {
                                     </div>
                                     {exports.length === 0 ? (
                                         <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">No exports recorded yet.</div>
+                                            <div className="dashMuted">
+                                                No exports recorded yet. Export a model from the desktop app (e.g., ONNX/TensorRT) and you’ll see export metadata here.
+                                                <div style={{ marginTop: '10px' }}>
+                                                    Exports are stored locally; this dashboard only shows metadata once the desktop app syncs it.
+                                                </div>
+                                            </div>
                                             <div />
                                             <div />
                                             <div />
@@ -883,7 +898,7 @@ function DashboardPage({ session, navigate }) {
                                         navigate('/pricing')
                                     }}
                                 >
-                                    Upgrade Plan
+                                    Compare plans
                                 </a>
                             )}
                             <a
@@ -1037,9 +1052,9 @@ function DashboardPage({ session, navigate }) {
                             ) : exportFormats.length > 0 ? (
                                 <div style={{ padding: '16px 0' }}>
                                     {exportFormats.map((format) => (
-                                        <div key={format.format} style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'space-between', 
+                                        <div key={format.format} style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
                                             alignItems: 'center',
                                             padding: '12px 0',
                                             borderBottom: '1px solid var(--dr-border-weak)'
@@ -1068,7 +1083,7 @@ function DashboardPage({ session, navigate }) {
                             ) : featureUsage.length > 0 ? (
                                 <div style={{ padding: '16px 0' }}>
                                     {featureUsage.map((feature) => (
-                                        <div key={feature.feature} style={{ 
+                                        <div key={feature.feature} style={{
                                             padding: '12px 0',
                                             borderBottom: '1px solid var(--dr-border-weak)'
                                         }}>
@@ -1080,9 +1095,9 @@ function DashboardPage({ session, navigate }) {
                                                     {feature.granted} / {feature.total}
                                                 </span>
                                             </div>
-                                            <div style={{ 
-                                                width: '100%', 
-                                                height: '4px', 
+                                            <div style={{
+                                                width: '100%',
+                                                height: '4px',
                                                 backgroundColor: 'var(--dr-border-weak)',
                                                 borderRadius: '2px',
                                                 overflow: 'hidden'
@@ -1139,9 +1154,9 @@ function DashboardPage({ session, navigate }) {
                                                             {activity.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                                         </span>
                                                         {activity.ideVersion && (
-                                                            <span style={{ 
-                                                                marginLeft: '8px', 
-                                                                fontSize: '12px', 
+                                                            <span style={{
+                                                                marginLeft: '8px',
+                                                                fontSize: '12px',
                                                                 color: 'var(--dr-muted)',
                                                                 padding: '2px 6px',
                                                                 backgroundColor: 'var(--dr-surface-2)',
@@ -1156,10 +1171,10 @@ function DashboardPage({ session, navigate }) {
                                                     </span>
                                                 </div>
                                                 {activity.error && (
-                                                    <div style={{ 
-                                                        marginTop: '4px', 
-                                                        padding: '8px', 
-                                                        backgroundColor: '#fef2f2', 
+                                                    <div style={{
+                                                        marginTop: '4px',
+                                                        padding: '8px',
+                                                        backgroundColor: '#fef2f2',
                                                         border: '1px solid #fecaca',
                                                         borderRadius: '4px',
                                                         fontSize: '12px',
@@ -1169,9 +1184,9 @@ function DashboardPage({ session, navigate }) {
                                                     </div>
                                                 )}
                                                 {activity.data && Object.keys(activity.data).length > 0 && (
-                                                    <div style={{ 
-                                                        marginTop: '4px', 
-                                                        fontSize: '12px', 
+                                                    <div style={{
+                                                        marginTop: '4px',
+                                                        fontSize: '12px',
                                                         color: 'var(--dr-muted)',
                                                         fontFamily: 'monospace'
                                                     }}>
@@ -1225,9 +1240,9 @@ function DashboardPage({ session, navigate }) {
                                             {recentActivity.map((activity) => (
                                                 <div key={activity.activity_id} className="activity-item">
                                                     <div className="activity-item__icon">
-                                                        {activity.activity_type === 'login' ? '🔐' : 
-                                                         activity.activity_type === 'feature_used' ? '⚡' :
-                                                         activity.activity_type === 'project_created' ? '📁' : '📊'}
+                                                        {activity.activity_type === 'login' ? '🔐' :
+                                                            activity.activity_type === 'feature_used' ? '⚡' :
+                                                                activity.activity_type === 'project_created' ? '📁' : '📊'}
                                                     </div>
                                                     <div className="activity-item__content">
                                                         <div className="activity-item__title">

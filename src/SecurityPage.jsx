@@ -65,8 +65,8 @@ function SecurityPage() {
                                 Your datasets, models, and training runs never touch ML FORGE servers. The website is a control plane for licensing and distribution—not a runtime. Perfect for air-gapped environments and regulated industries.
                             </p>
                             <div className="aboutSplit__cta">
-                                <a 
-                                    className="button button--primary" 
+                                <a
+                                    className="button button--primary"
                                     href="/download"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -75,10 +75,10 @@ function SecurityPage() {
                                         }
                                     }}
                                 >
-                                    Download ML FORGE
+                                    Download for desktop
                                 </a>
-                                <a 
-                                    className="button button--outline" 
+                                <a
+                                    className="button button--outline"
                                     href="/request-access"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -87,7 +87,7 @@ function SecurityPage() {
                                         }
                                     }}
                                 >
-                                    Request enterprise access
+                                    Request access
                                 </a>
                             </div>
                         </div>

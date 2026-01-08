@@ -45,6 +45,11 @@ function WhyPage() {
                             <div className="unifyCard__kicker">Built for regulated environments</div>
                             <p className="unifyCard__body">Auditability, reproducibility, and offline deployment paths for real operations. Compliance-ready.</p>
                         </article>
+
+                        <article className="unifyCard">
+                            <div className="unifyCard__kicker">Who this is NOT for</div>
+                            <p className="unifyCard__body">If you want hosted notebooks, managed cloud GPUs, or a “just upload data” platform, ML FORGE is the wrong tool. It’s built for teams who run locally / on-prem and need deterministic results.</p>
+                        </article>
                     </div>
                 </div>
             </section>
@@ -65,8 +70,8 @@ function WhyPage() {
                                 Vision systems fail in production when data and training inputs drift. ML FORGE makes every input explicit and file-backed so you can reproduce results across machines and over time. No silent failures. No hidden state. Just deterministic workflows.
                             </p>
                             <div className="aboutSplit__cta">
-                                <a 
-                                    className="button button--primary" 
+                                <a
+                                    className="button button--primary"
                                     href="/download"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -75,10 +80,10 @@ function WhyPage() {
                                         }
                                     }}
                                 >
-                                    Download ML FORGE
+                                    Download for desktop
                                 </a>
-                                <a 
-                                    className="button button--outline" 
+                                <a
+                                    className="button button--outline"
                                     href="/agentic-ai"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -87,7 +92,7 @@ function WhyPage() {
                                         }
                                     }}
                                 >
-                                    View workflow
+                                    See the workflow
                                 </a>
                             </div>
                         </div>

@@ -54,13 +54,13 @@ function DownloadHubPage({ navigate }) {
                 <div className="container downloadHero__inner">
                     <p className="downloadHero__kicker">Download</p>
                     <div className="downloadHero__titleWrapper">
-                        <h1 className="downloadHero__title">Download ML FORGE</h1>
+                        <h1 className="downloadHero__title">Download for desktop</h1>
                         <div className="downloadHero__badge">
                             <span className="downloadHero__badgeText">Coming Soon</span>
                         </div>
                     </div>
                     <p className="downloadHero__subtitle">
-                        Local-first installers. Offline capable. No dataset uploads. Your data stays with you.
+                        Local-first installers. Offline capable. No dataset uploads. Your data stays with you. NVIDIA GPU recommended for training; CPU-only is supported.
                     </p>
                 </div>
             </section>
@@ -68,20 +68,20 @@ function DownloadHubPage({ navigate }) {
             <section className="downloadMain">
                 <div className="container">
                     <div className="downloadTabs" role="tablist" aria-label="Operating system">
-                        <button 
+                        <button
                             className={`downloadTab ${activeOS === 'windows' ? 'downloadTab--active' : ''}`}
-                            type="button" 
-                            role="tab" 
+                            type="button"
+                            role="tab"
                             aria-selected={activeOS === 'windows'}
                             onClick={() => setActiveOS('windows')}
                         >
                             <span className="downloadTab__icon">🪟</span>
                             Windows
                         </button>
-                        <button 
+                        <button
                             className={`downloadTab ${activeOS === 'macos' ? 'downloadTab--active' : ''}`}
-                            type="button" 
-                            role="tab" 
+                            type="button"
+                            role="tab"
                             aria-selected={activeOS === 'macos'}
                             onClick={() => setActiveOS('macos')}
                         >
@@ -89,10 +89,10 @@ function DownloadHubPage({ navigate }) {
                             macOS
                             <span className="downloadTab__badge">Soon</span>
                         </button>
-                        <button 
+                        <button
                             className={`downloadTab ${activeOS === 'linux' ? 'downloadTab--active' : ''}`}
-                            type="button" 
-                            role="tab" 
+                            type="button"
+                            role="tab"
                             aria-selected={activeOS === 'linux'}
                             onClick={() => setActiveOS('linux')}
                         >
@@ -115,9 +115,9 @@ function DownloadHubPage({ navigate }) {
                                 </div>
                             </div>
                             <div className="downloadHubCard__actions">
-                                <a 
-                                    className={`button button--primary button--large ${activeOS !== 'windows' ? 'button--disabled' : ''}`} 
-                                    href="#" 
+                                <a
+                                    className={`button button--primary button--large ${activeOS !== 'windows' ? 'button--disabled' : ''}`}
+                                    href="#"
                                     onClick={(e) => {
                                         e.preventDefault()
                                         if (activeOS === 'windows') {
@@ -172,8 +172,8 @@ function DownloadHubPage({ navigate }) {
                                             <li>Complete Vision AI workflow pipeline</li>
                                             <li>Dataset Manager with versioning</li>
                                             <li>Annotation Studio with review workflows</li>
-                                            <li>Training engine with reproducible configs</li>
-                                            <li>Export wizard for deployment</li>
+                                            <li>Training engine with reproducible configs (e.g., YOLO)</li>
+                                            <li>Export wizard for deployment (ONNX, TensorRT, CoreML)</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -270,7 +270,7 @@ function DownloadHubPage({ navigate }) {
                                     <div className="downloadHubCard__kicker">Enterprise & Air-Gapped Deployments</div>
                                     <div className="downloadHubCard__title">Need offline licensing or air-gapped installs?</div>
                                     <div className="downloadHubCard__meta">
-                                        ML FORGE supports offline licensing, air-gapped installations, and regulated environment deployments. 
+                                        ML FORGE supports offline licensing, air-gapped installations, and regulated environment deployments.
                                         Perfect for healthcare, manufacturing, and government use cases.
                                     </div>
                                     <div className="downloadHubCard__ctaActions">
@@ -282,7 +282,7 @@ function DownloadHubPage({ navigate }) {
                                                 navigate('/pricing')
                                             }}
                                         >
-                                            View Pricing Plans
+                                            See pricing
                                         </a>
                                         <a
                                             className="button button--outline"
@@ -292,7 +292,7 @@ function DownloadHubPage({ navigate }) {
                                                 navigate('/request-access')
                                             }}
                                         >
-                                            Request Enterprise Access
+                                            Request access
                                         </a>
                                     </div>
                                 </div>

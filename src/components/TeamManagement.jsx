@@ -154,7 +154,10 @@ export function TeamManagement({ session, navigate }) {
                         {teams.length === 0 ? (
                             <div>
                                 <p style={{ marginBottom: '16px', color: 'var(--dr-muted)' }}>
-                                    You don't have any teams yet. Create one to get started.
+                                    You don't have any teams yet. Create one to start sharing access and usage limits across a small group.
+                                </p>
+                                <p style={{ marginBottom: '16px', color: 'var(--dr-muted)' }}>
+                                    Tip: teams only affect account access and billing/limits. Your datasets and models still stay local.
                                 </p>
                                 <button
                                     className="button button--primary"
@@ -209,7 +212,7 @@ export function TeamManagement({ session, navigate }) {
 
                             {members.length === 0 ? (
                                 <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No members yet. Invite team members to get started.
+                                    No members yet. Invite a teammate (or add a second email you own) to validate access and role permissions.
                                 </div>
                             ) : (
                                 <div className="dashTable">
@@ -257,8 +260,8 @@ export function TeamManagement({ session, navigate }) {
                                                     {member.joined_at
                                                         ? new Date(member.joined_at).toLocaleDateString()
                                                         : member.invited_at
-                                                        ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
-                                                        : '—'}
+                                                            ? `Invited ${new Date(member.invited_at).toLocaleDateString()}`
+                                                            : '—'}
                                                 </div>
                                                 <div>
                                                     {!isOwner && canEdit && !isCurrentUser && (

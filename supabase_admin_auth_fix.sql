@@ -33,7 +33,18 @@ BEGIN
     CREATE TABLE IF NOT EXISTS public.admin_actions (
         action_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         admin_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-        action_type TEXT NOT NULL,
+        action_type TEXT NOT NULL CHECK (action_type IN (
+            'user_activate',
+            'user_deactivate',
+            'license_assign',
+            'license_expiry_update',
+            'license_offline_toggle',
+            'token_regenerate',
+            'feature_flag_toggle',
+            'force_logout',
+            'admin_assigned',
+            'admin_login'
+        )),
         target_user_id UUID REFERENCES auth.users(id),
         details JSONB,
         ip_address INET,
@@ -45,6 +56,31 @@ BEGIN
     CREATE INDEX IF NOT EXISTS admin_actions_admin_user_id_idx ON public.admin_actions(admin_user_id);
     CREATE INDEX IF NOT EXISTS admin_actions_created_at_idx ON public.admin_actions(created_at DESC);
     CREATE INDEX IF NOT EXISTS admin_actions_action_type_idx ON public.admin_actions(action_type);
+
+    -- Update existing check constraint to include new action types
+    -- NOTE: cannot use a nested DO block inside a PL/pgSQL function.
+    -- Use EXECUTE with exception handling instead.
+    BEGIN
+        EXECUTE 'ALTER TABLE public.admin_actions DROP CONSTRAINT admin_actions_action_type_check';
+    EXCEPTION
+        WHEN undefined_object THEN
+            NULL;
+    END;
+
+    EXECUTE 'ALTER TABLE public.admin_actions '
+        'ADD CONSTRAINT admin_actions_action_type_check '
+        'CHECK (action_type IN ('
+        '''user_activate'','
+        '''user_deactivate'','
+        '''license_assign'','
+        '''license_expiry_update'','
+        '''license_offline_toggle'','
+        '''token_regenerate'','
+        '''feature_flag_toggle'','
+        '''force_logout'','
+        '''admin_assigned'','
+        '''admin_login''' 
+        '))';
 
     -- Enable RLS
     ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;

@@ -26,6 +26,7 @@ function SignupPage() {
     const [success, setSuccess] = useState('')
     const [otpResendCooldown, setOtpResendCooldown] = useState(0)
     const [accountExists, setAccountExists] = useState(null)
+    const [agreedToLegal, setAgreedToLegal] = useState(false)
 
     const emailOk = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email])
     const passwordLenOk = useMemo(() => {
@@ -43,7 +44,7 @@ function SignupPage() {
     const confirmOk = useMemo(() => confirmPassword === password && confirmPassword.length > 0, [confirmPassword, password])
     const nameOk = useMemo(() => firstName.trim().length > 0 && lastName.trim().length > 0, [firstName, lastName])
 
-    const canSubmit = emailOk && nameOk && passwordOk && confirmOk
+    const canSubmit = emailOk && nameOk && passwordOk && confirmOk && agreedToLegal
 
     const vantaRef = useRef(null)
     const vantaEffect = useRef(null)
@@ -156,9 +157,14 @@ function SignupPage() {
                                             // Show user-friendly message for existing account
                                             if (verifyResult.requiresLogin) {
                                                 setError('An account with this email already exists. Please log in to continue.')
+                                            } else if (verifyResult.error?.includes('Invalid or expired')) {
+                                                setError('Invalid or expired OTP code. Please request a new code.')
+                                            } else if (verifyResult.error?.includes('network') || verifyResult.error?.includes('fetch')) {
+                                                setError('Network error. Please check your connection and try again.')
                                             } else {
-                                                setError(verifyResult.error || 'Failed to verify OTP')
+                                                setError(verifyResult.error || 'Failed to verify OTP. Please try again.')
                                             }
+                                            setIsLoading(false)
                                             return
                                         }
 
@@ -347,26 +353,9 @@ function SignupPage() {
                                     try {
                                         setIsLoading(true)
 
-                                        // Check if account already exists
-                                        // We'll check this during OTP send, but also try a password reset to verify
-                                        try {
-                                            // Try password reset - if user exists, this will succeed
-                                            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-                                                redirectTo: window.location.origin + '/login'
-                                            })
-
-                                            // If no error, user exists (password reset email sent)
-                                            if (!resetError) {
-                                                setError('An account with this email already exists. Please log in instead. If you forgot your password, check your email for a reset link.')
-                                                return
-                                            }
-                                        } catch (e) {
-                                            // User likely doesn't exist, continue with signup
-                                            // The error is expected if user doesn't exist
-                                        }
-
                                         // Send OTP using custom email API
                                         // Password is sent securely to Edge Function, which handles hashing via Supabase Auth
+                                        // The send-otp function will check for existing accounts and provide appropriate feedback
                                         const sendResult = await sendOTP(
                                             email.trim(),
                                             firstName.trim(),
@@ -375,7 +364,15 @@ function SignupPage() {
                                         )
 
                                         if (!sendResult.success) {
-                                            setError(sendResult.error || 'Failed to send OTP')
+                                            // Check if error is about existing account
+                                            if (sendResult.error?.includes('already exists') || sendResult.error?.includes('already registered') || sendResult.requiresLogin) {
+                                                setError('An account with this email already exists. Please log in instead. If you signed up with Google, you can use "Continue with Google" or set a password by continuing with this signup.')
+                                            } else if (sendResult.error?.includes('network') || sendResult.error?.includes('fetch')) {
+                                                setError('Network error. Please check your connection and try again.')
+                                            } else {
+                                                setError(sendResult.error || 'Failed to send OTP. Please try again.')
+                                            }
+                                            setIsLoading(false)
                                             return
                                         }
 
@@ -477,6 +474,41 @@ function SignupPage() {
 
                                 {submitted && !passwordOk && <div className="loginHint">Please meet the password requirements above.</div>}
 
+                                <label className="loginLegalRow" style={{ marginTop: 12 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={agreedToLegal}
+                                        onChange={(e) => setAgreedToLegal(e.target.checked)}
+                                        disabled={isLoading}
+                                    />
+                                    <span>
+                                        By signing up you agree to the{' '}
+                                        <a
+                                            className="loginLegalLink"
+                                            href="/terms"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                go('/terms')
+                                            }}
+                                        >
+                                            Terms & Conditions
+                                        </a>
+                                        {' '}and the{' '}
+                                        <a
+                                            className="loginLegalLink"
+                                            href="/privacy"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                go('/privacy')
+                                            }}
+                                        >
+                                            Privacy Policy
+                                        </a>
+                                        .
+                                    </span>
+                                </label>
+                                {submitted && !agreedToLegal && <div className="loginHint">Please accept the Terms & Conditions to continue.</div>}
+
                                 {error && (
                                     <div className={`loginHint ${error.includes('already exists') || error.includes('already registered') ? 'loginHint--warning' : 'loginHint--error'}`}>
                                         {error}
@@ -503,10 +535,6 @@ function SignupPage() {
                                     </div>
                                 )}
                                 {success && <div className="loginHint loginHint--success">{success}</div>}
-
-                                <div className="loginHint" style={{ marginTop: 12 }}>
-                                    By signing up you agree to the terms and services and the privacy policy.
-                                </div>
 
                                 <button className="button button--primary loginSubmit" type="submit" disabled={!canSubmit || isLoading}>
                                     {isLoading ? 'Sending OTP…' : 'Continue'}

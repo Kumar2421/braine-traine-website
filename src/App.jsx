@@ -8,10 +8,15 @@ import { supabase } from './supabaseClient'
 // Lazy load pages for code splitting and performance
 const DocsPage = lazy(() => import('./DocsPage'))
 const AgenticPage = lazy(() => import('./AgenticPage'))
+const YoloWorkflowPage = lazy(() => import('./YoloWorkflowPage'))
 const AboutPage = lazy(() => import('./AboutPage'))
 const DownloadPage = lazy(() => import('./DownloadPage'))
 const LoginPage = lazy(() => import('./LoginPage'))
 const SignupPage = lazy(() => import('./SignupPage'))
+const ForgotPasswordPage = lazy(() => import('./ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./ResetPasswordPage'))
+const TermsPage = lazy(() => import('./TermsPage'))
+const PrivacyPage = lazy(() => import('./PrivacyPage'))
 const DashboardPage = lazy(() => import('./DashboardPage'))
 const DownloadHubPage = lazy(() => import('./DownloadHubPage'))
 const PricingPage = lazy(() => import('./PricingPage'))
@@ -56,21 +61,42 @@ function App() {
 
   const navigate = useCallback((nextPath) => {
     const currentPath = window.location.pathname || '/'
-    const nextPathname = (nextPath || '/').split('?')[0]
-    if (nextPathname === currentPath) return
+    const nextPathname = (nextPath || '/').split('?')[0].split('#')[0]
+    const nextHash = (nextPath || '').includes('#') ? `#${(nextPath || '').split('#')[1]}` : ''
+    const currentHash = window.location.hash || ''
+    if (nextPathname === currentPath && nextHash === currentHash) return
     window.history.pushState({}, '', nextPath)
     setPath(window.location.pathname || '/')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    if (!nextHash) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    const targetId = nextHash.replace('#', '')
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const el = document.getElementById(targetId)
+        if (!el) return
+        const y = el.getBoundingClientRect().top + window.scrollY - 92
+        window.scrollTo({ top: y, behavior: 'smooth' })
+      })
+    })
   }, [])
 
   const isHome = path === '/'
   const isDocs = path === '/docs' || path.startsWith('/docs/')
   const isAgentic = path === '/agentic-ai'
+  const isYoloUseCase = path === '/use-cases/yolo'
   const isAbout = path === '/about'
   const isDownload = path === '/download'
   const isDownloads = path === '/downloads'
   const isLogin = path === '/login'
   const isSignup = path === '/signup'
+  const isForgotPassword = path === '/forgot-password'
+  const isResetPassword = path === '/reset-password'
+  const isTerms = path === '/terms'
+  const isPrivacy = path === '/privacy'
   const isDashboard = path === '/dashboard'
   const isDashboardLicense = path === '/dashboard/license'
   const isPricing = path === '/pricing'
@@ -164,6 +190,16 @@ function App() {
                 }}
               >
                 Workflow
+              </a>
+              <a
+                className="footer__link"
+                href="/use-cases/yolo"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/use-cases/yolo')
+                }}
+              >
+                Use Cases
               </a>
               <a
                 className="footer__link"
@@ -316,6 +352,8 @@ function App() {
       document.title = 'ML FORGE — Desktop-first Vision AI training studio'
     } else if (isDocs) {
       document.title = 'Documentation | ML FORGE'
+    } else if (isYoloUseCase) {
+      document.title = 'End-to-end YOLO workflow | ML FORGE'
     } else if (isDashboard) {
       document.title = 'Dashboard | ML FORGE'
     } else if (isPricing) {
@@ -323,7 +361,7 @@ function App() {
     } else if (isDownload) {
       document.title = 'Download | ML FORGE'
     }
-  }, [isHome, isDocs, isDashboard, isPricing, isDownload])
+  }, [isHome, isDocs, isYoloUseCase, isDashboard, isPricing, isDownload])
 
   // Handle mobile nav closing on window resize and outside clicks
   useEffect(() => {
@@ -466,6 +504,22 @@ function App() {
                     Workflow
                   </a>
                   <a
+                    className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
+                    href="/use-cases/yolo"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/use-cases/yolo')
+                    }}
+                  >
+                    YOLO Use Case
+                  </a>
+                  <a
                     className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
                     href="/docs"
                     onClick={(e) => {
@@ -565,6 +619,90 @@ function App() {
                     Workflow
                   </a>
                   <a
+                    className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
+                    href="/use-cases/yolo"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/use-cases/yolo')
+                    }}
+                  >
+                    Use Cases
+                  </a>
+                  {isAgentic && (
+                    <>
+                      <a
+                        className="nav__link"
+                        href="/agentic-ai#suite"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const nav = e.currentTarget.closest('.nav')
+                          const toggle = document.querySelector('.navToggle')
+                          if (nav && toggle) {
+                            nav.classList.remove('nav--open')
+                            toggle.setAttribute('aria-expanded', 'false')
+                          }
+                          navigate('/agentic-ai#suite')
+                        }}
+                      >
+                        Suite
+                      </a>
+                      <a
+                        className="nav__link"
+                        href="/agentic-ai#components"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const nav = e.currentTarget.closest('.nav')
+                          const toggle = document.querySelector('.navToggle')
+                          if (nav && toggle) {
+                            nav.classList.remove('nav--open')
+                            toggle.setAttribute('aria-expanded', 'false')
+                          }
+                          navigate('/agentic-ai#components')
+                        }}
+                      >
+                        Components
+                      </a>
+                      <a
+                        className="nav__link"
+                        href="/agentic-ai#deployment"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const nav = e.currentTarget.closest('.nav')
+                          const toggle = document.querySelector('.navToggle')
+                          if (nav && toggle) {
+                            nav.classList.remove('nav--open')
+                            toggle.setAttribute('aria-expanded', 'false')
+                          }
+                          navigate('/agentic-ai#deployment')
+                        }}
+                      >
+                        Deployment
+                      </a>
+                      <a
+                        className="nav__link"
+                        href="/agentic-ai#governance"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const nav = e.currentTarget.closest('.nav')
+                          const toggle = document.querySelector('.navToggle')
+                          if (nav && toggle) {
+                            nav.classList.remove('nav--open')
+                            toggle.setAttribute('aria-expanded', 'false')
+                          }
+                          navigate('/agentic-ai#governance')
+                        }}
+                      >
+                        Governance
+                      </a>
+                    </>
+                  )}
+                  <a
                     className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
                     href="/docs"
                     onClick={(e) => {
@@ -649,11 +787,12 @@ function App() {
                 <div className="container hero__inner">
                   <div className="hero__copy">
                     <h1 className="hero__title">
-                      Build, train, and ship Vision AI — locally, reproducibly, without cloud lock-in.
+                      A local-first Vision AI IDE for teams who need reproducible results.
                     </h1>
                     <p className="hero__subtitle">
-                      ML FORGE is a desktop-first Vision AI IDE for datasets, annotation, training, evaluation, and export — designed for
-                      deterministic workflows in real-world environments. <strong>No coding required.</strong>
+                      ML FORGE replaces fragile scripts, Colab notebooks, and cloud GPU friction with a desktop workflow for datasets,
+                      annotation, training, evaluation, and export. <strong>Runs locally.</strong> <strong>No data leaves your machine.</strong>{' '}
+                      <strong>Deterministic &amp; reproducible by default.</strong>
                     </p>
                     <div className="hero__cta">
                       <a
@@ -664,7 +803,7 @@ function App() {
                           navigate('/download')
                         }}
                       >
-                        Download ML FORGE
+                        Download for desktop
                       </a>
                       <a
                         className="button button--outline"
@@ -674,7 +813,7 @@ function App() {
                           navigate('/agentic-ai')
                         }}
                       >
-                        View Workflow
+                        See the workflow
                       </a>
                     </div>
                   </div>
@@ -686,6 +825,68 @@ function App() {
                   <div className="heroBand__track" />
                 </div>
               </div>
+
+              <section className="aboutSection">
+                <div className="container">
+                  <div className="sectionHeader">
+                    <h2 className="sectionHeader__title">What is ML FORGE?</h2>
+                    <p className="sectionHeader__subtitle">A desktop-first Vision AI IDE for teams who need deterministic results and full control of data.</p>
+                  </div>
+
+                  <div className="unifyGrid">
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">What is this?</div>
+                      <p className="unifyCard__body">A local workflow for datasets → annotation → training → evaluation → export, with configs and artifacts kept together.</p>
+                    </article>
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Who is it for?</div>
+                      <p className="unifyCard__body">ML engineers and Vision AI developers building on laptops, workstations, and on-prem machines — not hosted notebooks.</p>
+                    </article>
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Why should I care?</div>
+                      <p className="unifyCard__body">Because reproducibility is a production feature. ML FORGE makes outputs explainable: which dataset, which config, which run.</p>
+                    </article>
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Concrete example</div>
+                      <p className="unifyCard__body">Train and deploy YOLO locally in minutes — then export a deterministic ONNX/TensorRT bundle with full lineage.</p>
+                      <div style={{ marginTop: '14px' }}>
+                        <a
+                          className="button button--outline"
+                          href="/use-cases/yolo"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            navigate('/use-cases/yolo')
+                          }}
+                        >
+                          View the canonical YOLO workflow
+                        </a>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </section>
+
+              <section className="unify unify--dark">
+                <div className="container">
+                  <h2 className="unifyHeading">Hardware &amp; local-first guarantee</h2>
+                  <p className="unifyHeading__subtitle">The differentiator that matters in real engineering environments.</p>
+
+                  <div className="unifyGrid">
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Runs locally</div>
+                      <p className="unifyCard__body">Training, labeling, evaluation, and exports run on your machine or your infrastructure — not a hosted notebook.</p>
+                    </article>
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Your data never leaves your machine</div>
+                      <p className="unifyCard__body">The website is distribution and account metadata. Datasets and models stay local unless you decide otherwise.</p>
+                    </article>
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Works on 8–16GB RAM setups</div>
+                      <p className="unifyCard__body">Optimized for practical laptop/workstation workflows. GPU recommended for training; CPU-only is supported (slower).</p>
+                    </article>
+                  </div>
+                </div>
+              </section>
 
               <section className="unify unify--dark">
                 <div className="container">
@@ -699,22 +900,22 @@ function App() {
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Dataset Management</div>
                       <p className="unifyCard__body">
-                        Versioned datasets with explicit metadata.
-                        No silent changes. No hidden preprocessing. <strong>No coding required.</strong>
+                        Version datasets with explicit metadata and snapshots.
+                        No silent changes. No hidden preprocessing. <strong>Repeatable inputs every run.</strong>
                       </p>
                     </article>
 
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Annotation Studio</div>
                       <p className="unifyCard__body">
-                        Reviewable labeling with audit-ready change history.
-                        Built for iteration, not one-off labeling. <strong>Visual interface — no coding required.</strong>
+                        Label and review with an audit-ready change history.
+                        Built for iteration, not one-off labeling. <strong>Review-gated changes.</strong>
                       </p>
                       <div className="unifyPartner">
                         <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
                         <div className="unifyPartner__meta">
                           <div className="unifyPartner__kicker">Review-gated changes</div>
-                          <div className="unifyPartner__body">Audit-ready labeling history for regulated workflows.</div>
+                          <div className="unifyPartner__body">Every label edit is attributable and reversible.</div>
                         </div>
                       </div>
                     </article>
@@ -722,14 +923,16 @@ function App() {
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Deterministic Training</div>
                       <p className="unifyCard__body">
-                        Explicit configs, locked inputs, and reproducible runs — every time. <strong>Configure visually or via code.</strong>
+                        Explicit configs, locked inputs, and repeatable runs across machines.
+                        <strong>Configure visually or via code.</strong>
                       </p>
                     </article>
 
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Evaluation &amp; Benchmarks</div>
                       <p className="unifyCard__body">
-                        Compare runs, metrics, and artifacts with full provenance. <strong>Visual comparison tools — no coding required.</strong>
+                        Compare runs, metrics, and artifacts with full provenance.
+                        <strong>Know exactly what changed between experiments.</strong>
                       </p>
                       <div className="unifyPartner unifyPartner--inline">
                         <div className="unifyPartner__logo" aria-hidden="true">ML FORGE</div>
@@ -743,14 +946,16 @@ function App() {
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Local-First Execution</div>
                       <p className="unifyCard__body">
-                        Runs fully offline. GPU optional. No cloud dependency. <strong>One-click execution — no coding required.</strong>
+                        Runs fully offline. GPU optional. No cloud dependency.
+                        <strong>No data leaves your machine.</strong>
                       </p>
                     </article>
 
                     <article className="unifyCard">
                       <div className="unifyCard__kicker">Production-Ready Exports</div>
                       <p className="unifyCard__body">
-                        Export models, configs, and metrics together — ready for deployment. <strong>Visual export wizard — no coding required.</strong>
+                        Export models, configs, and metrics together — ready for edge or on-prem deployment.
+                        <strong>Deterministic exports with full lineage.</strong>
                       </p>
                     </article>
                   </div>
@@ -759,10 +964,20 @@ function App() {
             </>
           ) : isDocs ? (
             <DocsPage />
+          ) : isYoloUseCase ? (
+            <YoloWorkflowPage navigate={navigate} />
           ) : isLogin ? (
             <LoginPage />
           ) : isSignup ? (
             <SignupPage />
+          ) : isForgotPassword ? (
+            <ForgotPasswordPage />
+          ) : isResetPassword ? (
+            <ResetPasswordPage />
+          ) : isTerms ? (
+            <TermsPage />
+          ) : isPrivacy ? (
+            <PrivacyPage />
           ) : isLogout ? (
             <></>
           ) : isDownload ? (
@@ -810,7 +1025,7 @@ function App() {
                   <h2 className="platformHero__title">
                     One IDE. <span className="platformHero__titleMuted">For every Vision AI team.</span>
                   </h2>
-                  <p className="platformHero__subtitle">Built for datasets → annotation → training → evaluation → export.</p>
+                  <p className="platformHero__subtitle">Built for datasets → annotation → training → evaluation → export — without notebook glue.</p>
                 </div>
 
                 <div className="platformStack">
@@ -820,16 +1035,16 @@ function App() {
                         <h3 className="platformCopy__title">
                           Teams that <span className="platformCopy__titleAccent">build</span> datasets
                         </h3>
-                        <div className="platformCopy__lede">Import, curate, and version image &amp; video datasets.</div>
+                        <div className="platformCopy__lede">Import, curate, and version image &amp; video datasets you can trust.</div>
                         <ul className="platformBullets">
                           <li className="platformBullets__item">
-                            Import, curate, and version image &amp; video datasets.
+                            Create immutable dataset snapshots for training and evaluation.
                           </li>
                           <li className="platformBullets__item">
-                            Explicit metadata and dataset snapshots.
+                            Explicit metadata so pipelines don’t depend on tribal knowledge.
                           </li>
                           <li className="platformBullets__item">
-                            No accidental data drift.
+                            Catch data drift before it shows up as “random” accuracy changes.
                           </li>
                         </ul>
                       </div>
@@ -864,11 +1079,11 @@ function App() {
                         <h3 className="platformCopy__title">
                           Teams that <span className="platformCopy__titleAccent">train</span> models
                         </h3>
-                        <div className="platformCopy__lede">Reproducible YOLO and CV pipelines.</div>
+                        <div className="platformCopy__lede">Reproducible training runs with configs and artifacts kept together.</div>
                         <ul className="platformBullets">
-                          <li className="platformBullets__item">Track configs, metrics, and artifacts together.</li>
-                          <li className="platformBullets__item">Deterministic runs across machines.</li>
-                          <li className="platformBullets__item">Explicit inputs and repeatable evaluation.</li>
+                          <li className="platformBullets__item">Stop losing runs to mismatched configs, seeds, or preprocessing.</li>
+                          <li className="platformBullets__item">Deterministic runs across machines (local or on-prem).</li>
+                          <li className="platformBullets__item">Re-run any experiment from the exact same inputs.</li>
                         </ul>
                       </div>
 
@@ -900,11 +1115,11 @@ function App() {
                         <h3 className="platformCopy__title">
                           Teams that <span className="platformCopy__titleAccent">ship</span> Vision AI
                         </h3>
-                        <div className="platformCopy__lede">Export models with full lineage.</div>
+                        <div className="platformCopy__lede">Export models with the context required to reproduce and deploy.</div>
                         <ul className="platformBullets">
-                          <li className="platformBullets__item">Export models with full lineage.</li>
-                          <li className="platformBullets__item">Audit-ready artifacts for regulated environments.</li>
-                          <li className="platformBullets__item">Designed for edge and on-prem deployment.</li>
+                          <li className="platformBullets__item">Bundle model + config + metrics so deployments aren’t guesswork.</li>
+                          <li className="platformBullets__item">Audit-ready artifacts when you need to prove how a model was trained.</li>
+                          <li className="platformBullets__item">Designed for edge and on-prem workflows where cloud isn’t an option.</li>
                         </ul>
                       </div>
 
@@ -945,7 +1160,7 @@ function App() {
                 <div className="recognitionGrid">
                   <article className="recognitionCard">
                     <div className="recognitionCard__title">
-                      Manufacturing quality inspection teams
+                      Manufacturing inspection teams shipping to the line
                     </div>
                     <div className="recognitionCard__brand">Manufacturing</div>
                     <div className="recognitionCard__bar" aria-hidden="true" />
@@ -953,7 +1168,7 @@ function App() {
 
                   <article className="recognitionCard">
                     <div className="recognitionCard__title">
-                      Robotics &amp; autonomous systems labs
+                      Robotics &amp; autonomy teams iterating on-device
                     </div>
                     <div className="recognitionCard__brand">Robotics</div>
                     <div className="recognitionCard__bar" aria-hidden="true" />
@@ -961,7 +1176,7 @@ function App() {
 
                   <article className="recognitionCard">
                     <div className="recognitionCard__title">
-                      Smart surveillance &amp; security deployments
+                      Security &amp; surveillance deployments running on-prem
                     </div>
                     <div className="recognitionCard__brand">Security</div>
                     <div className="recognitionCard__bar" aria-hidden="true" />
@@ -981,7 +1196,8 @@ function App() {
                 <h2 className="ctaBand__title ctaBand__title--agentic">Vision AI is hard. Reproducibility is harder.</h2>
                 <div className="ctaBand__row">
                   <p className="ctaBand__subtitle ctaBand__subtitle--agentic">
-                    ML FORGE exists because scripts, notebooks, and ad-hoc tools break down in real production workflows.
+                    When results depend on whoever ran the notebook last, you don’t have a pipeline — you have a liability. ML FORGE makes
+                    workflows deterministic and local-first.
                   </p>
                   <a
                     className="ctaBand__button"
@@ -991,8 +1207,58 @@ function App() {
                       navigate('/download')
                     }}
                   >
-                    Download ML FORGE
+                    Get the desktop app
                   </a>
+                </div>
+              </div>
+            </section>
+
+            <section className="aboutSection">
+              <div className="container">
+                <div className="sectionHeader">
+                  <h2 className="sectionHeader__title">Built for engineers, not slide decks</h2>
+                  <p className="sectionHeader__subtitle">A technical philosophy: fewer fragile pipelines, fewer hidden dependencies, more reproducibility.</p>
+                </div>
+
+                <div className="aboutSplit">
+                  <div className="aboutSplit__copy">
+                    <h3 className="aboutSplit__title">Founder / philosophy</h3>
+                    <p className="aboutSplit__body">
+                      Built by an ML engineer who needed a reliable desktop workflow: dataset versioning, reviewable labeling, deterministic training, and export bundles
+                      that carry the evidence required to reproduce results later.
+                    </p>
+                    <div className="aboutSplit__cta">
+                      <a
+                        className="button button--primary"
+                        href="/agentic-ai"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          navigate('/agentic-ai')
+                        }}
+                      >
+                        See the workflow
+                      </a>
+                      <a
+                        className="button button--outline"
+                        href="/use-cases/yolo"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          navigate('/use-cases/yolo')
+                        }}
+                      >
+                        Canonical YOLO use case
+                      </a>
+                    </div>
+                  </div>
+                  <div className="aboutSplit__panel" aria-hidden="true">
+                    <div className="aboutChipRow">
+                      <span className="aboutChip">Local-first</span>
+                      <span className="aboutChip">Deterministic</span>
+                      <span className="aboutChip">Artifact lineage</span>
+                      <span className="aboutChip">Audit-ready</span>
+                      <span className="aboutChip">On-prem friendly</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>

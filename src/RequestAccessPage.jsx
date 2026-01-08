@@ -12,6 +12,7 @@ function RequestAccessPage({ session, navigate }) {
 
     const [name, setName] = useState(user?.user_metadata?.name || '')
     const [email, setEmail] = useState(user?.email || '')
+    const [company, setCompany] = useState(user?.user_metadata?.company || '')
     const [message, setMessage] = useState('')
 
     const [isLoading, setIsLoading] = useState(false)
@@ -36,6 +37,7 @@ function RequestAccessPage({ session, navigate }) {
                 user_id: user?.id || null,
                 name: name.trim() || null,
                 email: cleanEmail,
+                company: company.trim() || null,
                 message: message.trim() || null,
             })
 
@@ -53,10 +55,10 @@ function RequestAccessPage({ session, navigate }) {
         <>
             <section className="pricingHero">
                 <div className="container pricingHero__inner">
-                    <p className="pricingHero__kicker">Access request</p>
-                    <h1 className="pricingHero__title">{type === 'enterprise' ? 'Contact Enterprise' : 'Request Pro Access'}</h1>
+                    <p className="pricingHero__kicker">Contact</p>
+                    <h1 className="pricingHero__title">{type === 'enterprise' ? 'Contact Enterprise' : 'Request Access'}</h1>
                     <p className="pricingHero__subtitle">
-                        No payments yet. This sends a metadata-only request so we can coordinate access.
+                        Send us a message and we’ll get back to you by email.
                     </p>
                 </div>
             </section>
@@ -65,7 +67,7 @@ function RequestAccessPage({ session, navigate }) {
                 <div className="container">
                     <div className="dashGrid">
                         <article className="dashCard">
-                            <h2 className="dashCard__title">Details</h2>
+                            <h2 className="dashCard__title">Message</h2>
 
                             <form className="requestForm" onSubmit={submit}>
                                 <label className="loginLabel">
@@ -77,6 +79,18 @@ function RequestAccessPage({ session, navigate }) {
                                         onChange={(e) => setName(e.target.value)}
                                         disabled={isLoading}
                                         placeholder="Your name"
+                                    />
+                                </label>
+
+                                <label className="loginLabel">
+                                    Company (optional)
+                                    <input
+                                        className="loginInput"
+                                        type="text"
+                                        value={company}
+                                        onChange={(e) => setCompany(e.target.value)}
+                                        disabled={isLoading}
+                                        placeholder="Company / Team"
                                     />
                                 </label>
 
@@ -103,7 +117,7 @@ function RequestAccessPage({ session, navigate }) {
                                         placeholder={
                                             type === 'enterprise'
                                                 ? 'Air-gapped installs, offline licensing, security review, timelines…'
-                                                : 'Team size, use-case, timeline…'
+                                                : 'Use-case, team size, timeline…'
                                         }
                                         rows={4}
                                     />
@@ -135,7 +149,7 @@ function RequestAccessPage({ session, navigate }) {
                             <div className="dashRows">
                                 <div className="dashRow">
                                     <div className="dashRow__label">Stored</div>
-                                    <div className="dashRow__value">Email, request type, optional message</div>
+                                    <div className="dashRow__value">Email, request type, optional name/company/message</div>
                                 </div>
                                 <div className="dashRow">
                                     <div className="dashRow__label">Not stored</div>

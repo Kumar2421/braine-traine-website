@@ -36,25 +36,39 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS subscriptions_user_id_idx ON public.subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS subscriptions_stripe_subscription_id_idx ON public.subscriptions(stripe_subscription_id);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'subscriptions'
+          AND column_name = 'stripe_subscription_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS subscriptions_stripe_subscription_id_idx ON public.subscriptions(stripe_subscription_id);
+    END IF;
+END$$;
 CREATE INDEX IF NOT EXISTS subscriptions_status_idx ON public.subscriptions(status);
 CREATE INDEX IF NOT EXISTS subscriptions_plan_type_idx ON public.subscriptions(plan_type);
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own subscriptions
+DROP POLICY IF EXISTS subscriptions_select_own ON public.subscriptions;
 CREATE POLICY subscriptions_select_own
     ON public.subscriptions
     FOR SELECT
     USING (auth.uid() = user_id);
 
 -- Users can insert their own subscriptions (via Stripe webhook)
+DROP POLICY IF EXISTS subscriptions_insert_own ON public.subscriptions;
 CREATE POLICY subscriptions_insert_own
     ON public.subscriptions
     FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own subscriptions (via Stripe webhook)
+DROP POLICY IF EXISTS subscriptions_update_own ON public.subscriptions;
 CREATE POLICY subscriptions_update_own
     ON public.subscriptions
     FOR UPDATE
@@ -82,13 +96,25 @@ CREATE TABLE IF NOT EXISTS public.billing_history (
 
 CREATE INDEX IF NOT EXISTS billing_history_user_id_idx ON public.billing_history(user_id);
 CREATE INDEX IF NOT EXISTS billing_history_subscription_id_idx ON public.billing_history(subscription_id);
-CREATE INDEX IF NOT EXISTS billing_history_stripe_invoice_id_idx ON public.billing_history(stripe_invoice_id);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'billing_history'
+          AND column_name = 'stripe_invoice_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS billing_history_stripe_invoice_id_idx ON public.billing_history(stripe_invoice_id);
+    END IF;
+END$$;
 CREATE INDEX IF NOT EXISTS billing_history_status_idx ON public.billing_history(status);
 CREATE INDEX IF NOT EXISTS billing_history_created_at_idx ON public.billing_history(created_at DESC);
 
 ALTER TABLE public.billing_history ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own billing history
+DROP POLICY IF EXISTS billing_history_select_own ON public.billing_history;
 CREATE POLICY billing_history_select_own
     ON public.billing_history
     FOR SELECT
@@ -111,24 +137,47 @@ CREATE TABLE IF NOT EXISTS public.payment_methods (
 );
 
 CREATE INDEX IF NOT EXISTS payment_methods_user_id_idx ON public.payment_methods(user_id);
-CREATE INDEX IF NOT EXISTS payment_methods_stripe_payment_method_id_idx ON public.payment_methods(stripe_payment_method_id);
-CREATE INDEX IF NOT EXISTS payment_methods_stripe_customer_id_idx ON public.payment_methods(stripe_customer_id);
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'payment_methods'
+          AND column_name = 'stripe_payment_method_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS payment_methods_stripe_payment_method_id_idx ON public.payment_methods(stripe_payment_method_id);
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'payment_methods'
+          AND column_name = 'stripe_customer_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS payment_methods_stripe_customer_id_idx ON public.payment_methods(stripe_customer_id);
+    END IF;
+END$$;
 
 ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own payment methods
+DROP POLICY IF EXISTS payment_methods_select_own ON public.payment_methods;
 CREATE POLICY payment_methods_select_own
     ON public.payment_methods
     FOR SELECT
     USING (auth.uid() = user_id);
 
 -- Users can insert their own payment methods
+DROP POLICY IF EXISTS payment_methods_insert_own ON public.payment_methods;
 CREATE POLICY payment_methods_insert_own
     ON public.payment_methods
     FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own payment methods
+DROP POLICY IF EXISTS payment_methods_update_own ON public.payment_methods;
 CREATE POLICY payment_methods_update_own
     ON public.payment_methods
     FOR UPDATE
@@ -136,6 +185,7 @@ CREATE POLICY payment_methods_update_own
     WITH CHECK (auth.uid() = user_id);
 
 -- Users can delete their own payment methods
+DROP POLICY IF EXISTS payment_methods_delete_own ON public.payment_methods;
 CREATE POLICY payment_methods_delete_own
     ON public.payment_methods
     FOR DELETE
@@ -165,6 +215,7 @@ CREATE INDEX IF NOT EXISTS pricing_plans_is_active_idx ON public.pricing_plans(i
 ALTER TABLE public.pricing_plans ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can read active pricing plans
+DROP POLICY IF EXISTS pricing_plans_select_public ON public.pricing_plans;
 CREATE POLICY pricing_plans_select_public
     ON public.pricing_plans
     FOR SELECT
@@ -266,51 +317,39 @@ CREATE TRIGGER update_payment_methods_updated_at_trigger
     EXECUTE FUNCTION update_subscriptions_updated_at();
 
 -- Admin policies for subscriptions (admins can view all)
+DROP POLICY IF EXISTS subscriptions_admin_all ON public.subscriptions;
 CREATE POLICY subscriptions_admin_all
     ON public.subscriptions
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Admin policies for billing_history
+DROP POLICY IF EXISTS billing_history_admin_all ON public.billing_history;
 CREATE POLICY billing_history_admin_all
     ON public.billing_history
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Admin policies for payment_methods
+DROP POLICY IF EXISTS payment_methods_admin_all ON public.payment_methods;
 CREATE POLICY payment_methods_admin_all
     ON public.payment_methods
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- Admin policies for pricing_plans
+DROP POLICY IF EXISTS pricing_plans_admin_all ON public.pricing_plans;
 CREATE POLICY pricing_plans_admin_all
     ON public.pricing_plans
     FOR ALL
     USING (
-        EXISTS (
-            SELECT 1 FROM auth.users
-            WHERE auth.users.id = auth.uid()
-            AND (auth.users.raw_user_meta_data->>'is_admin')::boolean = true
-        )
+        public.can_access_admin_panel()
     );
 
 -- View for user subscription summary

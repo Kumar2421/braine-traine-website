@@ -137,6 +137,15 @@ create table if not exists public.access_requests (
   created_at timestamptz not null default now()
 );
 
+-- Extend access requests into a lightweight contact/inbox system.
+alter table public.access_requests add column if not exists company text null;
+alter table public.access_requests add column if not exists status text not null default 'new' check (status in ('new', 'handled'));
+alter table public.access_requests add column if not exists handled_at timestamptz null;
+alter table public.access_requests add column if not exists handled_by uuid null;
+alter table public.access_requests add column if not exists resend_count integer not null default 0;
+alter table public.access_requests add column if not exists resent_at timestamptz null;
+alter table public.access_requests add column if not exists resent_by uuid null;
+
 create index if not exists access_requests_user_id_idx on public.access_requests(user_id);
 create index if not exists access_requests_type_idx on public.access_requests(request_type);
 
@@ -165,5 +174,31 @@ begin
       on public.access_requests
       for select
       using (auth.uid() = user_id);
+  end if;
+end$$;
+
+-- Admins can view and update requests (inbox workflows).
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='access_requests' and policyname='access_requests_admin_select'
+  ) then
+    create policy access_requests_admin_select
+      on public.access_requests
+      for select
+      using (public.can_access_admin_panel());
+  end if;
+end$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='access_requests' and policyname='access_requests_admin_update'
+  ) then
+    create policy access_requests_admin_update
+      on public.access_requests
+      for update
+      using (public.can_access_admin_panel())
+      with check (public.can_access_admin_panel());
   end if;
 end$$;

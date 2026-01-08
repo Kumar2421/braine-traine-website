@@ -18,91 +18,25 @@ export const adminUsersApi = {
      * Get all users with license info
      */
     async getAllUsers() {
-        // Get all licenses with user info
-        // Note: We can't directly query auth.users, so we'll work with licenses
-        // and create a view that combines them
-        const { data: licensesData, error: licensesError } = await supabase
-            .from('licenses')
-            .select(`
-                user_id,
-                license_type,
-                is_active,
-                expires_at,
-                issued_at,
-                offline_enabled
-            `)
-            .order('issued_at', { ascending: false })
+        // Use admin RPC so the admin panel can list all auth users (including new users)
+        const { data, error } = await supabase.rpc('admin_get_users')
+        if (error) throw error
 
-        if (licensesError) throw licensesError
-
-        // Group by user_id to get latest license per user
-        const userLicenseMap = new Map()
-        licensesData.forEach(license => {
-            if (!userLicenseMap.has(license.user_id)) {
-                userLicenseMap.set(license.user_id, license)
-            }
-        })
-
-        // Get unique user IDs
-        const userIds = Array.from(userLicenseMap.keys())
-
-        // For each user, try to get their email from projects or other tables
-        // Since we can't query auth.users directly, we'll use a workaround
-        const users = []
-
-        for (const userId of userIds) {
-            const license = userLicenseMap.get(userId)
-            
-            // Try to get email from projects table if it exists
-            const { data: projectData } = await supabase
-                .from('projects')
-                .select('user_id')
-                .eq('user_id', userId)
-                .limit(1)
-                .single()
-
-            // Create user object (email will be shown as user ID if not available)
-            users.push({
-                user_id: userId,
-                ...license,
-                users: {
-                    id: userId,
-                    email: `user_${userId.substring(0, 8)}`, // Placeholder - will be replaced if we can get email
-                    created_at: license?.issued_at || new Date().toISOString(),
-                    raw_user_meta_data: {}
-                }
-            })
-        }
-
-        // Also include users who have projects but no licenses
-        const { data: projectsData } = await supabase
-            .from('projects')
-            .select('user_id')
-            .order('created_at', { ascending: false })
-
-        if (projectsData) {
-            const projectUserIds = new Set(projectsData.map(p => p.user_id))
-            projectUserIds.forEach(userId => {
-                if (!userLicenseMap.has(userId)) {
-                    users.push({
-                        user_id: userId,
-                        license_type: 'free',
-                        is_active: false,
-                        expires_at: null,
-                        issued_at: null,
-                        offline_enabled: false,
-                        users: {
-                            id: userId,
-                            email: `user_${userId.substring(0, 8)}`,
-                            created_at: new Date().toISOString(),
-                            raw_user_meta_data: {}
-                        }
-                    })
-                }
-            })
-        }
-
-        return users
+        // Normalize shape expected by AdminPage.jsx (it expects `user_id` and nested `users` object)
+        return (data || []).map((row) => ({
+            user_id: row.user_id,
+            license_type: row.license_type,
+            is_active: row.is_active,
+            expires_at: row.expires_at,
+            issued_at: row.issued_at,
+            offline_enabled: row.offline_enabled,
+            users: {
+                id: row.user_id,
+                email: row.email,
+                created_at: row.user_created_at,
+                raw_user_meta_data: row.raw_user_meta_data || {},
+            },
+        }))
     },
 
     /**
@@ -366,15 +300,7 @@ export const adminActionsApi = {
     async getActions(limit = 100) {
         const { data, error } = await supabase
             .from('admin_actions')
-            .select(`
-                *,
-                admin_user:admin_user_id (
-                    email
-                ),
-                target_user:target_user_id (
-                    email
-                )
-            `)
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(limit)
 

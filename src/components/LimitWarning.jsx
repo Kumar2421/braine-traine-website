@@ -3,15 +3,15 @@
  * Displays warnings when users approach or reach usage limits
  */
 
-export function LimitWarning({ 
-    current, 
-    limit, 
-    label, 
-    unit = '', 
-    isSoftLimit, 
+export function LimitWarning({
+    current,
+    limit,
+    label,
+    unit = '',
+    isSoftLimit,
     isHardLimit,
     onUpgrade,
-    showUpgradeButton = true 
+    showUpgradeButton = true
 }) {
     if (limit === -1 || limit === null) return null // Unlimited
     if (!isSoftLimit && !isHardLimit) return null // No warning needed
@@ -19,7 +19,7 @@ export function LimitWarning({
     const percentage = limit > 0 ? Math.min(100, Math.round((current / limit) * 100)) : 0
 
     return (
-        <div 
+        <div
             className="limit-warning"
             style={{
                 padding: '12px 16px',
@@ -35,20 +35,20 @@ export function LimitWarning({
             }}
         >
             <div style={{ flex: 1 }}>
-                <div style={{ 
-                    fontWeight: '600', 
+                <div style={{
+                    fontWeight: '600',
                     fontSize: '14px',
                     color: isHardLimit ? '#991b1b' : '#92400e',
                     marginBottom: '4px'
                 }}>
                     {isHardLimit ? '⚠️ Limit Reached' : '⚠️ Approaching Limit'}
                 </div>
-                <div style={{ 
+                <div style={{
                     fontSize: '13px',
                     color: isHardLimit ? '#991b1b' : '#92400e'
                 }}>
-                    {isHardLimit 
-                        ? `You've reached your ${label} limit (${current}${unit} / ${limit}${unit}). Upgrade to continue.`
+                    {isHardLimit
+                        ? `You've reached your ${label} limit (${current}${unit} / ${limit}${unit}). Choose a plan with higher limits to continue.`
                         : `You're using ${percentage}% of your ${label} limit (${current}${unit} / ${limit}${unit}).`
                     }
                 </div>
@@ -69,7 +69,7 @@ export function LimitWarning({
                     }}
                     onClick={onUpgrade}
                 >
-                    {isHardLimit ? 'Upgrade Now' : 'Upgrade Plan'}
+                    {isHardLimit ? 'See plans' : 'Compare plans'}
                 </button>
             )}
         </div>

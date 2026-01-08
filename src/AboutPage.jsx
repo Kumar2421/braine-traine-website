@@ -11,8 +11,8 @@ function AboutPage() {
                         We help teams deliver trusted Vision AI—from datasets to deployment—with reproducibility, governance, and local-first workflows.
                     </p>
                     <div className="aboutHero__cta">
-                        <a 
-                            className="button button--primary" 
+                        <a
+                            className="button button--primary"
                             href="/download"
                             onClick={(e) => {
                                 e.preventDefault()
@@ -21,10 +21,10 @@ function AboutPage() {
                                 }
                             }}
                         >
-                            Download ML FORGE
+                            Download for desktop
                         </a>
-                        <a 
-                            className="button button--outline" 
+                        <a
+                            className="button button--outline"
                             href="/request-access"
                             onClick={(e) => {
                                 e.preventDefault()
@@ -80,8 +80,8 @@ function AboutPage() {
                                 compliance requirements. Every model export includes full lineage—dataset version, config snapshot, metrics, and logs.
                             </p>
                             <div className="aboutSplit__cta">
-                                <a 
-                                    className="button button--primary" 
+                                <a
+                                    className="button button--primary"
                                     href="/docs"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -92,8 +92,8 @@ function AboutPage() {
                                 >
                                     View documentation
                                 </a>
-                                <a 
-                                    className="button button--outline" 
+                                <a
+                                    className="button button--outline"
                                     href="/download"
                                     onClick={(e) => {
                                         e.preventDefault()
@@ -102,7 +102,7 @@ function AboutPage() {
                                         }
                                     }}
                                 >
-                                    Download ML FORGE
+                                    Download for desktop
                                 </a>
                             </div>
                         </div>
