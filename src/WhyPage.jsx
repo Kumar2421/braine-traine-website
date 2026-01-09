@@ -84,11 +84,11 @@ function WhyPage() {
                                 </a>
                                 <a
                                     className="button button--outline"
-                                    href="/agentic-ai"
+                                    href="/workflow-automation"
                                     onClick={(e) => {
                                         e.preventDefault()
-                                        if (window.location.pathname !== '/agentic-ai') {
-                                            window.location.href = '/agentic-ai'
+                                        if (window.location.pathname !== '/workflow-automation') {
+                                            window.location.href = '/workflow-automation'
                                         }
                                     }}
                                 >

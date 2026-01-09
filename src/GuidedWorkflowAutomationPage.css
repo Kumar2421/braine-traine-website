@@ -1,0 +1,365 @@
+.gwaHero {
+    position: relative;
+}
+
+.gwaHero__inner {
+    text-align: left;
+}
+
+.gwaHero__grid {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.gwaHeroBullets {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+}
+
+.gwaHeroBullets li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.86);
+    line-height: 1.45;
+}
+
+.gwaHeroBullets li::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 4px;
+    margin-top: 5px;
+    background: rgba(132, 247, 168, 0.9);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35) inset;
+    flex-shrink: 0;
+}
+
+.gwaHeroVisual {
+    border-radius: 16px;
+    border: 1px solid var(--dr-border-weak);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+    padding: 16px;
+}
+
+.gwaHeroVisual__kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.gwaHeroVisual__body {
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.55;
+}
+
+.gwaHeroVisual__flow {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    align-items: center;
+}
+
+.gwaFlowNode {
+    grid-column: span 1;
+    padding: 10px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    font-weight: 650;
+    font-size: 12px;
+}
+
+.gwaFlowNode--assist {
+    border-color: rgba(132, 247, 168, 0.28);
+    background: rgba(132, 247, 168, 0.08);
+}
+
+.gwaFlowArrow {
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.gwaHero__cta {
+    margin-top: 18px;
+}
+
+.gwaSplit {
+    margin-top: 18px;
+}
+
+.gwaPanel {
+    border-radius: 18px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.02);
+    padding: 18px;
+}
+
+.gwaPanel__kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(11, 15, 18, 0.62);
+}
+
+.gwaPanel__title {
+    margin-top: 10px;
+    font-size: 18px;
+    letter-spacing: -0.03em;
+}
+
+.gwaPanel__body {
+    margin-top: 10px;
+    color: rgba(11, 15, 18, 0.72);
+    line-height: 1.6;
+}
+
+.gwaMiniList {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.gwaMiniList__item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    color: rgba(11, 15, 18, 0.82);
+    line-height: 1.55;
+}
+
+.gwaTwoCol {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.gwaCard {
+    border-radius: 18px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    padding: 16px;
+}
+
+.gwaCard__kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(11, 15, 18, 0.62);
+}
+
+.gwaCard__list {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+    color: rgba(11, 15, 18, 0.8);
+    line-height: 1.55;
+}
+
+.gwaDivider {
+    margin: 18px 0;
+    height: 1px;
+    background: var(--dr-border-weak);
+}
+
+.gwaFlowCard {
+    border-radius: 18px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    padding: 16px;
+}
+
+.gwaFlowCard__title {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.gwaFlowCard__row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gwaFlowPill {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(11, 15, 18, 0.14);
+    background: rgba(11, 15, 18, 0.03);
+    display: inline-flex;
+    align-items: center;
+    font-weight: 650;
+    color: rgba(11, 15, 18, 0.85);
+}
+
+.gwaFlowPill--good {
+    border-color: rgba(132, 247, 168, 0.45);
+    background: rgba(132, 247, 168, 0.16);
+}
+
+.gwaWorkflow {
+    margin-top: 16px;
+    border-radius: 18px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.gwaWorkflow__step {
+    border-radius: 14px;
+    border: 1px solid rgba(11, 15, 18, 0.14);
+    background: rgba(255, 255, 255, 0.7);
+    padding: 12px;
+    font-weight: 700;
+    color: rgba(11, 15, 18, 0.9);
+}
+
+.gwaWorkflow__step--assist {
+    border-color: rgba(132, 247, 168, 0.45);
+    background: rgba(132, 247, 168, 0.16);
+}
+
+.gwaWorkflow__arrow {
+    height: 10px;
+    position: relative;
+}
+
+.gwaWorkflow__arrow::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 50%;
+    height: 2px;
+    transform: translateY(-50%);
+    background: rgba(11, 15, 18, 0.15);
+    border-radius: 999px;
+}
+
+.gwaNote {
+    margin-top: 14px;
+    color: rgba(11, 15, 18, 0.72);
+    line-height: 1.6;
+    max-width: 820px;
+}
+
+.gwaBoundaries {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gwaSteps {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.gwaStep {
+    border-radius: 16px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gwaStep__num {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: rgba(11, 15, 18, 0.06);
+    border: 1px solid rgba(11, 15, 18, 0.12);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: rgba(11, 15, 18, 0.8);
+}
+
+.gwaStep__body {
+    font-weight: 650;
+    color: rgba(11, 15, 18, 0.9);
+}
+
+.gwaExampleNote {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--dr-border-weak);
+    background: rgba(15, 23, 42, 0.01);
+    color: rgba(11, 15, 18, 0.78);
+    line-height: 1.6;
+}
+
+@media (min-width: 960px) {
+    .gwaHero__grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+
+    .gwaTwoCol {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .gwaWorkflow {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        align-items: center;
+    }
+
+    .gwaWorkflow__step {
+        grid-column: span 1;
+        text-align: center;
+    }
+
+    .gwaWorkflow__arrow {
+        grid-column: span 1;
+        height: 2px;
+        background: rgba(11, 15, 18, 0.15);
+        border-radius: 999px;
+    }
+
+    .gwaWorkflow__arrow::before {
+        display: none;
+    }
+
+    .gwaSteps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .gwaHeroVisual__flow {
+        grid-template-columns: 1fr;
+    }
+
+    .gwaFlowArrow {
+        display: none;
+    }
+}

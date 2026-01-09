@@ -1,0 +1,62 @@
+.gbHero {
+    position: relative;
+}
+
+.gbHero__inner {
+    padding-top: 78px;
+    padding-bottom: 56px;
+}
+
+.gbHero__cta {
+    margin-top: 24px;
+}
+
+.gbSection {
+    padding-top: 68px;
+}
+
+.gbSection--tight {
+    padding-top: 40px;
+}
+
+.gbGrid {
+    margin-top: 28px;
+}
+
+.gbCard {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gbClosing {
+    margin-top: 28px;
+    padding: 18px 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+@media (max-width: 980px) {
+    .gbHero__inner {
+        padding-top: 64px;
+        padding-bottom: 48px;
+    }
+
+    .gbSection {
+        padding-top: 56px;
+    }
+}
+
+@media (max-width: 640px) {
+    .gbHero__inner {
+        padding-top: 56px;
+        padding-bottom: 44px;
+    }
+
+    .gbClosing {
+        padding: 16px;
+        border-radius: 14px;
+    }
+}

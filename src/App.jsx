@@ -7,7 +7,9 @@ import { supabase } from './supabaseClient'
 
 // Lazy load pages for code splitting and performance
 const DocsPage = lazy(() => import('./DocsPage'))
-const AgenticPage = lazy(() => import('./AgenticPage'))
+const GuidedWorkflowAutomationPage = lazy(() => import('./GuidedWorkflowAutomationPage'))
+const GuaranteesBoundariesPage = lazy(() => import('./GuaranteesBoundariesPage'))
+const TestimonialsPage = lazy(() => import('./TestimonialsPage'))
 const YoloWorkflowPage = lazy(() => import('./YoloWorkflowPage'))
 const AboutPage = lazy(() => import('./AboutPage'))
 const DownloadPage = lazy(() => import('./DownloadPage'))
@@ -86,7 +88,9 @@ function App() {
 
   const isHome = path === '/'
   const isDocs = path === '/docs' || path.startsWith('/docs/')
-  const isAgentic = path === '/agentic-ai'
+  const isWorkflowAutomation = path === '/workflow-automation'
+  const isGuarantees = path === '/guarantees'
+  const isTestimonials = path === '/testimonials'
   const isYoloUseCase = path === '/use-cases/yolo'
   const isAbout = path === '/about'
   const isDownload = path === '/download'
@@ -117,6 +121,11 @@ function App() {
   useEffect(() => {
     if (isDownloads) {
       navigate('/download')
+      return
+    }
+
+    if (path === '/agentic-ai') {
+      navigate('/workflow-automation')
       return
     }
 
@@ -183,10 +192,10 @@ function App() {
               </a>
               <a
                 className="footer__link"
-                href="/agentic-ai"
+                href="/workflow-automation"
                 onClick={(e) => {
                   e.preventDefault()
-                  navigate('/agentic-ai')
+                  navigate('/workflow-automation')
                 }}
               >
                 Workflow
@@ -233,6 +242,16 @@ function App() {
                 }}
               >
                 Documentation
+              </a>
+              <a
+                className="footer__link"
+                href="/testimonials"
+                onClick={(e) => {
+                  e.preventDefault()
+                  navigate('/testimonials')
+                }}
+              >
+                Testimonials
               </a>
               <a
                 className="footer__link"
@@ -352,6 +371,12 @@ function App() {
       document.title = 'ML FORGE — Desktop-first Vision AI training studio'
     } else if (isDocs) {
       document.title = 'Documentation | ML FORGE'
+    } else if (isWorkflowAutomation) {
+      document.title = 'Guided Workflow Automation | ML FORGE'
+    } else if (isGuarantees) {
+      document.title = 'Guarantees & Boundaries | ML FORGE'
+    } else if (isTestimonials) {
+      document.title = 'Testimonials | ML FORGE'
     } else if (isYoloUseCase) {
       document.title = 'End-to-end YOLO workflow | ML FORGE'
     } else if (isDashboard) {
@@ -361,7 +386,7 @@ function App() {
     } else if (isDownload) {
       document.title = 'Download | ML FORGE'
     }
-  }, [isHome, isDocs, isYoloUseCase, isDashboard, isPricing, isDownload])
+  }, [isHome, isDocs, isWorkflowAutomation, isGuarantees, isTestimonials, isYoloUseCase, isDashboard, isPricing, isDownload])
 
   // Handle mobile nav closing on window resize and outside clicks
   useEffect(() => {
@@ -426,7 +451,7 @@ function App() {
         path={path}
       />
       {!isLogin && !isSignup && !isCheckout && (
-        <header className={`topbar topbar--phase1 ${isAgentic ? 'topbar--agentic' : ''}`}>
+        <header className="topbar topbar--phase1">
           <div className="container topbar__inner">
             <a
               className="brand"
@@ -488,22 +513,6 @@ function App() {
                     Product
                   </a>
                   <a
-                    className={`nav__link ${isAgentic ? 'nav__link--active' : ''}`}
-                    href="/agentic-ai"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/agentic-ai')
-                    }}
-                  >
-                    Workflow
-                  </a>
-                  <a
                     className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
                     href="/use-cases/yolo"
                     onClick={(e) => {
@@ -518,6 +527,54 @@ function App() {
                     }}
                   >
                     YOLO Use Case
+                  </a>
+                  <a
+                    className={`nav__link ${isWorkflowAutomation ? 'nav__link--active' : ''}`}
+                    href="/workflow-automation"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/workflow-automation')
+                    }}
+                  >
+                    Workflow
+                  </a>
+                  <a
+                    className={`nav__link ${isGuarantees ? 'nav__link--active' : ''}`}
+                    href="/guarantees"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/guarantees')
+                    }}
+                  >
+                    Guarantees
+                  </a>
+                  <a
+                    className={`nav__link ${isTestimonials ? 'nav__link--active' : ''}`}
+                    href="/testimonials"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/testimonials')
+                    }}
+                  >
+                    Testimonials
                   </a>
                   <a
                     className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
@@ -603,22 +660,6 @@ function App() {
                     Home
                   </a>
                   <a
-                    className={`nav__link ${isAgentic ? 'nav__link--active' : ''}`}
-                    href="/agentic-ai"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/agentic-ai')
-                    }}
-                  >
-                    Workflow
-                  </a>
-                  <a
                     className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
                     href="/use-cases/yolo"
                     onClick={(e) => {
@@ -634,74 +675,54 @@ function App() {
                   >
                     Use Cases
                   </a>
-                  {isAgentic && (
-                    <>
-                      <a
-                        className="nav__link"
-                        href="/agentic-ai#suite"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const nav = e.currentTarget.closest('.nav')
-                          const toggle = document.querySelector('.navToggle')
-                          if (nav && toggle) {
-                            nav.classList.remove('nav--open')
-                            toggle.setAttribute('aria-expanded', 'false')
-                          }
-                          navigate('/agentic-ai#suite')
-                        }}
-                      >
-                        Suite
-                      </a>
-                      <a
-                        className="nav__link"
-                        href="/agentic-ai#components"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const nav = e.currentTarget.closest('.nav')
-                          const toggle = document.querySelector('.navToggle')
-                          if (nav && toggle) {
-                            nav.classList.remove('nav--open')
-                            toggle.setAttribute('aria-expanded', 'false')
-                          }
-                          navigate('/agentic-ai#components')
-                        }}
-                      >
-                        Components
-                      </a>
-                      <a
-                        className="nav__link"
-                        href="/agentic-ai#deployment"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const nav = e.currentTarget.closest('.nav')
-                          const toggle = document.querySelector('.navToggle')
-                          if (nav && toggle) {
-                            nav.classList.remove('nav--open')
-                            toggle.setAttribute('aria-expanded', 'false')
-                          }
-                          navigate('/agentic-ai#deployment')
-                        }}
-                      >
-                        Deployment
-                      </a>
-                      <a
-                        className="nav__link"
-                        href="/agentic-ai#governance"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          const nav = e.currentTarget.closest('.nav')
-                          const toggle = document.querySelector('.navToggle')
-                          if (nav && toggle) {
-                            nav.classList.remove('nav--open')
-                            toggle.setAttribute('aria-expanded', 'false')
-                          }
-                          navigate('/agentic-ai#governance')
-                        }}
-                      >
-                        Governance
-                      </a>
-                    </>
-                  )}
+                  <a
+                    className={`nav__link ${isWorkflowAutomation ? 'nav__link--active' : ''}`}
+                    href="/workflow-automation"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/workflow-automation')
+                    }}
+                  >
+                    Workflow
+                  </a>
+                  <a
+                    className={`nav__link ${isGuarantees ? 'nav__link--active' : ''}`}
+                    href="/guarantees"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/guarantees')
+                    }}
+                  >
+                    Guarantees
+                  </a>
+                  <a
+                    className={`nav__link ${isTestimonials ? 'nav__link--active' : ''}`}
+                    href="/testimonials"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/testimonials')
+                    }}
+                  >
+                    Testimonials
+                  </a>
                   <a
                     className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
                     href="/docs"
@@ -725,7 +746,7 @@ function App() {
             <div className="topbar__actions">
               {session ? (
                 <a
-                  className={`button ${isAgentic ? 'button--agenticPill' : 'button--ghost'}`}
+                  className="button button--ghost"
                   href="/dashboard"
                   onClick={(e) => {
                     e.preventDefault()
@@ -738,7 +759,7 @@ function App() {
                 </a>
               ) : (
                 <a
-                  className={`button ${isAgentic ? 'button--agenticPill' : 'button--ghost'}`}
+                  className="button button--ghost"
                   href="/login"
                   onClick={(e) => {
                     e.preventDefault()
@@ -757,7 +778,7 @@ function App() {
                 </a>
               )}
               <a
-                className={`button ${isAgentic ? 'button--agenticPill' : 'button--primary'}`}
+                className="button button--primary"
                 href="/download"
                 onClick={(e) => {
                   e.preventDefault()
@@ -807,15 +828,65 @@ function App() {
                       </a>
                       <a
                         className="button button--outline"
-                        href="/agentic-ai"
+                        href="/workflow-automation"
                         onClick={(e) => {
                           e.preventDefault()
-                          navigate('/agentic-ai')
+                          navigate('/workflow-automation')
                         }}
                       >
                         See the workflow
                       </a>
                     </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="aboutSection">
+                <div className="container">
+                  <div className="sectionHeader">
+                    <h2 className="sectionHeader__title">Testimonials</h2>
+                    <p className="sectionHeader__subtitle">Engineer feedback focused on reproducibility, traceability, and shipping to production.</p>
+                  </div>
+
+                  <div className="unifyGrid">
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Manufacturing</div>
+                      <p className="unifyCard__body">
+                        “We went from ‘it works on my machine’ to deterministic runs with replayable configs. When a regression showed up, we traced it to a dataset
+                        version change in minutes instead of re-running the whole pipeline.”
+                      </p>
+                      <div className="unifyCard__meta">Nikhil Desai · Staff Machine Learning Engineer</div>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Robotics</div>
+                      <p className="unifyCard__body">
+                        “With ML FORGE, every export is tied to the exact dataset snapshot and metrics—so we can audit what shipped without guesswork.”
+                      </p>
+                      <div className="unifyCard__meta">Sara Kim · Computer Vision Lead</div>
+                    </article>
+
+                    <article className="unifyCard">
+                      <div className="unifyCard__kicker">Security</div>
+                      <p className="unifyCard__body">
+                        “We’re not trusting a black box—every step is explicit, and the artifact trail is complete. That changed how confidently we promote models from
+                        experiments to releases.”
+                      </p>
+                      <div className="unifyCard__meta">Lina Haddad · Engineering Manager, Applied AI</div>
+                    </article>
+                  </div>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <a
+                      className="button button--outline"
+                      href="/testimonials"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        navigate('/testimonials')
+                      }}
+                    >
+                      Read all testimonials
+                    </a>
                   </div>
                 </div>
               </section>
@@ -962,6 +1033,12 @@ function App() {
                 </div>
               </section>
             </>
+          ) : isTestimonials ? (
+            <TestimonialsPage navigate={navigate} />
+          ) : isGuarantees ? (
+            <GuaranteesBoundariesPage navigate={navigate} />
+          ) : isWorkflowAutomation ? (
+            <GuidedWorkflowAutomationPage navigate={navigate} />
           ) : isDocs ? (
             <DocsPage />
           ) : isYoloUseCase ? (
@@ -1000,8 +1077,6 @@ function App() {
             <DownloadPage />
           ) : isAbout ? (
             <AboutPage />
-          ) : isAgentic ? (
-            <AgenticPage navigate={navigate} />
           ) : isAdminPath ? (
             <AdminPage session={session} navigate={navigate} />
           ) : isSubscription ? (
@@ -1191,28 +1266,6 @@ function App() {
               </div>
             </section>
 
-            <section className="ctaBand ctaBand--agentic">
-              <div className="container ctaBand__inner ctaBand__inner--agentic">
-                <h2 className="ctaBand__title ctaBand__title--agentic">Vision AI is hard. Reproducibility is harder.</h2>
-                <div className="ctaBand__row">
-                  <p className="ctaBand__subtitle ctaBand__subtitle--agentic">
-                    When results depend on whoever ran the notebook last, you don’t have a pipeline — you have a liability. ML FORGE makes
-                    workflows deterministic and local-first.
-                  </p>
-                  <a
-                    className="ctaBand__button"
-                    href="/download"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      navigate('/download')
-                    }}
-                  >
-                    Get the desktop app
-                  </a>
-                </div>
-              </div>
-            </section>
-
             <section className="aboutSection">
               <div className="container">
                 <div className="sectionHeader">
@@ -1230,10 +1283,10 @@ function App() {
                     <div className="aboutSplit__cta">
                       <a
                         className="button button--primary"
-                        href="/agentic-ai"
+                        href="/workflow-automation"
                         onClick={(e) => {
                           e.preventDefault()
-                          navigate('/agentic-ai')
+                          navigate('/workflow-automation')
                         }}
                       >
                         See the workflow
@@ -1259,6 +1312,28 @@ function App() {
                       <span className="aboutChip">On-prem friendly</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="ctaBand ctaBand--agentic">
+              <div className="container ctaBand__inner ctaBand__inner--agentic">
+                <h2 className="ctaBand__title ctaBand__title--agentic">Vision AI is hard. Reproducibility is harder.</h2>
+                <div className="ctaBand__row">
+                  <p className="ctaBand__subtitle ctaBand__subtitle--agentic">
+                    When results depend on whoever ran the notebook last, you don’t have a pipeline — you have a liability. ML FORGE makes
+                    workflows deterministic and local-first.
+                  </p>
+                  <a
+                    className="ctaBand__button"
+                    href="/download"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/download')
+                    }}
+                  >
+                    Get the desktop app
+                  </a>
                 </div>
               </div>
             </section>

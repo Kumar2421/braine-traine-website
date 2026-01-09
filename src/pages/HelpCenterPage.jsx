@@ -39,11 +39,11 @@ const faqs = {
     'getting-started': [
         {
             question: 'What is ML FORGE?',
-            answer: 'ML FORGE is a unified IDE for Machine Learning, designed for building, training, and deploying Vision AI models. It provides a complete workflow from dataset management to model deployment, all in one integrated environment.',
+            answer: 'ML FORGE is a desktop-first Vision AI IDE designed for local execution and deterministic workflows. It provides an end-to-end pipeline from dataset management to training, evaluation, and export — without requiring a cloud runtime.',
         },
         {
             question: 'How do I get started?',
-            answer: '1. Sign up for a free account\n2. Download the ML FORGE IDE\n3. Create your first project\n4. Import or create datasets\n5. Start training your models\n\nCheck out our documentation for detailed guides.',
+            answer: '1. Download and install the ML FORGE desktop app\n2. Create a workspace and your first project\n3. Import a dataset\n4. Annotate + review\n5. Lock inputs\n6. Run training, evaluate, and export\n\nSee the documentation for step-by-step guides.',
         },
         {
             question: 'What are the system requirements?',
@@ -51,7 +51,7 @@ const faqs = {
         },
         {
             question: 'Is there a free plan?',
-            answer: 'Yes! We offer a free plan with basic features. You can upgrade to Pro plans for advanced features, more GPU hours, and priority support.',
+            answer: 'Yes. We offer a free plan with core workflow features so you can validate a local, reproducible setup. You can upgrade to Pro plans to unlock advanced dataset tools, deeper training controls, export formats, and priority support.',
         },
     ],
     'subscription': [
@@ -79,15 +79,15 @@ const faqs = {
     'features': [
         {
             question: 'What features are included in each plan?',
-            answer: 'Free: Basic dataset management, limited GPU hours\nData Pro: Advanced datasets, more GPU hours\nTrain Pro: Full training features, priority GPU access\nDeploy Pro: Model deployment, export features\nEnterprise: Custom features, dedicated support',
+            answer: 'Free: Core dataset + training workflow\nData Pro: Advanced dataset preparation and locking\nTrain Pro: Full training controls, tuning, and logs\nDeploy Pro: Production exports, benchmarking, and deployment formats\nEnterprise: Custom features and support',
         },
         {
             question: 'How do I use GPU resources?',
-            answer: 'GPU resources are automatically allocated when you start a training job. Your usage is tracked and displayed in your dashboard. Pro plans include more GPU hours per month.',
+            answer: 'Training runs on your own hardware (local workstation or on-prem machines). If you have a CUDA-capable GPU, ML FORGE can use it for faster training. Usage depends on your machine and workflow, not on cloud GPU allocation.',
         },
         {
             question: 'Can I work offline?',
-            answer: 'Some features work offline, but most require an internet connection for syncing data and accessing cloud resources. Enterprise plans include enhanced offline capabilities.',
+            answer: 'Yes. The core workflow is designed to run locally and can operate offline. An internet connection may be needed for downloading installers/updates and for account or subscription metadata, depending on your setup.',
         },
         {
             question: 'How do I export my models?',
@@ -109,7 +109,7 @@ const faqs = {
         },
         {
             question: 'I lost my data. Can I recover it?',
-            answer: 'All data is automatically synced to the cloud. Check your project history or contact support for data recovery assistance.',
+            answer: 'Projects, datasets, runs, and exports are stored in your local workspace. If files were deleted, recovery depends on your local backups and filesystem recovery tools. Support can help you identify workspace locations and best practices for backup.',
         },
     ],
     'account': [
@@ -127,7 +127,7 @@ const faqs = {
         },
         {
             question: 'Can I delete my account?',
-            answer: 'Yes, you can delete your account from Account Settings. This will permanently delete all your data. Contact support if you need assistance.',
+            answer: 'Yes, you can delete your website account. This affects account/subscription metadata. Local workspaces and project files on your machine are not automatically deleted.',
         },
         {
             question: 'How do I enable two-factor authentication?',
@@ -155,7 +155,7 @@ export default function HelpCenterPage({ navigate }) {
                     <p className="helpHero__subtitle">
                         Find answers to common questions and learn how to get the most out of ML FORGE
                     </p>
-                    
+
                     {/* Search */}
                     <div className="helpSearch">
                         <input

@@ -103,6 +103,81 @@ function SecurityPage() {
                     </div>
                 </div>
             </section>
+
+            <section className="aboutSection">
+                <div className="container">
+                    <div className="sectionHeader">
+                        <h2 className="sectionHeader__title">How it works (at a glance)</h2>
+                        <p className="sectionHeader__subtitle">A control-plane website for distribution and licensing — a local runtime for datasets, training, evaluation, and export.</p>
+                    </div>
+
+                    <div className="unifyGrid">
+                        <article className="unifyCard">
+                            <div className="unifyCard__kicker">1) Download + install</div>
+                            <p className="unifyCard__body">Install the desktop IDE on your workstation or on-prem machines. Air-gapped installs are supported.</p>
+                        </article>
+                        <article className="unifyCard">
+                            <div className="unifyCard__kicker">2) Work locally</div>
+                            <p className="unifyCard__body">Import datasets, annotate, lock versions, train, evaluate, and export without uploading data to ML FORGE servers.</p>
+                        </article>
+                        <article className="unifyCard">
+                            <div className="unifyCard__kicker">3) Keep evidence</div>
+                            <p className="unifyCard__body">Every export bundle can include dataset version, config snapshot, metrics, logs, and checksums for auditability.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section className="unify unify--dark">
+                <div className="container">
+                    <h2 className="unifyHeading">Ready to validate your offline workflow?</h2>
+                    <p className="unifyHeading__subtitle">Start local, prove reproducibility, and ship with traceable artifacts — without cloud runtime dependency.</p>
+
+                    <div className="aboutSplit">
+                        <div className="aboutSplit__copy">
+                            <h3 className="aboutSplit__title">Download and get to first run</h3>
+                            <p className="aboutSplit__body">
+                                Install the desktop app, follow the end-to-end workflow, and confirm that your datasets and runs stay on your infrastructure.
+                            </p>
+                            <div className="aboutSplit__cta">
+                                <a
+                                    className="button button--primary"
+                                    href="/download"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (window.location.pathname !== '/download') {
+                                            window.location.href = '/download'
+                                        }
+                                    }}
+                                >
+                                    Download for desktop
+                                </a>
+                                <a
+                                    className="button button--outline"
+                                    href="/docs"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        if (window.location.pathname !== '/docs') {
+                                            window.location.href = '/docs'
+                                        }
+                                    }}
+                                >
+                                    View documentation
+                                </a>
+                            </div>
+                        </div>
+                        <div className="aboutSplit__panel" aria-hidden="true">
+                            <div className="aboutChipRow">
+                                <span className="aboutChip">No uploads</span>
+                                <span className="aboutChip">Local runtime</span>
+                                <span className="aboutChip">Deterministic</span>
+                                <span className="aboutChip">Lineage</span>
+                                <span className="aboutChip">Audit-ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </>
     )
 }

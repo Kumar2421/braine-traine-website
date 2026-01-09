@@ -477,6 +477,48 @@ function PricingPage({ navigate }) {
                     </div>
                 </div>
             </section>
+
+            <section className="unify unify--dark">
+                <div className="container">
+                    <h2 className="unifyHeading">Proof-driven pricing</h2>
+                    <p className="unifyHeading__subtitle">Choose the tier that matches the stage you are in — then upgrade only when you need deeper control or shipping guarantees.</p>
+
+                    <div className="aboutSplit">
+                        <div className="aboutSplit__copy">
+                            <h3 className="aboutSplit__title">A typical upgrade story</h3>
+                            <p className="aboutSplit__body">
+                                Start with a reproducible local workflow. When you need deterministic dataset prep and locking, move to Data Pro. When you need deeper training visibility and tuning, move to Train Pro. When it’s time to ship, Deploy Pro unlocks production exports and benchmarks.
+                            </p>
+                            <div className="aboutSplit__cta">
+                                <button
+                                    type="button"
+                                    className="button button--primary"
+                                    onClick={() => handleSelectPricing('free')}
+                                >
+                                    Start free
+                                </button>
+                                <button
+                                    type="button"
+                                    className="button button--outline"
+                                    onClick={() => navigate('/use-cases/yolo')}
+                                >
+                                    See the workflow
+                                </button>
+                            </div>
+                        </div>
+                        <div className="aboutSplit__panel" aria-hidden="true">
+                            <div className="aboutChipRow">
+                                <span className="aboutChip">Local-first</span>
+                                <span className="aboutChip">Deterministic</span>
+                                <span className="aboutChip">Dataset locks</span>
+                                <span className="aboutChip">Training logs</span>
+                                <span className="aboutChip">Benchmarks</span>
+                                <span className="aboutChip">Exports</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </>
     )
 }

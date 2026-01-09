@@ -767,7 +767,7 @@ function DocsPage() {
                                         <h1 className="docsIndexHero__title">Welcome to ML FORGE documentation</h1>
                                         <p className="docsIndexHero__subtitle">
                                             Everything you need to build, train, evaluate, and ship Vision AI — with deterministic, local-first workflows.
-                                            Start here if you’re training and deploying a YOLO model locally.
+                                            Start here if you’re setting up a reproducible workflow on your own hardware.
                                         </p>
                                     </div>
                                 </div>
