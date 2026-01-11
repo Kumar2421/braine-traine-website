@@ -88,9 +88,13 @@ function TestimonialsPage({ navigate }) {
                 </div>
             </section>
 
+            <div className="tBarcode" aria-hidden="true">
+                <div className="tBarcode__track" />
+            </div>
+
             <section className="aboutSection tSection">
                 <div className="container">
-                    <div className="sectionHeader">
+                    <div className="sectionHeader tSectionHeader">
                         <h2 className="sectionHeader__title">What engineers actually value</h2>
                         <p className="sectionHeader__subtitle">Reproducibility, auditability, and fewer unknowns in production.</p>
                     </div>

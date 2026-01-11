@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS public.admin_actions (
     action_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_user_id UUID NOT NULL REFERENCES auth.users(id),
     action_type TEXT NOT NULL CHECK (action_type IN (
+        'admin_login',
+        'admin_assigned',
+        'admin_removed',
         'user_activate',
         'user_deactivate',
         'license_assign',
@@ -87,8 +90,54 @@ CREATE TABLE IF NOT EXISTS public.admin_actions (
     )),
     target_user_id UUID REFERENCES auth.users(id),
     details JSONB,
+    ip_address INET,
+    user_agent TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'admin_actions'
+        AND column_name = 'ip_address'
+    ) THEN
+        ALTER TABLE public.admin_actions ADD COLUMN ip_address INET;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'admin_actions'
+        AND column_name = 'user_agent'
+    ) THEN
+        ALTER TABLE public.admin_actions ADD COLUMN user_agent TEXT;
+    END IF;
+
+    BEGIN
+        EXECUTE 'ALTER TABLE public.admin_actions DROP CONSTRAINT admin_actions_action_type_check';
+    EXCEPTION
+        WHEN undefined_object THEN
+            NULL;
+    END;
+
+    EXECUTE 'ALTER TABLE public.admin_actions '
+        'ADD CONSTRAINT admin_actions_action_type_check '
+        'CHECK (action_type IN ('
+        '''admin_login'','
+        '''admin_assigned'','
+        '''admin_removed'','
+        '''user_activate'','
+        '''user_deactivate'','
+        '''license_assign'','
+        '''license_expiry_update'','
+        '''license_offline_toggle'','
+        '''token_regenerate'','
+        '''feature_flag_toggle'','
+        '''force_logout''' 
+        '))';
+END$$;
 
 CREATE INDEX IF NOT EXISTS admin_actions_admin_user_id_idx ON public.admin_actions(admin_user_id);
 CREATE INDEX IF NOT EXISTS admin_actions_target_user_id_idx ON public.admin_actions(target_user_id);

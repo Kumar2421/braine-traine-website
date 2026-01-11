@@ -13,6 +13,63 @@
 
 .tSection {
     padding-top: 68px;
+    padding-bottom: 72px;
+    background: #070a0c;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.tSectionHeader .sectionHeader__title {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.tSectionHeader .sectionHeader__subtitle {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.tBarcode {
+    height: 72px;
+    background: #070a0c;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.tBarcode__track {
+    height: 100%;
+    width: 1600px;
+    background:
+        linear-gradient(90deg,
+            rgba(0, 0, 0, 0) 0,
+            rgba(0, 0, 0, 0) 18px,
+            #ffe600 18px,
+            #ffe600 26px,
+            #55ffb6 26px,
+            #55ffb6 34px,
+            #7aa7ff 34px,
+            #7aa7ff 42px,
+            #b08cff 42px,
+            #b08cff 50px,
+            rgba(255, 255, 255, 0.78) 50px,
+            rgba(255, 255, 255, 0.78) 56px,
+            rgba(255, 255, 255, 0.28) 56px,
+            rgba(255, 255, 255, 0.28) 60px,
+            rgba(0, 0, 0, 0) 60px,
+            rgba(0, 0, 0, 0) 72px);
+    background-size: 72px 100%;
+    filter: saturate(0.95);
+    transform: translate3d(0, 0, 0);
+    animation: tBarcodeMove 18s linear infinite;
+    opacity: 0.95;
+}
+
+@keyframes tBarcodeMove {
+    from {
+        transform: translate3d(0, 0, 0);
+    }
+
+    to {
+        transform: translate3d(-720px, 0, 0);
+    }
 }
 
 .tGrid {
@@ -25,8 +82,9 @@
 .tCard {
     border-radius: 18px;
     padding: 18px 18px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
 .tCard__quote {
@@ -73,6 +131,11 @@
 
     .tSection {
         padding-top: 56px;
+        padding-bottom: 56px;
+    }
+
+    .tBarcode {
+        height: 56px;
     }
 
     .tGrid {

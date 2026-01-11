@@ -738,16 +738,6 @@ function DashboardPage({ session, navigate }) {
                                 >
                                     Manage Subscription
                                 </a>
-                                <a
-                                    className="button button--outline"
-                                    href="/dashboard/license"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        navigate('/dashboard/license')
-                                    }}
-                                >
-                                    View License
-                                </a>
                             </div>
                         </article>
 

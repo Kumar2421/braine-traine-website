@@ -10,9 +10,6 @@ function LoginPage() {
     const toast = useToast()
     const query = useMemo(() => new URLSearchParams(window.location.search || ''), [])
 
-    const source = useMemo(() => query.get('source') || '', [query])
-    const ideDeepLinkMode = useMemo(() => source === 'ide', [source])
-
     const ideMode = useMemo(() => query.get('ide') === '1', [query])
     const ideRedirect = useMemo(() => query.get('redirect') || '', [query])
 
@@ -38,27 +35,6 @@ function LoginPage() {
         return Array.from(bytes)
             .map((b) => b.toString(16).padStart(2, '0'))
             .join('')
-    }
-
-    const createExchangeToken = async () => {
-        const { data: userData, error: userErr } = await supabase.auth.getUser()
-        if (userErr) throw userErr
-        const userId = userData?.user?.id
-        if (!userId) throw new Error('Unable to resolve user id.')
-
-        const token = `bt_ex_${generateToken()}`
-        const expiresAt = new Date(Date.now() + 60 * 1000).toISOString()
-
-        const { error: insertErr } = await supabase.from('auth_exchanges').insert({
-            token,
-            user_id: userId,
-            expires_at: expiresAt,
-            used: false,
-        })
-
-        if (insertErr) throw insertErr
-
-        return token
     }
 
     const completeIdeHandshake = async () => {
@@ -119,7 +95,6 @@ function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
     const [ideResult, setIdeResult] = useState(null)
-    const [exchangeToken, setExchangeToken] = useState('')
     const [checkingAccount, setCheckingAccount] = useState(false)
     const [accountExists, setAccountExists] = useState(null)
     const vantaRef = useRef(null)
@@ -184,38 +159,6 @@ function LoginPage() {
         }
     }, [])
 
-    useEffect(() => {
-        let mounted = true
-        const run = async () => {
-            if (!ideDeepLinkMode) return
-            if (isLoading) return
-            if (exchangeToken) return
-
-            const { data } = await supabase.auth.getSession()
-            if (!data?.session) return
-            if (!mounted) return
-
-            try {
-                setIsLoading(true)
-                const token = await createExchangeToken()
-                if (!mounted) return
-                setExchangeToken(token)
-                go(`/auth-redirect?token=${encodeURIComponent(token)}`)
-            } catch (e) {
-                if (!mounted) return
-                setError(e?.message || 'Unable to create IDE exchange token.')
-            } finally {
-                if (!mounted) return
-                setIsLoading(false)
-            }
-        }
-
-        run()
-        return () => {
-            mounted = false
-        }
-    }, [ideDeepLinkMode, exchangeToken])
-
     const emailOk = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email])
     const passwordOk = useMemo(() => password.trim().length >= 6, [password])
     const canSubmit = emailOk && passwordOk
@@ -249,7 +192,7 @@ function LoginPage() {
                 <div className="loginPanel">
                     <div className="loginBrand">ML FORGE</div>
                     <h1 className="loginTitle">Log in</h1>
-                    <p className="loginSubtitle">{ideDeepLinkMode ? 'Sign in to continue in the ML FORGE desktop app.' : 'Sign in to continue.'}</p>
+                    <p className="loginSubtitle">{ideMode ? 'Sign in to continue in the ML FORGE desktop app.' : 'Sign in to continue.'}</p>
 
                     <button
                         className="loginAccount"
@@ -340,14 +283,13 @@ function LoginPage() {
 
                                 toast.success('Successfully logged in!')
 
-                                if (ideDeepLinkMode) {
-                                    const token = await createExchangeToken()
-                                    setExchangeToken(token)
-                                    go(`/auth-redirect?token=${encodeURIComponent(token)}`)
-                                    return
-                                }
-
                                 if (ideMode) {
+                                    if (!ideRedirect) {
+                                        const msg = 'Missing IDE redirect URL. Please restart sign-in from the IDE.'
+                                        setError(msg)
+                                        toast.error(msg)
+                                        return
+                                    }
                                     const result = await completeIdeHandshake()
                                     if (result) {
                                         setIdeResult(result)

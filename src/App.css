@@ -2527,11 +2527,27 @@
   letter-spacing: -0.01em;
 }
 
+.unifyCard__title {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
 .unifyCard__body {
   margin: 10px 0 0;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.76);
   line-height: 1.55;
+}
+
+.unifyCard__meta {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .unifyPartner {

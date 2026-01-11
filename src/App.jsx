@@ -23,9 +23,7 @@ const DashboardPage = lazy(() => import('./DashboardPage'))
 const DownloadHubPage = lazy(() => import('./DownloadHubPage'))
 const PricingPage = lazy(() => import('./PricingPage'))
 const WhyPage = lazy(() => import('./WhyPage'))
-const LicensePage = lazy(() => import('./LicensePage'))
 const SecurityPage = lazy(() => import('./SecurityPage'))
-const AuthRedirectPage = lazy(() => import('./AuthRedirectPage'))
 const RequestAccessPage = lazy(() => import('./RequestAccessPage'))
 const AdminPage = lazy(() => import('./AdminPage'))
 const SubscriptionPage = lazy(() => import('./SubscriptionPage'))
@@ -102,12 +100,10 @@ function App() {
   const isTerms = path === '/terms'
   const isPrivacy = path === '/privacy'
   const isDashboard = path === '/dashboard'
-  const isDashboardLicense = path === '/dashboard/license'
   const isPricing = path === '/pricing'
   const isWhy = path === '/why'
   const isLogout = path === '/logout'
   const isSecurity = path === '/security'
-  const isAuthRedirect = path === '/auth-redirect'
   const isRequestAccess = path === '/request-access'
   const isAdminPath = path === '/admin'
   const isSubscription = path === '/subscription' || path === '/dashboard/subscription'
@@ -116,7 +112,7 @@ function App() {
   const isHelpCenter = path === '/help' || path === '/help-center' || path === '/faq'
 
   const authed = !!session
-  const needsAuth = isDashboard || isDashboardLicense || isSubscription || isCheckout
+  const needsAuth = isDashboard || isSubscription || isCheckout
 
   useEffect(() => {
     if (isDownloads) {
@@ -147,8 +143,6 @@ function App() {
 
   useEffect(() => {
     if (!authed || !isLogin) return
-    const isIdeDeepLink = new URLSearchParams(window.location.search || '').get('source') === 'ide'
-    if (isIdeDeepLink) return
     const isIdeHandshake = new URLSearchParams(window.location.search || '').get('ide') === '1'
     if (isIdeHandshake) return
     const next = new URLSearchParams(window.location.search || '').get('next')
@@ -272,16 +266,6 @@ function App() {
                 }}
               >
                 About
-              </a>
-              <a
-                className="footer__link"
-                href="/dashboard/license"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/dashboard/license')
-                }}
-              >
-                License
               </a>
             </div>
             <div className="footer__col">
@@ -739,6 +723,54 @@ function App() {
                   >
                     Docs
                   </a>
+                  <a
+                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
+                    href="/why"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/why')
+                    }}
+                  >
+                    Why ML FORGE
+                  </a>
+                  <a
+                    className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
+                    href="/pricing"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/pricing')
+                    }}
+                  >
+                    Pricing
+                  </a>
+                  <a
+                    className={`nav__link ${isAbout ? 'nav__link--active' : ''}`}
+                    href="/about"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      const nav = e.currentTarget.closest('.nav')
+                      const toggle = document.querySelector('.navToggle')
+                      if (nav && toggle) {
+                        nav.classList.remove('nav--open')
+                        toggle.setAttribute('aria-expanded', 'false')
+                      }
+                      navigate('/about')
+                    }}
+                  >
+                    About
+                  </a>
                 </>
               )}
             </nav>
@@ -1067,12 +1099,8 @@ function App() {
             <WhyPage />
           ) : isSecurity ? (
             <SecurityPage />
-          ) : isAuthRedirect ? (
-            <AuthRedirectPage navigate={navigate} />
           ) : isRequestAccess ? (
             <RequestAccessPage session={session} navigate={navigate} />
-          ) : isDashboardLicense ? (
-            <LicensePage session={session} navigate={navigate} />
           ) : isDownloads ? (
             <DownloadPage />
           ) : isAbout ? (
