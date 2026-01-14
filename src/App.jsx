@@ -3,6 +3,7 @@ import './App.css'
 import { SEO } from './components/SEO.jsx'
 import { isAdmin } from './utils/adminAuth'
 import { LoadingSpinner } from './components/LoadingSpinner'
+import { AnimatedSpan, Terminal, TypingAnimation } from './components/ui/terminal'
 import { supabase } from './supabaseClient'
 
 // Lazy load pages for code splitting and performance
@@ -20,6 +21,7 @@ const ResetPasswordPage = lazy(() => import('./ResetPasswordPage'))
 const TermsPage = lazy(() => import('./TermsPage'))
 const PrivacyPage = lazy(() => import('./PrivacyPage'))
 const DashboardPage = lazy(() => import('./DashboardPage'))
+const DashboardV2Page = lazy(() => import('./DashboardV2Page'))
 const DownloadHubPage = lazy(() => import('./DownloadHubPage'))
 const PricingPage = lazy(() => import('./PricingPage'))
 const WhyPage = lazy(() => import('./WhyPage'))
@@ -29,10 +31,43 @@ const AdminPage = lazy(() => import('./AdminPage'))
 const SubscriptionPage = lazy(() => import('./SubscriptionPage'))
 const CheckoutPage = lazy(() => import('./CheckoutPage'))
 const TeamManagement = lazy(() => import('./components/TeamManagement').then(m => ({ default: m.TeamManagement })))
+const TeamPage = lazy(() => import('./TeamPage'))
+const FaqPage = lazy(() => import('./FaqPage'))
+const BlogPage = lazy(() => import('./BlogPage'))
+const ManufacturingInspectionPage = lazy(() => import('./ManufacturingInspectionPage'))
 
 function App() {
   const [path, setPath] = useState(() => window.location.pathname || '/')
   const [session, setSession] = useState(null)
+  const [desktopMenu, setDesktopMenu] = useState(null)
+  const [mobileSection, setMobileSection] = useState(null)
+
+  const closeMobileNav = useCallback(() => {
+    const nav = document.querySelector('.nav')
+    const toggle = document.querySelector('.navToggle')
+    const topbar = document.querySelector('.topbar')
+    const icon = toggle?.querySelector?.('.navToggle__icon')
+
+    if (nav) nav.classList.remove('nav--open')
+    if (toggle) toggle.setAttribute('aria-expanded', 'false')
+    if (topbar) topbar.classList.remove('topbar--navOpen')
+    if (icon) icon.textContent = '☰'
+  }, [])
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (window.innerWidth < 980) return
+      const topbar = document.querySelector('.topbar')
+      if (!topbar) return
+      const isInside = topbar.contains(e.target)
+      if (!isInside) {
+        setDesktopMenu(null)
+      }
+    }
+
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [])
 
   useEffect(() => {
     const onPop = () => setPath(window.location.pathname || '/')
@@ -90,6 +125,7 @@ function App() {
   const isGuarantees = path === '/guarantees'
   const isTestimonials = path === '/testimonials'
   const isYoloUseCase = path === '/use-cases/yolo'
+  const isManufacturingInspection = path === '/use-cases/manufacturing-inspection'
   const isAbout = path === '/about'
   const isDownload = path === '/download'
   const isDownloads = path === '/downloads'
@@ -100,6 +136,7 @@ function App() {
   const isTerms = path === '/terms'
   const isPrivacy = path === '/privacy'
   const isDashboard = path === '/dashboard'
+  const isDashboardV2 = path === '/dashboard-v2'
   const isPricing = path === '/pricing'
   const isWhy = path === '/why'
   const isLogout = path === '/logout'
@@ -109,10 +146,13 @@ function App() {
   const isSubscription = path === '/subscription' || path === '/dashboard/subscription'
   const isCheckout = path === '/checkout'
   const isTeams = path === '/teams' || path === '/dashboard/teams'
-  const isHelpCenter = path === '/help' || path === '/help-center' || path === '/faq'
+  const isTeam = path === '/team'
+  const isFaq = path === '/faq'
+  const isBlog = path === '/blog'
+  const isHelpCenter = path === '/help' || path === '/help-center'
 
   const authed = !!session
-  const needsAuth = isDashboard || isSubscription || isCheckout
+  const needsAuth = isDashboard || isDashboardV2 || isSubscription || isCheckout
 
   useEffect(() => {
     if (isDownloads) {
@@ -169,6 +209,58 @@ function App() {
             <div>
               <div className="footer__name">ML FORGE</div>
               <div className="footer__tag">Desktop-first Vision AI training studio for reproducible workflows.</div>
+              <div className="footerSocial" aria-label="Social links">
+                <a className="footerSocialButton" href="https://github.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 0.296997C5.37 0.296997 0 5.67 0 12.297C0 17.6 3.438 22.097 8.205 23.682C8.805 23.795 9.025 23.424 9.025 23.105C9.025 22.82 9.015 22.065 9.01 21.065C5.672 21.789 4.968 19.455 4.968 19.455C4.422 18.07 3.633 17.7 3.633 17.7C2.546 16.956 3.717 16.971 3.717 16.971C4.922 17.055 5.555 18.207 5.555 18.207C6.625 20.042 8.364 19.512 9.05 19.205C9.158 18.429 9.467 17.9 9.81 17.6C7.145 17.3 4.344 16.268 4.344 11.67C4.344 10.36 4.809 9.29 5.579 8.45C5.444 8.147 5.039 6.927 5.684 5.274C5.684 5.274 6.689 4.952 8.984 6.504C9.944 6.237 10.964 6.105 11.984 6.099C13.004 6.105 14.024 6.237 14.984 6.504C17.264 4.952 18.269 5.274 18.269 5.274C18.914 6.927 18.509 8.147 18.389 8.45C19.154 9.29 19.619 10.36 19.619 11.67C19.619 16.28 16.814 17.295 14.144 17.59C14.564 17.95 14.954 18.686 14.954 19.81C14.954 21.416 14.939 22.706 14.939 23.096C14.939 23.411 15.149 23.786 15.764 23.666C20.565 22.092 24 17.592 24 12.297C24 5.67 18.627 0.296997 12 0.296997Z" fill="white" />
+                  </svg>
+
+                </a>
+
+                <a className="footerSocialButton" href="https://instagram.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M7.5 2.5H16.5C19.2614 2.5 21.5 4.73858 21.5 7.5V16.5C21.5 19.2614 19.2614 21.5 16.5 21.5H7.5C4.73858 21.5 2.5 19.2614 2.5 16.5V7.5C2.5 4.73858 4.73858 2.5 7.5 2.5Z" stroke="white" strokeWidth="1.6" />
+                    <path d="M12 16.1C14.2647 16.1 16.1 14.2647 16.1 12C16.1 9.73533 14.2647 7.9 12 7.9C9.73533 7.9 7.9 9.73533 7.9 12C7.9 14.2647 9.73533 16.1 12 16.1Z" stroke="white" strokeWidth="1.6" />
+                    <path d="M17.2 6.8H17.21" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+                  </svg>
+
+                </a>
+
+                <a className="footerSocialButton" href="https://discord.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M19.5 6.2C17.9 5.3 16.2 4.8 14.4 4.6L14.1 5.3C12.9 5.1 11.7 5.1 10.5 5.3L10.2 4.6C8.4 4.8 6.7 5.3 5.1 6.2C3.6 8.5 3.1 10.8 3.2 13.1C4.9 14.3 6.7 15.1 8.7 15.5L9.3 14.5C8.7 14.3 8.2 14.1 7.6 13.8C7.7 13.7 7.8 13.6 7.9 13.5C11.1 15 14.5 15 17.7 13.5C17.8 13.6 17.9 13.7 18 13.8C17.4 14.1 16.9 14.3 16.3 14.5L16.9 15.5C18.9 15.1 20.7 14.3 22.4 13.1C22.6 10.4 21.9 8.1 19.5 6.2Z" stroke="white" strokeWidth="1.6" strokeLinejoin="round" />
+                    <path d="M9.2 12.7C9.8 12.7 10.3 12.1 10.3 11.4C10.3 10.7 9.8 10.1 9.2 10.1C8.6 10.1 8.1 10.7 8.1 11.4C8.1 12.1 8.6 12.7 9.2 12.7Z" fill="white" />
+                    <path d="M14.8 12.7C15.4 12.7 15.9 12.1 15.9 11.4C15.9 10.7 15.4 10.1 14.8 10.1C14.2 10.1 13.7 10.7 13.7 11.4C13.7 12.1 14.2 12.7 14.8 12.7Z" fill="white" />
+                  </svg>
+
+                </a>
+
+                <a className="footerSocialButton" href="https://youtube.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M21.6 7.1C21.4 6.3 20.8 5.7 20 5.5C18.5 5 12 5 12 5C12 5 5.5 5 4 5.5C3.2 5.7 2.6 6.3 2.4 7.1C2 8.6 2 12 2 12C2 12 2 15.4 2.4 16.9C2.6 17.7 3.2 18.3 4 18.5C5.5 19 12 19 12 19C12 19 18.5 19 20 18.5C20.8 18.3 21.4 17.7 21.6 16.9C22 15.4 22 12 22 12C22 12 22 8.6 21.6 7.1Z" stroke="white" strokeWidth="1.6" strokeLinejoin="round" />
+                    <path d="M10 9.75V14.25L14 12L10 9.75Z" fill="white" />
+                  </svg>
+
+                </a>
+
+                <a className="footerSocialButton" href="https://x.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M4 4L20 20" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M20 4L4 20" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+
+                </a>
+
+                <a className="footerSocialButton" href="https://www.linkedin.com/" target="_blank" rel="noreferrer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6.5 9.5V18.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M6.5 6.7C7.16274 6.7 7.7 6.16274 7.7 5.5C7.7 4.83726 7.16274 4.3 6.5 4.3C5.83726 4.3 5.3 4.83726 5.3 5.5C5.3 6.16274 5.83726 6.7 6.5 6.7Z" fill="white" />
+                    <path d="M11 18.5V13.6C11 11.8 12.1 10.9 13.6 10.9C15.1 10.9 16 11.9 16 13.7V18.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M10.8 9.5H12.2" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+
+                </a>
+              </div>
             </div>
           </div>
           <div className="footer__cols">
@@ -315,7 +407,7 @@ function App() {
         <div className="footer__bottom">
           <div className="footer__legal">© {new Date().getFullYear()} ML FORGE. All rights reserved.</div>
           <div className="footer__bottomLinks">
-            <a
+            {/* <a
               className="footer__link"
               href="#"
               onClick={(e) => {
@@ -342,7 +434,7 @@ function App() {
               }}
             >
               Security
-            </a>
+            </a> */}
           </div>
         </div>
       </div>
@@ -363,6 +455,8 @@ function App() {
       document.title = 'Testimonials | ML FORGE'
     } else if (isYoloUseCase) {
       document.title = 'End-to-end YOLO workflow | ML FORGE'
+    } else if (isManufacturingInspection) {
+      document.title = 'Edge Vision AI for Manufacturing Inspection | ML FORGE'
     } else if (isDashboard) {
       document.title = 'Dashboard | ML FORGE'
     } else if (isPricing) {
@@ -370,7 +464,7 @@ function App() {
     } else if (isDownload) {
       document.title = 'Download | ML FORGE'
     }
-  }, [isHome, isDocs, isWorkflowAutomation, isGuarantees, isTestimonials, isYoloUseCase, isDashboard, isPricing, isDownload])
+  }, [isHome, isDocs, isWorkflowAutomation, isGuarantees, isTestimonials, isYoloUseCase, isManufacturingInspection, isDashboard, isPricing, isDownload])
 
   // Handle mobile nav closing on window resize and outside clicks
   useEffect(() => {
@@ -381,6 +475,10 @@ function App() {
         if (nav && toggle) {
           nav.classList.remove('nav--open')
           toggle.setAttribute('aria-expanded', 'false')
+          const topbar = document.querySelector('.topbar')
+          const icon = toggle?.querySelector?.('.navToggle__icon')
+          if (topbar) topbar.classList.remove('topbar--navOpen')
+          if (icon) icon.textContent = '☰'
         }
       }
     }
@@ -396,8 +494,7 @@ function App() {
         const isClickInsideTopbar = topbar.contains(e.target)
 
         if (!isClickInsideNav && !isClickOnToggle && isClickInsideTopbar) {
-          nav.classList.remove('nav--open')
-          toggle.setAttribute('aria-expanded', 'false')
+          closeMobileNav()
         }
       }
     }
@@ -434,7 +531,7 @@ function App() {
         }
         path={path}
       />
-      {!isLogin && !isSignup && !isCheckout && (
+      {!isLogin && !isSignup && !isCheckout && !isDashboardV2 && (
         <header className="topbar topbar--phase1">
           <div className="container topbar__inner">
             <a
@@ -460,15 +557,20 @@ function App() {
                 const topbar = e.currentTarget.closest('.topbar')
                 const nav = topbar?.querySelector('.nav')
                 const button = e.currentTarget
+                const icon = button.querySelector('.navToggle__icon')
                 const isExpanded = button.getAttribute('aria-expanded') === 'true'
 
                 if (nav) {
                   if (isExpanded) {
                     nav.classList.remove('nav--open')
                     button.setAttribute('aria-expanded', 'false')
+                    topbar?.classList?.remove?.('topbar--navOpen')
+                    if (icon) icon.textContent = '☰'
                   } else {
                     nav.classList.add('nav--open')
                     button.setAttribute('aria-expanded', 'true')
+                    topbar?.classList?.add?.('topbar--navOpen')
+                    if (icon) icon.textContent = '✕'
                   }
                 }
               }}
@@ -477,318 +579,381 @@ function App() {
             </button>
 
             <nav className="nav" aria-label="Primary">
-              {isHome ? (
-                <>
+              <div className="navDesktop" aria-label="Primary navigation">
+                <button
+                  className="navDesktopTrigger"
+                  type="button"
+                  aria-expanded={desktopMenu === 'product'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDesktopMenu((v) => (v === 'product' ? null : 'product'))
+                  }}
+                >
+                  <span>Product</span>
+                  <span className="navDesktopChevron" aria-hidden="true">▾</span>
+                </button>
+
+                <button
+                  className="navDesktopTrigger"
+                  type="button"
+                  aria-expanded={desktopMenu === 'usecases'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDesktopMenu((v) => (v === 'usecases' ? null : 'usecases'))
+                  }}
+                >
+                  <span>Use Cases</span>
+                  <span className="navDesktopChevron" aria-hidden="true">▾</span>
+                </button>
+
+                <button
+                  className="navDesktopTrigger"
+                  type="button"
+                  aria-expanded={desktopMenu === 'resources'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDesktopMenu((v) => (v === 'resources' ? null : 'resources'))
+                  }}
+                >
+                  <span>Resources</span>
+                  <span className="navDesktopChevron" aria-hidden="true">▾</span>
+                </button>
+
+                <button
+                  className="navDesktopTrigger"
+                  type="button"
+                  aria-expanded={desktopMenu === 'company'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDesktopMenu((v) => (v === 'company' ? null : 'company'))
+                  }}
+                >
+                  <span>Company</span>
+                  <span className="navDesktopChevron" aria-hidden="true">▾</span>
+                </button>
+              </div>
+
+              <div className="navMobile" aria-label="Mobile navigation">
+                <button
+                  className="navMobileGroup"
+                  type="button"
+                  aria-expanded={mobileSection === 'product'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileSection((v) => (v === 'product' ? null : 'product'))
+                  }}
+                >
+                  <span>Product</span>
+                  <span className="navMobileGroup__chevron" aria-hidden="true">▾</span>
+                </button>
+
+                {mobileSection === 'product' ? (
+                  <div className="navMobileGroup__panel">
+                    <a
+                      className={`navMobileLink ${isHome ? 'navMobileLink--active' : ''}`}
+                      href="/"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/')
+                      }}
+                    >
+                      Overview
+                    </a>
+                    <a
+                      className={`navMobileLink ${isWorkflowAutomation ? 'navMobileLink--active' : ''}`}
+                      href="/workflow-automation"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/workflow-automation')
+                      }}
+                    >
+                      Workflow
+                    </a>
+                    <a
+                      className={`navMobileLink ${isGuarantees ? 'navMobileLink--active' : ''}`}
+                      href="/guarantees"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/guarantees')
+                      }}
+                    >
+                      Guarantees
+                    </a>
+                    <a
+                      className={`navMobileLink ${isPricing ? 'navMobileLink--active' : ''}`}
+                      href="/pricing"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/pricing')
+                      }}
+                    >
+                      Pricing
+                    </a>
+                  </div>
+                ) : null}
+
+                <button
+                  className="navMobileGroup"
+                  type="button"
+                  aria-expanded={mobileSection === 'usecases'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileSection((v) => (v === 'usecases' ? null : 'usecases'))
+                  }}
+                >
+                  <span>Use Cases</span>
+                  <span className="navMobileGroup__chevron" aria-hidden="true">▾</span>
+                </button>
+
+                {mobileSection === 'usecases' ? (
+                  <div className="navMobileGroup__panel">
+                    <a
+                      className={`navMobileLink ${isYoloUseCase ? 'navMobileLink--active' : ''}`}
+                      href="/use-cases/yolo"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/use-cases/yolo')
+                      }}
+                    >
+                      YOLO Use Case
+                    </a>
+                    <a
+                      className={`navMobileLink ${isManufacturingInspection ? 'navMobileLink--active' : ''}`}
+                      href="/use-cases/manufacturing-inspection"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/use-cases/manufacturing-inspection')
+                      }}
+                    >
+                      Manufacturing Inspection
+                    </a>
+                  </div>
+                ) : null}
+
+                <button
+                  className="navMobileGroup"
+                  type="button"
+                  aria-expanded={mobileSection === 'resources'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileSection((v) => (v === 'resources' ? null : 'resources'))
+                  }}
+                >
+                  <span>Resources</span>
+                  <span className="navMobileGroup__chevron" aria-hidden="true">▾</span>
+                </button>
+
+                {mobileSection === 'resources' ? (
+                  <div className="navMobileGroup__panel">
+                    <a
+                      className={`navMobileLink ${isDocs ? 'navMobileLink--active' : ''}`}
+                      href="/docs"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/docs')
+                      }}
+                    >
+                      Documentation
+                    </a>
+                    <a
+                      className={`navMobileLink ${isTestimonials ? 'navMobileLink--active' : ''}`}
+                      href="/testimonials"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/testimonials')
+                      }}
+                    >
+                      Testimonials
+                    </a>
+                    <a
+                      className={`navMobileLink ${isBlog ? 'navMobileLink--active' : ''}`}
+                      href="/blog"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/blog')
+                      }}
+                    >
+                      Blog
+                    </a>
+                  </div>
+                ) : null}
+
+                <button
+                  className="navMobileGroup"
+                  type="button"
+                  aria-expanded={mobileSection === 'company'}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileSection((v) => (v === 'company' ? null : 'company'))
+                  }}
+                >
+                  <span>Company</span>
+                  <span className="navMobileGroup__chevron" aria-hidden="true">▾</span>
+                </button>
+
+                {mobileSection === 'company' ? (
+                  <div className="navMobileGroup__panel">
+                    <a
+                      className={`navMobileLink ${isWhy ? 'navMobileLink--active' : ''}`}
+                      href="/why"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/why')
+                      }}
+                    >
+                      Why ML FORGE
+                    </a>
+                    <a
+                      className={`navMobileLink ${isAbout ? 'navMobileLink--active' : ''}`}
+                      href="/about"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/about')
+                      }}
+                    >
+                      About
+                    </a>
+                    <a
+                      className={`navMobileLink ${isTeam ? 'navMobileLink--active' : ''}`}
+                      href="/team"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/team')
+                      }}
+                    >
+                      Team
+                    </a>
+                    <a
+                      className={`navMobileLink ${isFaq ? 'navMobileLink--active' : ''}`}
+                      href="/faq"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/faq')
+                      }}
+                    >
+                      FAQ
+                    </a>
+                  </div>
+                ) : null}
+
+                <div className="navMobileActions" aria-label="Account actions">
+                  {session ? (
+                    <>
+                      <a
+                        className="button button--ghost"
+                        href="/dashboard-v2"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeMobileNav()
+                          navigate('/dashboard-v2')
+                        }}
+                        aria-label="Dashboard v2"
+                      >
+                        <span className="button__icon" aria-hidden="true">📊</span>
+                        <span className="button__text">Dashboard v2</span>
+                      </a>
+                      <a
+                        className="button button--ghost"
+                        href="/dashboard"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          closeMobileNav()
+                          navigate('/dashboard')
+                        }}
+                        aria-label="Account"
+                      >
+                        <span className="button__icon" aria-hidden="true">👤</span>
+                        <span className="button__text">Account</span>
+                      </a>
+                    </>
+                  ) : (
+                    <a
+                      className="button button--ghost"
+                      href="/login"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        closeMobileNav()
+                        navigate('/login')
+                      }}
+                      aria-label="Log In"
+                    >
+                      <span className="button__icon" aria-hidden="true">
+                        <img
+                          src="https://img.icons8.com/?size=100&id=ZrksPzH5Aadq&format=png&color=000000"
+                          alt=""
+                          className="button__iconImg"
+                        />
+                      </span>
+                      <span className="button__text">Log In</span>
+                    </a>
+                  )}
+
                   <a
-                    className={`nav__link ${isHome ? 'nav__link--active' : ''}`}
-                    href="/"
+                    className="button button--primary"
+                    href="/download"
                     onClick={(e) => {
                       e.preventDefault()
-                      // Close mobile nav when link is clicked
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/')
+                      closeMobileNav()
+                      navigate('/download')
                     }}
+                    aria-label="Download"
                   >
-                    Product
+                    <span className="button__icon" aria-hidden="true">
+                      <img
+                        src="https://img.icons8.com/?size=100&id=80618&format=png&color=000000"
+                        alt=""
+                        className="button__iconImg"
+                      />
+                    </span>
+                    <span className="button__text">Download</span>
                   </a>
-                  <a
-                    className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
-                    href="/use-cases/yolo"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/use-cases/yolo')
-                    }}
-                  >
-                    YOLO Use Case
-                  </a>
-                  <a
-                    className={`nav__link ${isWorkflowAutomation ? 'nav__link--active' : ''}`}
-                    href="/workflow-automation"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/workflow-automation')
-                    }}
-                  >
-                    Workflow
-                  </a>
-                  <a
-                    className={`nav__link ${isGuarantees ? 'nav__link--active' : ''}`}
-                    href="/guarantees"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/guarantees')
-                    }}
-                  >
-                    Guarantees
-                  </a>
-                  <a
-                    className={`nav__link ${isTestimonials ? 'nav__link--active' : ''}`}
-                    href="/testimonials"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/testimonials')
-                    }}
-                  >
-                    Testimonials
-                  </a>
-                  <a
-                    className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
-                    href="/docs"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/docs')
-                    }}
-                  >
-                    Docs
-                  </a>
-                  <a
-                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
-                    href="/why"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/why')
-                    }}
-                  >
-                    Why ML FORGE
-                  </a>
-                  <a
-                    className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
-                    href="/pricing"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/pricing')
-                    }}
-                  >
-                    Pricing
-                  </a>
-                  <a
-                    className={`nav__link ${isAbout ? 'nav__link--active' : ''}`}
-                    href="/about"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/about')
-                    }}
-                  >
-                    About
-                  </a>
-                </>
-              ) : (
-                <>
-                  <a
-                    className={`nav__link ${isHome ? 'nav__link--active' : ''}`}
-                    href="/"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/')
-                    }}
-                  >
-                    Home
-                  </a>
-                  <a
-                    className={`nav__link ${isYoloUseCase ? 'nav__link--active' : ''}`}
-                    href="/use-cases/yolo"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/use-cases/yolo')
-                    }}
-                  >
-                    Use Cases
-                  </a>
-                  <a
-                    className={`nav__link ${isWorkflowAutomation ? 'nav__link--active' : ''}`}
-                    href="/workflow-automation"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/workflow-automation')
-                    }}
-                  >
-                    Workflow
-                  </a>
-                  <a
-                    className={`nav__link ${isGuarantees ? 'nav__link--active' : ''}`}
-                    href="/guarantees"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/guarantees')
-                    }}
-                  >
-                    Guarantees
-                  </a>
-                  <a
-                    className={`nav__link ${isTestimonials ? 'nav__link--active' : ''}`}
-                    href="/testimonials"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/testimonials')
-                    }}
-                  >
-                    Testimonials
-                  </a>
-                  <a
-                    className={`nav__link ${isDocs ? 'nav__link--active' : ''}`}
-                    href="/docs"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/docs')
-                    }}
-                  >
-                    Docs
-                  </a>
-                  <a
-                    className={`nav__link ${isWhy ? 'nav__link--active' : ''}`}
-                    href="/why"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/why')
-                    }}
-                  >
-                    Why ML FORGE
-                  </a>
-                  <a
-                    className={`nav__link ${isPricing ? 'nav__link--active' : ''}`}
-                    href="/pricing"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/pricing')
-                    }}
-                  >
-                    Pricing
-                  </a>
-                  <a
-                    className={`nav__link ${isAbout ? 'nav__link--active' : ''}`}
-                    href="/about"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      const nav = e.currentTarget.closest('.nav')
-                      const toggle = document.querySelector('.navToggle')
-                      if (nav && toggle) {
-                        nav.classList.remove('nav--open')
-                        toggle.setAttribute('aria-expanded', 'false')
-                      }
-                      navigate('/about')
-                    }}
-                  >
-                    About
-                  </a>
-                </>
-              )}
+                </div>
+              </div>
             </nav>
 
             <div className="topbar__actions">
               {session ? (
-                <a
-                  className="button button--ghost"
-                  href="/dashboard"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    navigate('/dashboard')
-                  }}
-                  aria-label="Account"
-                >
-                  <span className="button__icon" aria-hidden="true">👤</span>
-                  <span className="button__text">Account</span>
-                </a>
+                <>
+                  <a
+                    className="button button--ghost"
+                    href="/dashboard-v2"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/dashboard-v2')
+                    }}
+                    aria-label="Dashboard v2"
+                  >
+                    <span className="button__text">Dashboard v2</span>
+                  </a>
+                  <a
+                    className="button button--ghost"
+                    href="/dashboard"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      navigate('/dashboard')
+                    }}
+                    aria-label="Account"
+                  >
+                    <span className="button__text">Account</span>
+                  </a>
+                </>
               ) : (
                 <a
                   className="button button--ghost"
@@ -799,13 +964,6 @@ function App() {
                   }}
                   aria-label="Log In"
                 >
-                  <span className="button__icon" aria-hidden="true">
-                    <img
-                      src="https://img.icons8.com/?size=100&id=ZrksPzH5Aadq&format=png&color=000000"
-                      alt=""
-                      className="button__iconImg"
-                    />
-                  </span>
                   <span className="button__text">Log In</span>
                 </a>
               )}
@@ -818,17 +976,261 @@ function App() {
                 }}
                 aria-label="Download"
               >
-                <span className="button__icon" aria-hidden="true">
-                  <img
-                    src="https://img.icons8.com/?size=100&id=80618&format=png&color=000000"
-                    alt=""
-                    className="button__iconImg"
-                  />
-                </span>
                 <span className="button__text">Download</span>
               </a>
             </div>
           </div>
+
+          {desktopMenu ? (
+            <div
+              className="navMega"
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+            >
+              <div className="navMega__inner">
+                {desktopMenu === 'product' ? (
+                  <div className="navMega__layout">
+                    <div className="navMega__intro">
+                      <div className="navMega__introTitle">Product</div>
+                      <div className="navMega__introText">
+                        Build, train, and ship Vision AI — locally and reproducibly.
+                      </div>
+                    </div>
+                    <div className="navMega__grid">
+                      <div className="navMega__col">
+                        <div className="navMega__title">Product</div>
+                        <a
+                          className="navMega__link"
+                          href="/"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/')
+                          }}
+                        >
+                          Overview
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/workflow-automation"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/workflow-automation')
+                          }}
+                        >
+                          Workflow
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/guarantees"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/guarantees')
+                          }}
+                        >
+                          Guarantees
+                        </a>
+                      </div>
+                      <div className="navMega__col">
+                        <div className="navMega__title">Downloads</div>
+                        <a
+                          className="navMega__link"
+                          href="/download"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/download')
+                          }}
+                        >
+                          Download ML FORGE
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/docs"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/docs')
+                          }}
+                        >
+                          Documentation
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : desktopMenu === 'usecases' ? (
+                  <div className="navMega__layout">
+                    <div className="navMega__intro">
+                      <div className="navMega__introTitle">Use Cases</div>
+                      <div className="navMega__introText">
+                        Templates for real-world Vision AI workflows.
+                      </div>
+                    </div>
+                    <div className="navMega__grid">
+                      <div className="navMega__col">
+                        <div className="navMega__title">Use cases</div>
+                        <a
+                          className="navMega__link"
+                          href="/use-cases/yolo"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/use-cases/yolo')
+                          }}
+                        >
+                          End-to-end YOLO workflow
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/use-cases/manufacturing-inspection"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/use-cases/manufacturing-inspection')
+                          }}
+                        >
+                          Manufacturing inspection
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : desktopMenu === 'resources' ? (
+                  <div className="navMega__layout">
+                    <div className="navMega__intro">
+                      <div className="navMega__introTitle">Resources</div>
+                      <div className="navMega__introText">
+                        Guides, docs, and examples to help you move faster.
+                      </div>
+                    </div>
+                    <div className="navMega__grid">
+                      <div className="navMega__col">
+                        <div className="navMega__title">Resources</div>
+                        <a
+                          className="navMega__link"
+                          href="/docs"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/docs')
+                          }}
+                        >
+                          Documentation
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/testimonials"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/testimonials')
+                          }}
+                        >
+                          Testimonials
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/blog"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/blog')
+                          }}
+                        >
+                          Blog
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="navMega__layout">
+                    <div className="navMega__intro">
+                      <div className="navMega__introTitle">Company</div>
+                      <div className="navMega__introText">
+                        Learn why teams choose ML FORGE.
+                      </div>
+                    </div>
+                    <div className="navMega__grid">
+                      <div className="navMega__col">
+                        <div className="navMega__title">Company</div>
+                        <a
+                          className="navMega__link"
+                          href="/why"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/why')
+                          }}
+                        >
+                          Why ML FORGE
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/about"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/about')
+                          }}
+                        >
+                          About
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/team"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/team')
+                          }}
+                        >
+                          Team
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/faq"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/faq')
+                          }}
+                        >
+                          FAQ
+                        </a>
+                      </div>
+                      <div className="navMega__col">
+                        <div className="navMega__title">Pricing</div>
+                        <a
+                          className="navMega__link"
+                          href="/pricing"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/pricing')
+                          }}
+                        >
+                          Plans
+                        </a>
+                        <a
+                          className="navMega__link"
+                          href="/request-access"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setDesktopMenu(null)
+                            navigate('/request-access')
+                          }}
+                        >
+                          Request access
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </header>
       )}
 
@@ -1075,6 +1477,8 @@ function App() {
             <DocsPage />
           ) : isYoloUseCase ? (
             <YoloWorkflowPage navigate={navigate} />
+          ) : isManufacturingInspection ? (
+            <ManufacturingInspectionPage navigate={navigate} />
           ) : isLogin ? (
             <LoginPage />
           ) : isSignup ? (
@@ -1093,6 +1497,8 @@ function App() {
             <DownloadHubPage navigate={navigate} />
           ) : isDashboard ? (
             <DashboardPage session={session} navigate={navigate} />
+          ) : isDashboardV2 ? (
+            <DashboardV2Page session={session} navigate={navigate} />
           ) : isPricing ? (
             <PricingPage navigate={navigate} />
           ) : isWhy ? (
@@ -1113,6 +1519,12 @@ function App() {
             <CheckoutPage navigate={navigate} />
           ) : isTeams ? (
             <TeamManagement session={session} navigate={navigate} />
+          ) : isTeam ? (
+            <TeamPage navigate={navigate} />
+          ) : isFaq ? (
+            <FaqPage navigate={navigate} />
+          ) : isBlog ? (
+            <BlogPage navigate={navigate} />
           ) : isHelpCenter ? (
             <HelpCenterPage navigate={navigate} />
           ) : (
@@ -1160,16 +1572,18 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart platformChart--dataset">
-                              <div className="platformChart__grid" />
-                              <div className="platformChart__dataset-bars" />
-                              <div className="platformChart__dataset-labels">
-                                <span className="platformChart__label">Person</span>
-                                <span className="platformChart__label">Car</span>
-                                <span className="platformChart__label">Bike</span>
-                                <span className="platformChart__label">Sign</span>
-                              </div>
-                            </div>
+                            <Terminal embedded>
+                              <TypingAnimation>&gt; pnpm dlx shadcn@latest init</TypingAnimation>
+                              <AnimatedSpan className="text-green-500">✔ Preflight checks.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Verifying framework. Found Vite + React.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Validating Tailwind CSS.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Importing dataset sources.</AnimatedSpan>
+                              <AnimatedSpan className="text-blue-500">
+                                <span>ℹ Snapshot created:</span>
+                                <span className="pl-2">- dataset@v12 (immutable)</span>
+                              </AnimatedSpan>
+                              <TypingAnimation className="text-muted-foreground">Success! Dataset version is ready for training.</TypingAnimation>
+                            </Terminal>
                           </div>
                         </div>
                       </div>
@@ -1198,14 +1612,17 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart platformChart--loss">
-                              <div className="platformChart__grid" />
-                              <div className="platformChart__loss-curve" />
-                              <div className="platformChart__loss-labels">
-                                <span className="platformChart__axis-label platformChart__axis-label--y">Loss</span>
-                                <span className="platformChart__axis-label platformChart__axis-label--x">Epoch</span>
-                              </div>
-                            </div>
+                            <Terminal embedded>
+                              <TypingAnimation>&gt; mlforge run train --project yolo-v5 --seed 1337</TypingAnimation>
+                              <AnimatedSpan className="text-green-500">✔ Locked config + seed.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Resolved dataset snapshot: dataset@v12.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Starting training (deterministic mode).</AnimatedSpan>
+                              <AnimatedSpan className="text-blue-500">
+                                <span>ℹ Metrics:</span>
+                                <span className="pl-2">- mAP@0.5: 0.78 → 0.92</span>
+                              </AnimatedSpan>
+                              <TypingAnimation className="text-muted-foreground">Run complete. Artifacts + logs captured.</TypingAnimation>
+                            </Terminal>
                           </div>
                         </div>
                       </div>
@@ -1234,15 +1651,17 @@ function App() {
                             <span className="platformWindow__dot platformWindow__dot--green" />
                           </div>
                           <div className="platformWindow__body">
-                            <div className="platformChart platformChart--confusion">
-                              <div className="platformChart__grid" />
-                              <div className="platformChart__confusion-matrix" />
-                              <div className="platformChart__confusion-labels">
-                                <span className="platformChart__matrix-label">Precision: 0.94</span>
-                                <span className="platformChart__matrix-label">Recall: 0.91</span>
-                                <span className="platformChart__matrix-label">F1: 0.92</span>
-                              </div>
-                            </div>
+                            <Terminal embedded>
+                              <TypingAnimation>&gt; mlforge export --format onnx --run 2026-01-13T12:51</TypingAnimation>
+                              <AnimatedSpan className="text-green-500">✔ Packed model + config + metrics.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Added evaluation report + lineage.</AnimatedSpan>
+                              <AnimatedSpan className="text-green-500">✔ Exported without cloud dependencies.</AnimatedSpan>
+                              <AnimatedSpan className="text-blue-500">
+                                <span>ℹ Bundle:</span>
+                                <span className="pl-2">- export/yolo-v5.onnx + manifest.json</span>
+                              </AnimatedSpan>
+                              <TypingAnimation className="text-muted-foreground">Ready to deploy. Repro steps included.</TypingAnimation>
+                            </Terminal>
                           </div>
                         </div>
                       </div>
@@ -1368,9 +1787,9 @@ function App() {
           </>
         )}
 
-        {!isLogin && !isSignup && !isHome && !isCheckout && footer}
+        {!isLogin && !isSignup && !isHome && !isCheckout && !isDashboardV2 && footer}
 
-        {isHome && !isLogin && !isSignup && !isCheckout && footer}
+        {isHome && !isLogin && !isSignup && !isCheckout && !isDashboardV2 && footer}
       </main>
     </div>
   )

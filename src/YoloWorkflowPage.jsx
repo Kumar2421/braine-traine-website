@@ -1,4 +1,5 @@
 import './App.css'
+import { Safari } from './components/ui/safari'
 
 function YoloWorkflowPage({ navigate }) {
     return (
@@ -135,25 +136,10 @@ function YoloWorkflowPage({ navigate }) {
                                 </div>
 
                                 <div className="platformVisual" aria-hidden="true">
-                                    <div className="platformWindow">
-                                        <div className="platformWindow__top">
-                                            <span className="platformWindow__dot platformWindow__dot--red" />
-                                            <span className="platformWindow__dot platformWindow__dot--yellow" />
-                                            <span className="platformWindow__dot platformWindow__dot--green" />
-                                        </div>
-                                        <div className="platformWindow__body">
-                                            <div className="platformChart platformChart--dataset">
-                                                <div className="platformChart__grid" />
-                                                <div className="platformChart__dataset-bars" />
-                                                <div className="platformChart__dataset-labels">
-                                                    <span className="platformChart__label">Person</span>
-                                                    <span className="platformChart__label">Car</span>
-                                                    <span className="platformChart__label">Bike</span>
-                                                    <span className="platformChart__label">Sign</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <Safari
+                                        url="mlforge.local/datasets"
+                                        videoSrc="https://videos.pexels.com/video-files/27180348/12091515_2560_1440_50fps.mp4"
+                                    />
                                 </div>
                             </div>
                         </section>
@@ -173,24 +159,10 @@ function YoloWorkflowPage({ navigate }) {
                                 </div>
 
                                 <div className="platformVisual" aria-hidden="true">
-                                    <div className="platformWindow">
-                                        <div className="platformWindow__top">
-                                            <span className="platformWindow__dot platformWindow__dot--red" />
-                                            <span className="platformWindow__dot platformWindow__dot--yellow" />
-                                            <span className="platformWindow__dot platformWindow__dot--green" />
-                                        </div>
-                                        <div className="platformWindow__body">
-                                            <div className="platformChart platformChart--confusion">
-                                                <div className="platformChart__grid" />
-                                                <div className="platformChart__confusion-matrix" />
-                                                <div className="platformChart__confusion-labels">
-                                                    <span className="platformChart__matrix-label">Review: Approved</span>
-                                                    <span className="platformChart__matrix-label">Version: v1.2.3</span>
-                                                    <span className="platformChart__matrix-label">Changes: 14</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <Safari
+                                        url="mlforge.local/annotation"
+                                        videoSrc="https://videos.pexels.com/video-files/27180348/12091515_2560_1440_50fps.mp4"
+                                    />
                                 </div>
                             </div>
                         </section>
@@ -210,23 +182,10 @@ function YoloWorkflowPage({ navigate }) {
                                 </div>
 
                                 <div className="platformVisual" aria-hidden="true">
-                                    <div className="platformWindow">
-                                        <div className="platformWindow__top">
-                                            <span className="platformWindow__dot platformWindow__dot--red" />
-                                            <span className="platformWindow__dot platformWindow__dot--yellow" />
-                                            <span className="platformWindow__dot platformWindow__dot--green" />
-                                        </div>
-                                        <div className="platformWindow__body">
-                                            <div className="platformChart platformChart--loss">
-                                                <div className="platformChart__grid" />
-                                                <div className="platformChart__loss-curve" />
-                                                <div className="platformChart__loss-labels">
-                                                    <span className="platformChart__axis-label platformChart__axis-label--y">Loss</span>
-                                                    <span className="platformChart__axis-label platformChart__axis-label--x">Epoch</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <Safari
+                                        url="mlforge.local/training"
+                                        videoSrc="https://videos.pexels.com/video-files/27180348/12091515_2560_1440_50fps.mp4"
+                                    />
                                 </div>
                             </div>
                         </section>

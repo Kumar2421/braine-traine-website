@@ -1,0 +1,15 @@
+:root {
+    --max-width-container: 1280px;
+    --max-width-120: 30rem;
+
+    --radius-xs: 0.125rem;
+
+    --color-primary: rgb(255 255 255);
+    --color-brand-secondary: rgb(105 65 198);
+    --color-tertiary: rgb(77 87 97);
+}
+
+.outline-focus-ring:focus-visible {
+    outline: 2px solid rgba(105, 65, 198, 0.7);
+    outline-offset: 2px;
+}

@@ -3,13 +3,13 @@ import './App.css'
 import { useEffect, useMemo, useState } from 'react'
 
 import { supabase } from './supabaseClient'
-import { projectsApi, downloadsApi, exportsApi, handleApiError } from './utils/api.js'
+import { projectsApi, exportsApi, handleApiError } from './utils/api.js'
 import { getUserSubscriptionSummary, formatPrice } from './utils/razorpayApi.js'
 import { getSubscriptionUsage, getActiveTrial } from './utils/subscriptionApi.js'
 import { getUserActivityStats, trackActivity } from './utils/analyticsApi.js'
 import { getUsageWithLimits, getCurrentUsage } from './utils/ideFeatureGating.js'
 import { getUsagePercentage, isSoftLimitReached, isHardLimitReached } from './utils/usageLimits.js'
-import { getUsageAnalytics, getExportFormatBreakdown, getFeatureUsageBreakdown, getActivityTimeline } from './utils/analyticsData.js'
+import { getActivityTimeline } from './utils/analyticsData.js'
 import { subscribeToAllUpdates } from './utils/realtimeSync.js'
 import { LimitWarning } from './components/LimitWarning.jsx'
 import { UpgradePrompt } from './components/UpgradePrompt.jsx'
@@ -39,7 +39,6 @@ function DashboardPage({ session, navigate }) {
     const [licenseError, setLicenseError] = useState('')
     const [subscriptionSummary, setSubscriptionSummary] = useState(null)
     const [projects, setProjects] = useState([])
-    const [downloads, setDownloads] = useState([])
     const [exports, setExports] = useState([])
     const [usageData, setUsageData] = useState(null)
     const [recentActivity, setRecentActivity] = useState([])
@@ -48,31 +47,132 @@ function DashboardPage({ session, navigate }) {
     const [models, setModels] = useState([])
     const [trainingRuns, setTrainingRuns] = useState([])
 
-    // Analytics data
-    const [analyticsPeriod, setAnalyticsPeriod] = useState('30d') // '1d', '7d', '30d', 'all'
-    const [gpuHoursData, setGpuHoursData] = useState([])
-    const [exportsData, setExportsData] = useState([])
-    const [trainingRunsData, setTrainingRunsData] = useState([])
-    const [exportFormats, setExportFormats] = useState([])
-    const [featureUsage, setFeatureUsage] = useState([])
+    const [selectedProjectId, setSelectedProjectId] = useState('')
+
+    const [syncMeta, setSyncMeta] = useState({
+        lastSyncAt: null,
+        lastSyncEventAt: null,
+        lastSyncEventStatus: null,
+        lastSyncError: null,
+        lastIdeVersion: null,
+        lastIdePlatform: null,
+    })
+
     const [activityTimeline, setActivityTimeline] = useState([])
 
     const [loading, setLoading] = useState({
         license: true,
         subscription: true,
         projects: true,
-        downloads: true,
         exports: true,
         usage: false,
         activity: false,
         usageLimits: true,
         models: false,
         trainingRuns: false,
-        analytics: false,
-        exportFormats: false,
-        featureUsage: false,
         activityTimeline: false,
     })
+
+    const selectedProject = useMemo(() => {
+        if (!selectedProjectId) return null
+        return projects.find((p) => p.project_id === selectedProjectId) || null
+    }, [projects, selectedProjectId])
+
+    const projectExports = useMemo(() => {
+        if (!selectedProjectId) return []
+        return exports.filter((e) => e.project_id === selectedProjectId)
+    }, [exports, selectedProjectId])
+
+    const lastProjectExport = useMemo(() => {
+        return projectExports[0] || null
+    }, [projectExports])
+
+    const projectModels = useMemo(() => {
+        if (!selectedProjectId) return []
+        return models.filter((m) => m.project_id === selectedProjectId)
+    }, [models, selectedProjectId])
+
+    const lastProjectModel = useMemo(() => {
+        return projectModels[0] || null
+    }, [projectModels])
+
+    const projectResourceSummary = useMemo(() => {
+        if (!selectedProjectId) {
+            return {
+                totalGpuHours: 0,
+                lastGpuType: null,
+                lastGpuCount: null,
+            }
+        }
+
+        const totalGpuHours = (trainingRuns || []).reduce((acc, r) => acc + Number(r.gpu_hours_used || 0), 0)
+        const last = trainingRuns?.[0] || null
+        return {
+            totalGpuHours,
+            lastGpuType: last?.gpu_type || null,
+            lastGpuCount: last?.gpu_count ?? null,
+        }
+    }, [selectedProjectId, trainingRuns])
+
+    const recommendedNextSteps = useMemo(() => {
+        if (!selectedProjectId) {
+            return {
+                title: 'Select a project to begin',
+                items: [
+                    {
+                        title: 'Pick a project',
+                        detail: 'All metrics and timelines are scoped to a single project.',
+                    },
+                ],
+            }
+        }
+
+        const datasetCount = Number(selectedProject?.dataset_count || 0)
+        const runCount = Number(trainingRuns?.length || 0)
+        const exportCount = Number(projectExports?.length || 0)
+
+        const items = []
+
+        if (datasetCount === 0) {
+            items.push({
+                title: 'Create or sync a dataset',
+                detail: 'Create your first dataset in the IDE. Once the IDE syncs, the dataset count will appear here.',
+            })
+        }
+
+        if (datasetCount > 0 && runCount === 0) {
+            items.push({
+                title: 'Run your first training',
+                detail: 'Start a training run in the IDE. This dashboard will show run status + final metrics once synced.',
+            })
+        }
+
+        if (runCount > 0 && exportCount === 0) {
+            items.push({
+                title: 'Export a model artifact',
+                detail: 'Export ONNX/TensorRT/etc. from the IDE. This dashboard stores metadata only (format + timestamp).',
+            })
+        }
+
+        if (syncMeta.lastSyncAt == null) {
+            items.push({
+                title: 'Check IDE sync health',
+                detail: 'No sync timestamp reported yet. Make sure the IDE is authenticated and online for metadata sync.',
+            })
+        }
+
+        if (items.length === 0) {
+            items.push({
+                title: 'Review latest outputs',
+                detail: 'You have runs and exports. Use the tables below to audit provenance, timestamps, and formats.',
+            })
+        }
+
+        return {
+            title: 'Recommended next steps',
+            items,
+        }
+    }, [selectedProjectId, selectedProject, trainingRuns, projectExports, syncMeta.lastSyncAt])
 
     const licenseStatus = useMemo(() => {
         if (!license) return 'Unknown'
@@ -176,6 +276,12 @@ function DashboardPage({ session, navigate }) {
                 if (error) throw error
                 if (!mounted) return
                 setProjects(data || [])
+
+                // Default selection: most recently updated/active project
+                const nextDefault = (data || [])?.[0]?.project_id
+                if (nextDefault && !selectedProjectId) {
+                    setSelectedProjectId(nextDefault)
+                }
             } catch (e) {
                 if (!mounted) return
                 console.error('Error loading projects:', e)
@@ -193,26 +299,37 @@ function DashboardPage({ session, navigate }) {
         }
     }, [userId, toast])
 
-    // Fetch downloads
+    // Fetch project models (metadata) scoped by project
     useEffect(() => {
         let mounted = true
+
         const run = async () => {
             if (!userId) return
-            setLoading((prev) => ({ ...prev, downloads: true }))
+            if (!selectedProjectId) {
+                setModels([])
+                return
+            }
+
+            setLoading((prev) => ({ ...prev, models: true }))
 
             try {
-                const { data, error } = await downloadsApi.getDownloads(userId)
+                const { data, error } = await supabase
+                    .from('models')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('project_id', selectedProjectId)
+                    .order('trained_at', { ascending: false })
+                    .limit(50)
+
                 if (error) throw error
                 if (!mounted) return
-                setDownloads(data || [])
+                setModels(data || [])
             } catch (e) {
                 if (!mounted) return
-                console.error('Error loading downloads:', e)
-                toast.error(handleApiError(e, 'Unable to load downloads'))
+                console.error('Error loading models:', e)
+                setModels([])
             } finally {
-                if (mounted) {
-                    setLoading((prev) => ({ ...prev, downloads: false }))
-                }
+                if (mounted) setLoading((prev) => ({ ...prev, models: false }))
             }
         }
 
@@ -220,7 +337,108 @@ function DashboardPage({ session, navigate }) {
         return () => {
             mounted = false
         }
-    }, [userId, toast])
+    }, [userId, selectedProjectId])
+
+    // Fetch training runs (project-scoped)
+    useEffect(() => {
+        let mounted = true
+
+        const run = async () => {
+            if (!userId || !selectedProjectId) {
+                setTrainingRuns([])
+                return
+            }
+
+            setLoading((prev) => ({ ...prev, trainingRuns: true }))
+
+            try {
+                const { data, error } = await supabase
+                    .from('training_runs')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('project_id', selectedProjectId)
+                    .order('start_time', { ascending: false })
+                    .limit(50)
+
+                if (error) throw error
+                if (!mounted) return
+                setTrainingRuns(data || [])
+            } catch (e) {
+                if (!mounted) return
+                console.error('Error loading training runs:', e)
+                setTrainingRuns([])
+            } finally {
+                if (mounted) setLoading((prev) => ({ ...prev, trainingRuns: false }))
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [userId, selectedProjectId])
+
+    // Sync health (project-scoped where possible)
+    useEffect(() => {
+        let mounted = true
+
+        const run = async () => {
+            if (!userId) return
+
+            try {
+                const { data: tokenRow } = await supabase
+                    .from('ide_auth_tokens')
+                    .select('last_sync_at')
+                    .eq('user_id', userId)
+                    .order('issued_at', { ascending: false })
+                    .limit(1)
+
+                const { data: syncRow } = await supabase
+                    .from('ide_sync_events')
+                    .select('created_at,sync_status,error_message,ide_version,ide_platform,event_data')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(25)
+
+                if (!mounted) return
+
+                const latestToken = tokenRow?.[0] || null
+                const events = syncRow || []
+
+                // Attempt to find most recent event for this project (best-effort)
+                const projectEvent = selectedProjectId
+                    ? events.find((e) => String(e?.event_data?.project_id || '') === String(selectedProjectId))
+                    : null
+
+                const latestEvent = projectEvent || events[0] || null
+
+                setSyncMeta({
+                    lastSyncAt: latestToken?.last_sync_at || null,
+                    lastSyncEventAt: latestEvent?.created_at || null,
+                    lastSyncEventStatus: latestEvent?.sync_status || null,
+                    lastSyncError: latestEvent?.error_message || null,
+                    lastIdeVersion: latestEvent?.ide_version || null,
+                    lastIdePlatform: latestEvent?.ide_platform || null,
+                })
+            } catch (e) {
+                if (!mounted) return
+                console.error('Error loading sync health:', e)
+                setSyncMeta({
+                    lastSyncAt: null,
+                    lastSyncEventAt: null,
+                    lastSyncEventStatus: null,
+                    lastSyncError: null,
+                    lastIdeVersion: null,
+                    lastIdePlatform: null,
+                })
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [userId, selectedProjectId])
 
     // Fetch exports
     useEffect(() => {
@@ -362,6 +580,65 @@ function DashboardPage({ session, navigate }) {
 
             <section className="dashSection">
                 <div className="container">
+                    {/* Project Selector (Persistent for dashboard) */}
+                    <article className="dashCard" style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <div>
+                                <h2 className="dashCard__title">Project</h2>
+                                <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: 'var(--dr-muted)' }}>
+                                    Select a project to view observability. The dashboard observes. The IDE executes.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <select
+                                    value={selectedProjectId}
+                                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                                    className="uiSelect"
+                                    style={{ minWidth: '280px' }}
+                                    disabled={loading.projects || projects.length === 0}
+                                >
+                                    <option value="">Select a project…</option>
+                                    {projects.map((p) => (
+                                        <option key={p.project_id} value={p.project_id}>
+                                            {p.name} {p.last_trained_at ? `• last trained ${formatDate(p.last_trained_at)}` : '• no activity yet'}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span
+                                    className={`dashStatus dashStatus--${selectedProject?.status || 'archived'}`}
+                                    style={{ textTransform: 'capitalize' }}
+                                >
+                                    {selectedProject?.status || (projects.length ? 'Select project' : 'No projects')}
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article className="dashCard" style={{ marginBottom: '16px' }}>
+                        <h2 className="dashCard__title">{recommendedNextSteps.title}</h2>
+                        <div className="dashRows" style={{ marginTop: '12px' }}>
+                            {recommendedNextSteps.items.map((item) => (
+                                <div key={item.title} className="dashRow">
+                                    <div className="dashRow__label">{item.title}</div>
+                                    <div className="dashRow__value">{item.detail}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </article>
+
+                    {!selectedProjectId && (
+                        <article className="dashCard" style={{ marginBottom: '16px' }}>
+                            <h2 className="dashCard__title">No project selected</h2>
+                            <div className="dashMuted" style={{ marginTop: '10px' }}>
+                                Choose a project above to view:
+                                <div style={{ marginTop: '8px' }}>- Dataset summary</div>
+                                <div>- Training runs timeline</div>
+                                <div>- Export artifacts</div>
+                                <div>- Resource snapshots (when reported by the IDE)</div>
+                            </div>
+                        </article>
+                    )}
+
                     {/* Usage Overview Section (Cursor-style) */}
                     {usageWithLimits && (
                         <article className="dashCard" style={{ marginBottom: '32px' }}>
@@ -566,40 +843,6 @@ function DashboardPage({ session, navigate }) {
                         </article>
                     )}
 
-                    {/* Quick Stats Cards */}
-                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                        <div className="stat-card">
-                            <div className="stat-card__label">Total Projects</div>
-                            <div className="stat-card__value">{projects.length}</div>
-                            <div className="stat-card__subtext">Active projects</div>
-                        </div>
-                        <div className="stat-card">
-                            <div className="stat-card__label">Total Downloads</div>
-                            <div className="stat-card__value">{downloads.length}</div>
-                            <div className="stat-card__subtext">Downloads</div>
-                        </div>
-                        <div className="stat-card">
-                            <div className="stat-card__label">Total Exports</div>
-                            <div className="stat-card__value">{exports.length}</div>
-                            <div className="stat-card__subtext">Exported models</div>
-                        </div>
-                        <div className="stat-card">
-                            <div className="stat-card__label">Subscription</div>
-                            <div className="stat-card__value">
-                                {subscriptionSummary?.plan_type || 'Free'}
-                            </div>
-                            <div className="stat-card__subtext">
-                                {subscriptionSummary?.plan_type === 'free' ? (
-                                    <a href="/pricing" onClick={(e) => { e.preventDefault(); navigate('/pricing') }} style={{ color: '#14b8a6', textDecoration: 'underline' }}>
-                                        Compare plans →
-                                    </a>
-                                ) : (
-                                    'Active'
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Upgrade Prompt for Free Users */}
                     {subscriptionSummary?.plan_type === 'free' && !activeTrial && (
                         <div className="dashCard" style={{ marginBottom: '32px', border: '2px solid #14b8a6', background: 'linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%)' }}>
@@ -652,220 +895,269 @@ function DashboardPage({ session, navigate }) {
                         </div>
                     )}
 
-                    <div className="dashGrid">
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Overview</h2>
-                            <div className="dashRows">
-                                <div className="dashRow">
-                                    <div className="dashRow__label">License tier</div>
-                                    <div className="dashRow__value">
-                                        {loading.license ? (
-                                            <LoadingSpinner size="small" />
-                                        ) : (
-                                            license?.license_type || 'free'
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="dashRow">
-                                    <div className="dashRow__label">IDE version</div>
-                                    <div className="dashRow__value">
-                                        {projects.length > 0 && projects[0]?.ide_version
-                                            ? projects[0].ide_version
-                                            : 'Not reported'}
-                                    </div>
-                                </div>
-                                <div className="dashRow">
-                                    <div className="dashRow__label">Last IDE activity</div>
-                                    <div className="dashRow__value">
-                                        {projects.length > 0 && projects[0]?.last_trained_at
-                                            ? formatDate(projects[0].last_trained_at)
-                                            : 'Not reported'}
-                                    </div>
-                                </div>
-                                <div className="dashRow">
-                                    <div className="dashRow__label">Total projects</div>
-                                    <div className="dashRow__value">{projects.length}</div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Subscription & License</h2>
-                            <div className="dashRows">
-                                <div className="dashRow">
-                                    <div className="dashRow__label">Plan</div>
-                                    <div className="dashRow__value">
-                                        {loading.subscription ? (
-                                            <LoadingSpinner size="small" />
-                                        ) : subscriptionSummary?.plan_type ? (
-                                            subscriptionSummary.plan_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                                        ) : (
-                                            license?.license_type || 'free'
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="dashRow">
-                                    <div className="dashRow__label">Status</div>
-                                    <div className="dashRow__value">
-                                        {licenseError ? 'Unavailable' : licenseStatus}
-                                        {subscriptionSummary?.subscription_status && subscriptionSummary.subscription_status !== 'active' && (
-                                            <span className="dashStatus dashStatus--warning" style={{ marginLeft: '8px' }}>
-                                                {subscriptionSummary.subscription_status}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                {subscriptionSummary?.current_period_end && (
+                    {selectedProjectId && (
+                        <div className="dashGrid">
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Project Overview</h2>
+                                <div className="dashRows">
                                     <div className="dashRow">
-                                        <div className="dashRow__label">Renews</div>
-                                        <div className="dashRow__value">{formatDate(subscriptionSummary.current_period_end)}</div>
+                                        <div className="dashRow__label">Project</div>
+                                        <div className="dashRow__value">{selectedProject?.name || '—'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Task</div>
+                                        <div className="dashRow__value">{selectedProject?.task_type || 'Not reported'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Datasets</div>
+                                        <div className="dashRow__value">{Number(selectedProject?.dataset_count || 0)}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last completed run</div>
+                                        <div className="dashRow__value">{selectedProject?.last_trained_at ? formatDateTime(selectedProject.last_trained_at) : 'No activity yet'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Total training runs</div>
+                                        <div className="dashRow__value">{loading.trainingRuns ? 'Loading…' : trainingRuns.length}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Total exports</div>
+                                        <div className="dashRow__value">{projectExports.length}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last export format</div>
+                                        <div className="dashRow__value">{lastProjectExport?.format ? lastProjectExport.format.toUpperCase() : 'No exports yet'}</div>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">System Status & Sync Health</h2>
+                                <div className="dashRows">
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">IDE version</div>
+                                        <div className="dashRow__value">
+                                            {syncMeta.lastIdeVersion || selectedProject?.ide_version || 'Not reported'}
+                                        </div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">IDE connection</div>
+                                        <div className="dashRow__value">
+                                            {syncMeta.lastSyncEventAt ? 'Last seen recently (events available)' : 'Not reported'}
+                                        </div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last sync</div>
+                                        <div className="dashRow__value">{syncMeta.lastSyncAt ? formatDateTime(syncMeta.lastSyncAt) : 'Not reported'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Event backlog</div>
+                                        <div className="dashRow__value">Not reported</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Compatibility</div>
+                                        <div className="dashRow__value">Not reported</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last sync event</div>
+                                        <div className="dashRow__value">
+                                            {syncMeta.lastSyncEventAt ? (
+                                                <>
+                                                    {formatDateTime(syncMeta.lastSyncEventAt)}
+                                                    {syncMeta.lastSyncEventStatus ? (
+                                                        <span className={`dashStatus dashStatus--${syncMeta.lastSyncEventStatus === 'success' ? 'active' : 'deleted'}`} style={{ marginLeft: '8px' }}>
+                                                            {syncMeta.lastSyncEventStatus}
+                                                        </span>
+                                                    ) : null}
+                                                </>
+                                            ) : (
+                                                'No sync events yet'
+                                            )}
+                                        </div>
+                                    </div>
+                                    {syncMeta.lastSyncError ? (
+                                        <div className="dashRow">
+                                            <div className="dashRow__label">Last error</div>
+                                            <div className="dashRow__value">{syncMeta.lastSyncError}</div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </article>
+
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Resource Usage (Project-scoped)</h2>
+                                <p style={{ margin: '0 0 12px 0', color: 'var(--dr-muted)', fontSize: '13px' }}>
+                                    Snapshot-style summary derived from recorded training runs. Live GPU charts require IDE resource snapshot events.
+                                </p>
+                                <div className="dashRows">
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">GPU hours (sum)</div>
+                                        <div className="dashRow__value">{projectResourceSummary.totalGpuHours.toFixed(2)}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last GPU type</div>
+                                        <div className="dashRow__value">{projectResourceSummary.lastGpuType || 'Not reported'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last GPU count</div>
+                                        <div className="dashRow__value">{projectResourceSummary.lastGpuCount ?? 'Not reported'}</div>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Dataset & Annotation Summary</h2>
+                                <p style={{ margin: '0 0 12px 0', color: 'var(--dr-muted)', fontSize: '13px' }}>
+                                    This project currently syncs dataset counts only. Detailed dataset versioning + annotation states are planned.
+                                </p>
+                                <div className="dashRows">
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Dataset count</div>
+                                        <div className="dashRow__value">{Number(selectedProject?.dataset_count || 0)}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Annotation status</div>
+                                        <div className="dashRow__value">Not reported</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last annotation activity</div>
+                                        <div className="dashRow__value">Not reported</div>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Live / Recent Activity</h2>
+                                <div className="dashRows">
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Run status</div>
+                                        <div className="dashRow__value">
+                                            {loading.trainingRuns ? 'Loading…' : trainingRuns?.[0]?.status || 'Idle'}
+                                        </div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Progress</div>
+                                        <div className="dashRow__value">{trainingRuns?.[0]?.progress_percentage != null ? `${trainingRuns[0].progress_percentage}%` : 'Not reported'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last metric snapshot</div>
+                                        <div className="dashRow__value">{trainingRuns?.[0]?.final_metrics ? JSON.stringify(trainingRuns[0].final_metrics).slice(0, 60) + '…' : 'Not reported'}</div>
+                                    </div>
+                                    <div className="dashRow">
+                                        <div className="dashRow__label">Last reported from IDE</div>
+                                        <div className="dashRow__value">{selectedProject?.updated_at ? formatDateTime(selectedProject.updated_at) : 'Not reported'}</div>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Training Runs Timeline</h2>
+                                {loading.trainingRuns ? (
+                                    <TableSkeleton rows={3} columns={5} />
+                                ) : (
+                                    <div className="dashTable">
+                                        <div className="dashTable__head">
+                                            <div>Run</div>
+                                            <div>Dataset</div>
+                                            <div>Status</div>
+                                            <div>Start</div>
+                                            <div>Config ID</div>
+                                        </div>
+                                        {trainingRuns.length === 0 ? (
+                                            <div className="dashTable__row dashTable__row--empty">
+                                                <div className="dashMuted">No training runs recorded yet for this project.</div>
+                                                <div />
+                                                <div />
+                                                <div />
+                                                <div />
+                                            </div>
+                                        ) : (
+                                            trainingRuns.map((run) => (
+                                                <div key={run.run_id || run.id} className="dashTable__row">
+                                                    <div>{run.run_name || run.run_id}</div>
+                                                    <div>{run.config?.dataset_version || '—'}</div>
+                                                    <div>
+                                                        <span className={`dashStatus dashStatus--${run.status || 'active'}`}>{run.status || 'unknown'}</span>
+                                                    </div>
+                                                    <div>{formatDateTime(run.start_time)}</div>
+                                                    <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>{(run.ide_run_id || run.run_id || '—').toString().slice(0, 10)}</div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 )}
-                                <div className="dashRow">
-                                    <div className="dashRow__label">Last sync</div>
-                                    <div className="dashRow__value">Not reported</div>
-                                </div>
-                            </div>
+                            </article>
 
-                            <div className="dashActions">
-                                <a
-                                    className="button button--outline"
-                                    href="/subscription"
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        navigate('/subscription')
-                                    }}
-                                >
-                                    Manage Subscription
-                                </a>
-                            </div>
-                        </article>
-
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Projects (metadata only)</h2>
-                            {loading.projects ? (
-                                <TableSkeleton rows={3} columns={5} />
-                            ) : (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Project</div>
-                                        <div>Task</div>
-                                        <div>Datasets</div>
-                                        <div>Last trained</div>
-                                        <div>Status</div>
-                                    </div>
-                                    {projects.length === 0 ? (
-                                        <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">
-                                                No projects yet. Create one in the ML FORGE desktop app — it will appear here once the IDE syncs metadata.
-                                                <div style={{ marginTop: '10px' }}>
-                                                    <strong>First run checklist</strong>
-                                                    <div style={{ marginTop: '8px' }}>
-                                                        <div>1) Create your first dataset</div>
-                                                        <div>2) Run your first training (YOLO)</div>
-                                                        <div>3) Export your first model (ONNX / TensorRT)</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div />
-                                            <div />
-                                            <div />
-                                            <div />
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Models (metadata)</h2>
+                                {loading.models ? (
+                                    <TableSkeleton rows={3} columns={5} />
+                                ) : (
+                                    <div className="dashTable">
+                                        <div className="dashTable__head">
+                                            <div>Name</div>
+                                            <div>Type</div>
+                                            <div>Status</div>
+                                            <div>Trained</div>
+                                            <div>GPU hours</div>
                                         </div>
-                                    ) : (
-                                        projects.map((project) => (
-                                            <div key={project.project_id} className="dashTable__row">
-                                                <div>{project.name}</div>
-                                                <div>{project.task_type || '—'}</div>
-                                                <div>{project.dataset_count}</div>
-                                                <div>{formatDate(project.last_trained_at)}</div>
-                                                <div>
-                                                    <span
-                                                        className={`dashStatus dashStatus--${project.status}`}
-                                                    >
-                                                        {project.status}
-                                                    </span>
+                                        {projectModels.length === 0 ? (
+                                            <div className="dashTable__row dashTable__row--empty">
+                                                <div className="dashMuted">No models recorded yet for this project.</div>
+                                                <div />
+                                                <div />
+                                                <div />
+                                                <div />
+                                            </div>
+                                        ) : (
+                                            projectModels.map((m) => (
+                                                <div key={m.model_id} className="dashTable__row">
+                                                    <div>{m.name}</div>
+                                                    <div>{m.model_type}</div>
+                                                    <div><span className={`dashStatus dashStatus--${m.status || 'active'}`}>{m.status || 'unknown'}</span></div>
+                                                    <div>{formatDateTime(m.trained_at || m.created_at)}</div>
+                                                    <div>{Number(m.gpu_hours_used || 0).toFixed(2)}</div>
                                                 </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-                        </article>
-
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Downloads</h2>
-                            {loading.downloads ? (
-                                <TableSkeleton rows={3} columns={3} />
-                            ) : (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Version</div>
-                                        <div>OS</div>
-                                        <div>Date</div>
+                                            ))
+                                        )}
                                     </div>
-                                    {downloads.length === 0 ? (
-                                        <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">No downloads recorded yet. Grab an installer from the Download Hub to see download metadata here.</div>
-                                            <div />
-                                            <div />
-                                        </div>
-                                    ) : (
-                                        downloads.map((download) => (
-                                            <div key={download.download_id} className="dashTable__row">
-                                                <div>{download.version}</div>
-                                                <div>{download.os}</div>
-                                                <div>{formatDate(download.downloaded_at)}</div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-                        </article>
+                                )}
+                            </article>
 
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Exports (metadata)</h2>
-                            {loading.exports ? (
-                                <TableSkeleton rows={3} columns={4} />
-                            ) : (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Model</div>
-                                        <div>Format</div>
-                                        <div>Date</div>
-                                        <div>Project</div>
-                                    </div>
-                                    {exports.length === 0 ? (
-                                        <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">
-                                                No exports recorded yet. Export a model from the desktop app (e.g., ONNX/TensorRT) and you’ll see export metadata here.
-                                                <div style={{ marginTop: '10px' }}>
-                                                    Exports are stored locally; this dashboard only shows metadata once the desktop app syncs it.
-                                                </div>
-                                            </div>
-                                            <div />
-                                            <div />
-                                            <div />
+                            <article className="dashCard">
+                                <h2 className="dashCard__title">Model & Export Artifacts</h2>
+                                {loading.exports ? (
+                                    <TableSkeleton rows={3} columns={4} />
+                                ) : (
+                                    <div className="dashTable">
+                                        <div className="dashTable__head">
+                                            <div>Model</div>
+                                            <div>Format</div>
+                                            <div>Exported</div>
+                                            <div>Project</div>
                                         </div>
-                                    ) : (
-                                        exports.map((exportItem) => {
-                                            const project = projects.find(
-                                                (p) => p.project_id === exportItem.project_id
-                                            )
-                                            return (
+                                        {projectExports.length === 0 ? (
+                                            <div className="dashTable__row dashTable__row--empty">
+                                                <div className="dashMuted">No exports recorded yet for this project.</div>
+                                                <div />
+                                                <div />
+                                                <div />
+                                            </div>
+                                        ) : (
+                                            projectExports.map((exportItem) => (
                                                 <div key={exportItem.export_id} className="dashTable__row">
                                                     <div>{exportItem.model_name}</div>
-                                                    <div>{exportItem.format.toUpperCase()}</div>
+                                                    <div>{exportItem.format?.toUpperCase?.() || '—'}</div>
                                                     <div>{formatDate(exportItem.exported_at)}</div>
-                                                    <div>{project?.name || '—'}</div>
+                                                    <div>{selectedProject?.name || '—'}</div>
                                                 </div>
-                                            )
-                                        })
-                                    )}
-                                </div>
-                            )}
-                        </article>
-                    </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </article>
+                        </div>
+                    )}
 
                     <div className="dashActions" style={{ justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -877,7 +1169,7 @@ function DashboardPage({ session, navigate }) {
                                     navigate('/download')
                                 }}
                             >
-                                Go to Download Hub
+                                Download Hub
                             </a>
                             {(!subscriptionSummary || subscriptionSummary.plan_type === 'free') && (
                                 <a
@@ -936,186 +1228,7 @@ function DashboardPage({ session, navigate }) {
                 </div>
             </section>
 
-            {/* Analytics Section */}
-            <section className="dashSection">
-                <div className="container">
-                    <div style={{ marginBottom: '32px' }}>
-                        <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Analytics</h2>
-                        <p style={{ color: 'var(--dr-muted)', fontSize: '16px' }}>Track your usage and activity over time</p>
-                    </div>
-
-                    <div className="dashGrid">
-                        {/* GPU Hours Chart */}
-                        <article className="dashCard" style={{ gridColumn: 'span 2' }}>
-                            <h2 className="dashCard__title">GPU Hours Usage</h2>
-                            {loading.analytics ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : gpuHoursData.length > 0 ? (
-                                <UsageChart
-                                    data={gpuHoursData}
-                                    type="line"
-                                    title="GPU Hours"
-                                    height={250}
-                                />
-                            ) : (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <UsageChart
-                                        data={[]}
-                                        type="line"
-                                        title="GPU Hours"
-                                        height={250}
-                                    />
-                                    <p style={{ marginTop: '16px', color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                        No GPU usage data available for the selected period.
-                                    </p>
-                                </div>
-                            )}
-                        </article>
-
-                        {/* Exports Chart */}
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Exports</h2>
-                            {loading.analytics ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : exportsData.length > 0 ? (
-                                <UsageChart
-                                    data={exportsData}
-                                    type="bar"
-                                    title="Exports per Day"
-                                    height={200}
-                                />
-                            ) : (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <UsageChart
-                                        data={[]}
-                                        type="bar"
-                                        title="Exports per Day"
-                                        height={200}
-                                    />
-                                    <p style={{ marginTop: '16px', color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                        No export data available.
-                                    </p>
-                                </div>
-                            )}
-                        </article>
-
-                        {/* Training Runs Chart */}
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Training Runs</h2>
-                            {loading.analytics ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : trainingRunsData.length > 0 ? (
-                                <UsageChart
-                                    data={trainingRunsData}
-                                    type="bar"
-                                    title="Training Runs per Day"
-                                    height={200}
-                                />
-                            ) : (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <UsageChart
-                                        data={[]}
-                                        type="bar"
-                                        title="Training Runs per Day"
-                                        height={200}
-                                    />
-                                    <p style={{ marginTop: '16px', color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                        No training runs data available.
-                                    </p>
-                                </div>
-                            )}
-                        </article>
-
-                        {/* Export Format Breakdown */}
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Export Formats</h2>
-                            {loading.exportFormats ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : exportFormats.length > 0 ? (
-                                <div style={{ padding: '16px 0' }}>
-                                    {exportFormats.map((format) => (
-                                        <div key={format.format} style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid var(--dr-border-weak)'
-                                        }}>
-                                            <span style={{ fontWeight: '500' }}>{format.format}</span>
-                                            <span style={{ color: 'var(--dr-muted)' }}>{format.count} exports</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <p style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                        No export formats data available.
-                                    </p>
-                                </div>
-                            )}
-                        </article>
-
-                        {/* Feature Usage Breakdown */}
-                        <article className="dashCard">
-                            <h2 className="dashCard__title">Top Features Used</h2>
-                            {loading.featureUsage ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : featureUsage.length > 0 ? (
-                                <div style={{ padding: '16px 0' }}>
-                                    {featureUsage.map((feature) => (
-                                        <div key={feature.feature} style={{
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid var(--dr-border-weak)'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                <span style={{ fontWeight: '500', fontSize: '14px' }}>
-                                                    {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                </span>
-                                                <span style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                                    {feature.granted} / {feature.total}
-                                                </span>
-                                            </div>
-                                            <div style={{
-                                                width: '100%',
-                                                height: '4px',
-                                                backgroundColor: 'var(--dr-border-weak)',
-                                                borderRadius: '2px',
-                                                overflow: 'hidden'
-                                            }}>
-                                                <div style={{
-                                                    width: `${feature.successRate}%`,
-                                                    height: '100%',
-                                                    backgroundColor: feature.successRate > 80 ? '#14b8a6' : '#f59e0b',
-                                                    transition: 'width 0.3s ease'
-                                                }} />
-                                            </div>
-                                            <span style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px', display: 'block' }}>
-                                                {feature.successRate.toFixed(0)}% success rate
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <p style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                        No feature usage data available.
-                                    </p>
-                                </div>
-                            )}
-                        </article>
-                    </div>
-                </div>
-            </section>
+            {/* Generic analytics section removed: metrics must be project-scoped */}
 
             {/* Activity Timeline Section */}
             {activityTimeline.length > 0 && (

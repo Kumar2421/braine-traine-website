@@ -252,7 +252,7 @@ function GuidedWorkflowAutomationPage({ navigate }) {
                         <p className="sectionHeader__subtitle">Same deterministic workflow — fewer manual steps, clearer evidence, and decisions you can defend later.</p>
                     </div>
 
-                    <div className="gwaSteps" aria-label="Example steps">
+                    <div className="gwaSteps" aria-label="Example steps" style={{ color: 'white' }}>
                         <div className="gwaStep">
                             <div className="gwaStep__num">1</div>
                             <div className="gwaStep__body">Import dataset</div>
