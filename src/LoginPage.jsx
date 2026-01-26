@@ -102,12 +102,13 @@ function LoginPage() {
 
     // Initialize Vanta.js cells effect
     useEffect(() => {
-        if (!vantaRef.current) return
-
-        let vantaInstance = null
+        let mounted = true
+        let timer = null
+        let retryTimer = null
 
         const initVanta = async () => {
             try {
+                if (!mounted || !vantaRef.current) return
                 const vantaModule = await import('vanta/dist/vanta.cells.min.js')
                 const THREE = await import('three')
 
@@ -115,9 +116,11 @@ function LoginPage() {
 
                 if (vantaEffect.current) {
                     vantaEffect.current.destroy()
+                    vantaEffect.current = null
                 }
 
-                vantaInstance = VANTA({
+                if (!mounted || !vantaRef.current) return
+                const vantaInstance = VANTA({
                     el: vantaRef.current,
                     THREE: THREE.default || THREE,
                     mouseControls: true,
@@ -141,17 +144,23 @@ function LoginPage() {
         }
 
         // Small delay to ensure DOM is ready and container has dimensions
-        const timer = setTimeout(() => {
+        timer = setTimeout(() => {
+            if (!mounted) return
             if (vantaRef.current && vantaRef.current.offsetWidth > 0 && vantaRef.current.offsetHeight > 0) {
                 initVanta()
             } else {
                 // Retry if container not ready
-                setTimeout(() => initVanta(), 200)
+                retryTimer = setTimeout(() => {
+                    if (!mounted) return
+                    initVanta()
+                }, 200)
             }
         }, 100)
 
         return () => {
-            clearTimeout(timer)
+            mounted = false
+            if (timer) clearTimeout(timer)
+            if (retryTimer) clearTimeout(retryTimer)
             if (vantaEffect.current) {
                 vantaEffect.current.destroy()
                 vantaEffect.current = null

@@ -95,13 +95,16 @@ function App() {
   }, [])
 
   const navigate = useCallback((nextPath) => {
-    const currentPath = window.location.pathname || '/'
+    const currentPathname = window.location.pathname || '/'
+    const currentSearch = window.location.search || ''
     const nextPathname = (nextPath || '/').split('?')[0].split('#')[0]
+    const nextSearch = (nextPath || '').includes('?') ? `?${(nextPath || '').split('?')[1].split('#')[0]}` : ''
     const nextHash = (nextPath || '').includes('#') ? `#${(nextPath || '').split('#')[1]}` : ''
     const currentHash = window.location.hash || ''
-    if (nextPathname === currentPath && nextHash === currentHash) return
+    if (nextPathname === currentPathname && nextSearch === currentSearch && nextHash === currentHash) return
     window.history.pushState({}, '', nextPath)
     setPath(window.location.pathname || '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
 
     if (!nextHash) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -137,6 +140,11 @@ function App() {
   const isPrivacy = path === '/privacy'
   const isDashboard = path === '/dashboard'
   const isDashboardV2 = path === '/dashboard-v2'
+  const isProjects = path === '/projects'
+  const isBilling = path === '/billing'
+  const isSettings = path === '/settings'
+  const isExports = path === '/exports'
+  const isDiagnostics = path === '/diagnostics'
   const isPricing = path === '/pricing'
   const isWhy = path === '/why'
   const isLogout = path === '/logout'
@@ -160,6 +168,31 @@ function App() {
       return
     }
 
+    if (isProjects) {
+      navigate('/dashboard-v2?tab=projects')
+      return
+    }
+
+    if (isExports) {
+      navigate('/dashboard-v2?tab=exports')
+      return
+    }
+
+    if (isBilling) {
+      navigate('/dashboard-v2?tab=billing')
+      return
+    }
+
+    if (isSettings) {
+      navigate('/dashboard-v2?tab=settings')
+      return
+    }
+
+    if (isDiagnostics) {
+      navigate('/dashboard-v2?tab=diagnostics')
+      return
+    }
+
     if (path === '/agentic-ai') {
       navigate('/workflow-automation')
       return
@@ -168,7 +201,7 @@ function App() {
     if (!authed && needsAuth) {
       navigate(`/login?next=${encodeURIComponent(path)}`)
     }
-  }, [authed, needsAuth, isDownloads, path, navigate])
+  }, [authed, needsAuth, isBilling, isDiagnostics, isDownloads, isExports, isProjects, isSettings, path, navigate])
 
   useEffect(() => {
     if (!isLogout) return
@@ -531,7 +564,7 @@ function App() {
         }
         path={path}
       />
-      {!isLogin && !isSignup && !isCheckout && !isDashboardV2 && (
+      {!isLogin && !isSignup && !isCheckout && !isDashboardV2 && !isDashboard && !isSubscription && !isAdminPath && (
         <header className="topbar topbar--phase1">
           <div className="container topbar__inner">
             <a

@@ -1,5 +1,18 @@
 import './App.css'
-import { useEffect, useState } from 'react'
+import {
+    Activity,
+    BarChart3,
+    Bug,
+    Cpu,
+    CreditCard,
+    Flag,
+    Inbox,
+    KeyRound,
+    Shield,
+    TrendingUp,
+    Users,
+} from 'lucide-react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import {
     isAdmin,
@@ -26,13 +39,48 @@ import {
     exportAdminDataToCSV,
 } from './utils/adminAnalytics'
 import { UsageChart } from './components/UsageChart'
+import LoadingSpinner from './components/LoadingSpinner'
 import { useToast } from './utils/toast'
-import { LoadingSpinner } from './components/LoadingSpinner'
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarInset,
+    SidebarProvider,
+    SidebarTrigger,
+} from '@/components/ui/sidebar'
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+const AdminSecurityTab = lazy(() => import('./components/admin/AdminSecurityTab'))
+const AdminReleaseTab = lazy(() => import('./components/admin/AdminReleaseTab'))
 
 function AdminPage({ session, navigate }) {
     const [loading, setLoading] = useState(true)
     const [isUserAdmin, setIsUserAdmin] = useState(false)
-    const [activeTab, setActiveTab] = useState('users') // users, licenses, subscriptions, features, usage, audit, analytics, gpu-usage, activity
+    const [adminRole, setAdminRole] = useState('super')
+    const [activeTab, setActiveTab] = useState(() => {
+        const query = new URLSearchParams(window.location.search || '')
+        return query.get('tab') || 'overview'
+    }) // users, licenses, subscriptions, features, usage, audit, analytics, gpu-usage, activity
+    const [selectedUserId, setSelectedUserId] = useState(() => {
+        const query = new URLSearchParams(window.location.search || '')
+        return query.get('user') || ''
+    })
+    const [selectedCrashEventId, setSelectedCrashEventId] = useState(() => {
+        const query = new URLSearchParams(window.location.search || '')
+        return query.get('event') || ''
+    })
+    const [adminSearchQuery, setAdminSearchQuery] = useState('')
+    const [userDetailLicenseType, setUserDetailLicenseType] = useState('')
     const [users, setUsers] = useState([])
     const [featureFlags, setFeatureFlags] = useState([])
     const [platformStats, setPlatformStats] = useState(null)
@@ -42,6 +90,17 @@ function AdminPage({ session, navigate }) {
     const [billingHistory, setBillingHistory] = useState([])
     const [inboxMessages, setInboxMessages] = useState([])
     const [inboxLoading, setInboxLoading] = useState(false)
+    const [inboxStatusFilter, setInboxStatusFilter] = useState('')
+    const [inboxTagFilter, setInboxTagFilter] = useState('')
+    const [inboxAssignedFilter, setInboxAssignedFilter] = useState('')
+    const [securityBlocklist, setSecurityBlocklist] = useState([])
+    const [securityEvents, setSecurityEvents] = useState([])
+    const [securityLoading, setSecurityLoading] = useState(false)
+    const [securityActiveOnly, setSecurityActiveOnly] = useState(true)
+    const [securityNewEmail, setSecurityNewEmail] = useState('')
+    const [securityNewIp, setSecurityNewIp] = useState('')
+    const [securityNewUserId, setSecurityNewUserId] = useState('')
+    const [securityNewReason, setSecurityNewReason] = useState('')
     const [subscriptionAnalytics, setSubscriptionAnalytics] = useState(null)
     const [revenueAnalytics, setRevenueAnalytics] = useState(null)
     const [gpuUsage, setGpuUsage] = useState(null)
@@ -56,6 +115,22 @@ function AdminPage({ session, navigate }) {
     const [ideSyncStatus, setIdeSyncStatus] = useState(null)
     const [revenueAnalyticsEnhanced, setRevenueAnalyticsEnhanced] = useState(null)
 
+    const [diagnosticsEvents, setDiagnosticsEvents] = useState([])
+    const [diagnosticsLoading, setDiagnosticsLoading] = useState(false)
+    const [diagnosticsQuery, setDiagnosticsQuery] = useState('')
+    const [diagnosticsTypeFilter, setDiagnosticsTypeFilter] = useState('')
+    const [diagnosticsKindFilter, setDiagnosticsKindFilter] = useState('')
+    const [diagnosticsAppVersionFilter, setDiagnosticsAppVersionFilter] = useState('')
+    const [selectedDiagnosticsEvent, setSelectedDiagnosticsEvent] = useState(null)
+
+    const [overviewLoading, setOverviewLoading] = useState(false)
+    const [overviewRecentCrashes, setOverviewRecentCrashes] = useState([])
+
+    const [userDetailLoading, setUserDetailLoading] = useState(false)
+    const [userDetailEvents, setUserDetailEvents] = useState([])
+    const [userDetailActions, setUserDetailActions] = useState([])
+    const [userDetailSubscriptions, setUserDetailSubscriptions] = useState([])
+
     // Filters for user analytics
     const [userSearchFilter, setUserSearchFilter] = useState('')
     const [userPlanFilter, setUserPlanFilter] = useState('')
@@ -63,11 +138,284 @@ function AdminPage({ session, navigate }) {
 
     const toast = useToast()
 
+    const sidebarDefaultOpen = useState(() => {
+        try {
+            const cookie = typeof document !== 'undefined' ? document.cookie || '' : ''
+            const match = cookie.match(/(?:^|;\s*)sidebar_state=([^;]+)/)
+            if (!match) return true
+            const raw = decodeURIComponent(match[1] || '')
+            return raw === 'true'
+        } catch {
+            return true
+        }
+    })[0]
+
+    const canAccessRole = (required) => {
+        const role = String(adminRole || 'super')
+        if (role === 'super') return true
+        if (role === 'billing') return required === 'billing' || required === 'support'
+        if (role === 'support') return required === 'support'
+        return false
+    }
+
+    const tabRequiredRole = (tab) => {
+        switch (tab) {
+            case 'subscriptions':
+                return 'billing'
+            case 'licenses':
+                return 'billing'
+            case 'analytics':
+                return 'billing'
+            case 'platform-analytics':
+                return 'billing'
+            case 'revenue':
+                return 'billing'
+            case 'security':
+                return 'super'
+            case 'release':
+                return 'super'
+            default:
+                return 'support'
+        }
+    }
+
+    useEffect(() => {
+        if (!isUserAdmin) return
+        const required = tabRequiredRole(activeTab)
+        if (!canAccessRole(required)) {
+            navigateAdminTab('overview')
+        }
+    }, [activeTab, adminRole, isUserAdmin])
+
+    const navigateAdminTab = (tab) => {
+        const nextTab = tab || 'users'
+        const url = `/admin?tab=${encodeURIComponent(nextTab)}`
+        if (navigate) {
+            navigate(url)
+        } else {
+            window.history.pushState({}, '', url)
+            window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+    }
+
+    const navigateToCrashEvent = (eventId) => {
+        if (!eventId) return
+        const url = `/admin?tab=crash-recovery&event=${encodeURIComponent(String(eventId))}`
+        if (navigate) {
+            navigate(url)
+        } else {
+            window.history.pushState({}, '', url)
+            window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+    }
+
+    const updateInboxRequest = async (requestId, patch) => {
+        const nowIso = new Date().toISOString()
+        const currentUserId = session?.user?.id || null
+        try {
+            const payload = { ...patch }
+            if ('assigned_to' in payload) {
+                payload.assigned_at = payload.assigned_to ? nowIso : null
+            }
+            if ('status' in payload) {
+                payload.updated_at = nowIso
+                payload.updated_by = currentUserId
+            }
+
+            const { error } = await supabase
+                .from('access_requests')
+                .update(payload)
+                .eq('request_id', requestId)
+
+            if (error) throw error
+
+            setInboxMessages((prev) => prev.map((m) => (m.request_id === requestId ? { ...m, ...payload } : m)))
+            toast.success('Updated')
+        } catch (e) {
+            console.error('Failed to update inbox request:', e)
+            toast.error('Inbox update failed (ensure access_requests has new workflow columns): ' + e.message)
+        }
+    }
+
+    useEffect(() => {
+        const onPopState = () => {
+            const query = new URLSearchParams(window.location.search || '')
+            setActiveTab(query.get('tab') || 'overview')
+            setSelectedUserId(query.get('user') || '')
+            setSelectedCrashEventId(query.get('event') || '')
+        }
+        window.addEventListener('popstate', onPopState)
+        return () => window.removeEventListener('popstate', onPopState)
+    }, [])
+
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'crash-recovery' || !selectedCrashEventId) return
+
+        let mounted = true
+        const run = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('ide_diagnostics_events')
+                    .select('*')
+                    .eq('id', selectedCrashEventId)
+                    .maybeSingle()
+                if (!mounted) return
+                if (error) throw error
+                if (data) setSelectedDiagnosticsEvent(data)
+            } catch (e) {
+                if (!mounted) return
+                console.error('Failed to load crash event:', e)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [activeTab, isUserAdmin, selectedCrashEventId])
+
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'user-detail' || !selectedUserId) return
+
+        let mounted = true
+        const run = async () => {
+            setUserDetailLoading(true)
+            try {
+                const [eventsRes, actionsRes, subsRes] = await Promise.all([
+                    supabase
+                        .from('ide_diagnostics_events')
+                        .select('*')
+                        .eq('user_id', selectedUserId)
+                        .order('created_at', { ascending: false })
+                        .limit(50),
+                    supabase
+                        .from('admin_actions')
+                        .select('*')
+                        .eq('target_user_id', selectedUserId)
+                        .order('created_at', { ascending: false })
+                        .limit(50),
+                    supabase
+                        .from('subscriptions')
+                        .select('*')
+                        .eq('user_id', selectedUserId)
+                        .order('created_at', { ascending: false })
+                        .limit(20),
+                ])
+
+                if (!mounted) return
+                if (eventsRes.error) throw eventsRes.error
+                if (actionsRes.error) throw actionsRes.error
+                if (subsRes.error) {
+                    setUserDetailSubscriptions([])
+                } else {
+                    setUserDetailSubscriptions(subsRes.data || [])
+                }
+
+                setUserDetailEvents(eventsRes.data || [])
+                setUserDetailActions(actionsRes.data || [])
+            } catch (e) {
+                if (!mounted) return
+                console.error('Failed to load user detail:', e)
+                toast.error('Failed to load user detail: ' + e.message)
+                setUserDetailEvents([])
+                setUserDetailActions([])
+                setUserDetailSubscriptions([])
+            } finally {
+                if (mounted) setUserDetailLoading(false)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [activeTab, isUserAdmin, selectedUserId, toast])
+
+    useEffect(() => {
+        if (!isUserAdmin || activeTab !== 'overview') return
+
+        let mounted = true
+        const run = async () => {
+            setOverviewLoading(true)
+            try {
+                const [platformRes, systemRes, ideRes, revenueRes] = await Promise.all([
+                    getPlatformUsageStats().catch((e) => ({ error: e })),
+                    getSystemHealthMetrics().catch((e) => ({ error: e })),
+                    getIDESyncStatus().catch((e) => ({ error: e })),
+                    getRevenueAnalyticsEnhanced().catch((e) => ({ error: e })),
+                ])
+
+                if (!mounted) return
+
+                if (!platformRes?.error) setPlatformUsageStats(platformRes || null)
+                if (!systemRes?.error) setSystemHealth(systemRes || null)
+                if (!ideRes?.error) setIdeSyncStatus(ideRes || null)
+                if (!revenueRes?.error) setRevenueAnalyticsEnhanced(revenueRes || null)
+
+                const { data, error } = await supabase
+                    .from('ide_diagnostics_events')
+                    .select('*')
+                    .eq('event_type', 'crash')
+                    .order('created_at', { ascending: false })
+                    .limit(10)
+
+                if (!mounted) return
+                if (error) throw error
+                setOverviewRecentCrashes(data || [])
+            } catch (e) {
+                if (!mounted) return
+                console.error('Failed to load overview:', e)
+                toast.error('Failed to load overview: ' + e.message)
+                setOverviewRecentCrashes([])
+            } finally {
+                if (mounted) setOverviewLoading(false)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [activeTab, isUserAdmin, toast])
+
     // Check admin access with enterprise-grade verification
     useEffect(() => {
         const checkAdmin = async () => {
             const hasAccess = await checkAdminAccess(navigate)
             setIsUserAdmin(hasAccess)
+            if (hasAccess) {
+                try {
+                    const allowOverride = Boolean(import.meta?.env?.DEV)
+                    let override = ''
+
+                    if (allowOverride) {
+                        try {
+                            const query = new URLSearchParams(window.location.search || '')
+                            override = query.get('adminRole') || ''
+                        } catch {
+                            override = ''
+                        }
+
+                        if (!override) {
+                            try {
+                                override = String(window.localStorage?.getItem('adminRoleOverride') || '')
+                            } catch {
+                                override = ''
+                            }
+                        }
+                    }
+
+                    override = String(override || '').trim().toLowerCase()
+                    if (allowOverride && override && ['support', 'billing', 'super'].includes(override)) {
+                        setAdminRole(override)
+                    } else {
+                        const { data } = await supabase.rpc('get_admin_role')
+                        setAdminRole(data || 'super')
+                    }
+                } catch {
+                    setAdminRole('super')
+                }
+            }
             setLoading(false)
             if (!hasAccess) {
                 toast.error('Access denied. Admin privileges required.')
@@ -122,7 +470,7 @@ function AdminPage({ session, navigate }) {
 
     // Load audit log
     useEffect(() => {
-        if (!isUserAdmin || activeTab !== 'audit') return
+        if (!isUserAdmin || (activeTab !== 'audit' && activeTab !== 'security')) return
         const loadAudit = async () => {
             try {
                 const data = await adminActionsApi.getActions(50)
@@ -133,6 +481,72 @@ function AdminPage({ session, navigate }) {
         }
         loadAudit()
     }, [isUserAdmin, activeTab])
+
+    useEffect(() => {
+        if (!isUserAdmin || (activeTab !== 'diagnostics' && activeTab !== 'crash-recovery' && activeTab !== 'release')) return
+
+        let mounted = true
+        const run = async () => {
+            setDiagnosticsLoading(true)
+            try {
+                let query = supabase
+                    .from('ide_diagnostics_events')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(200)
+
+                if (diagnosticsTypeFilter) {
+                    query = query.eq('event_type', diagnosticsTypeFilter)
+                }
+                if (diagnosticsKindFilter) {
+                    query = query.eq('kind', diagnosticsKindFilter)
+                }
+                if (diagnosticsAppVersionFilter) {
+                    query = query.eq('app_version', diagnosticsAppVersionFilter)
+                }
+                if (diagnosticsQuery) {
+                    const q = diagnosticsQuery.trim()
+                    if (q) {
+                        query = query.or(
+                            `message.ilike.%${q}%,platform.ilike.%${q}%,app_version.ilike.%${q}%,kind.ilike.%${q}%,source.ilike.%${q}%`
+                        )
+                    }
+                }
+
+                const { data, error } = await query
+                if (error) throw error
+                if (!mounted) return
+                setDiagnosticsEvents(data || [])
+            } catch (e) {
+                if (!mounted) return
+                console.error('Failed to load diagnostics events:', e)
+                toast.error('Failed to load diagnostics events: ' + e.message)
+                setDiagnosticsEvents([])
+            } finally {
+                if (mounted) setDiagnosticsLoading(false)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [
+        activeTab,
+        diagnosticsAppVersionFilter,
+        diagnosticsKindFilter,
+        diagnosticsQuery,
+        diagnosticsTypeFilter,
+        isUserAdmin,
+        toast,
+    ])
+
+    useEffect(() => {
+        if (activeTab === 'crash-recovery') {
+            setDiagnosticsTypeFilter('crash')
+        }
+        setSelectedDiagnosticsEvent(null)
+    }, [activeTab])
 
     // Load user usage when viewing usage tab
     useEffect(() => {
@@ -196,7 +610,7 @@ function AdminPage({ session, navigate }) {
 
     // Load inbox when viewing inbox tab
     useEffect(() => {
-        if (!isUserAdmin || activeTab !== 'inbox') return
+        if (!isUserAdmin || (activeTab !== 'inbox' && activeTab !== 'security')) return
         const loadInbox = async () => {
             setInboxLoading(true)
             try {
@@ -211,14 +625,13 @@ function AdminPage({ session, navigate }) {
             } catch (e) {
                 console.error('Failed to load inbox:', e)
                 toast.error('Failed to load inbox: ' + e.message)
-            } finally {
                 setInboxLoading(false)
             }
         }
         loadInbox()
-    }, [isUserAdmin, activeTab, toast])
+    }, [isUserAdmin, activeTab])
 
-    const handleResendInboxMessage = async (requestId) => {
+    const handleResendInbox = async (requestId) => {
         try {
             const nowIso = new Date().toISOString()
             const currentUserId = session?.user?.id || null
@@ -238,7 +651,9 @@ function AdminPage({ session, navigate }) {
             if (error) throw error
 
             setInboxMessages((prev) =>
-                prev.map((m) => (m.request_id === requestId ? { ...m, resend_count: nextResendCount, resent_at: nowIso, resent_by: currentUserId } : m))
+                prev.map((m) =>
+                    m.request_id === requestId ? { ...m, resend_count: nextResendCount, resent_at: nowIso, resent_by: currentUserId } : m
+                )
             )
 
             await adminActionsApi.logAction('inbox_resend', null, { request_id: requestId })
@@ -274,6 +689,108 @@ function AdminPage({ session, navigate }) {
         } catch (e) {
             console.error('Failed to update inbox status:', e)
             toast.error('Failed to update inbox status: ' + e.message)
+        }
+    }
+
+    const loadSecurityData = async (activeOnly) => {
+        const [{ data: blocklistData, error: blocklistError }, { data: eventsData, error: eventsError }] = await Promise.all([
+            supabase.rpc('admin_blocklist_list', { active_only: Boolean(activeOnly) }),
+            supabase.rpc('admin_security_events_recent', { limit_val: 50 }),
+        ])
+
+        if (blocklistError) throw blocklistError
+        if (eventsError) throw eventsError
+
+        setSecurityBlocklist(blocklistData || [])
+        setSecurityEvents(eventsData || [])
+    }
+
+    useEffect(() => {
+        if (!isUserAdmin) return
+        if (activeTab !== 'security') return
+        if (!canAccessRole('super')) return
+
+        let mounted = true
+        const run = async () => {
+            setSecurityLoading(true)
+            try {
+                await loadSecurityData(securityActiveOnly)
+            } catch (e) {
+                console.error('Failed to load security data:', e)
+                if (mounted) {
+                    setSecurityBlocklist([])
+                    setSecurityEvents([])
+                }
+            } finally {
+                if (mounted) setSecurityLoading(false)
+            }
+        }
+
+        run()
+        return () => {
+            mounted = false
+        }
+    }, [activeTab, isUserAdmin, securityActiveOnly, adminRole])
+
+    const addBlocklistEntry = async () => {
+        if (!canAccessRole('super')) {
+            toast.error('Access denied')
+            return
+        }
+
+        const emailVal = String(securityNewEmail || '').trim()
+        const ipVal = String(securityNewIp || '').trim()
+        const userIdVal = String(securityNewUserId || '').trim()
+        const reasonVal = String(securityNewReason || '').trim()
+        const targets = [emailVal ? 1 : 0, ipVal ? 1 : 0, userIdVal ? 1 : 0].reduce((a, b) => a + b, 0)
+
+        if (targets !== 1) {
+            toast.error('Provide exactly one of: email, ip, user_id')
+            return
+        }
+
+        setSecurityLoading(true)
+        try {
+            const { error } = await supabase.rpc('admin_blocklist_add', {
+                email_val: emailVal || null,
+                ip_address_val: ipVal || null,
+                user_id_val: userIdVal || null,
+                reason_val: reasonVal || null,
+            })
+            if (error) throw error
+
+            setSecurityNewEmail('')
+            setSecurityNewIp('')
+            setSecurityNewUserId('')
+            setSecurityNewReason('')
+            await loadSecurityData(securityActiveOnly)
+            toast.success('Blocklist updated')
+        } catch (e) {
+            console.error('Failed to add blocklist entry:', e)
+            toast.error('Failed to add blocklist entry: ' + e.message)
+        } finally {
+            setSecurityLoading(false)
+        }
+    }
+
+    const deactivateBlocklistEntry = async (blockId) => {
+        if (!canAccessRole('super')) {
+            toast.error('Access denied')
+            return
+        }
+        if (!blockId) return
+
+        setSecurityLoading(true)
+        try {
+            const { error } = await supabase.rpc('admin_blocklist_deactivate', { block_id_val: blockId })
+            if (error) throw error
+            await loadSecurityData(securityActiveOnly)
+            toast.success('Block removed')
+        } catch (e) {
+            console.error('Failed to deactivate blocklist entry:', e)
+            toast.error('Failed to deactivate blocklist entry: ' + e.message)
+        } finally {
+            setSecurityLoading(false)
         }
     }
 
@@ -479,6 +996,35 @@ function AdminPage({ session, navigate }) {
         return match?.users?.email || null
     }
 
+    const navigateToUserDetail = (userId) => {
+        if (!userId) return
+        const url = `/admin?tab=user-detail&user=${encodeURIComponent(String(userId))}`
+        if (navigate) {
+            navigate(url)
+        } else {
+            window.history.pushState({}, '', url)
+            window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+    }
+
+    const resolveUserFromSearch = (raw) => {
+        const q = String(raw || '').trim().toLowerCase()
+        if (!q) return null
+
+        const byId = users.find((u) => {
+            const user = u?.users || {}
+            const id = String(u?.user_id || user?.id || '').toLowerCase()
+            return id === q || (q.length >= 8 && id.startsWith(q))
+        })
+        if (byId) return byId
+
+        const byEmail = users.find((u) => {
+            const email = String(u?.users?.email || '').toLowerCase()
+            return email && (email === q || email.includes(q))
+        })
+        return byEmail || null
+    }
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
@@ -492,2014 +1038,2608 @@ function AdminPage({ session, navigate }) {
     }
 
     return (
-        <>
-            <section className="aboutHero">
-                <div className="container aboutHero__inner">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1 }}>
-                            <p className="aboutHero__kicker">Admin Panel</p>
-                            <h1 className="aboutHero__title">Platform Administration</h1>
-                            <p className="aboutHero__subtitle">
-                                Manage users, licenses, feature flags, and monitor platform usage.
-                            </p>
+        <SidebarProvider
+            defaultOpen={sidebarDefaultOpen}
+            className="dark min-h-svh w-full bg-background text-foreground antialiased"
+            style={{
+                "--sidebar-width": "20rem",
+                "--sidebar-width-mobile": "20rem",
+            }}
+        >
+            <Sidebar variant="sidebar">
+                <SidebarHeader>
+                    <div className="px-2 py-2 text-sm font-semibold tracking-tight">Admin</div>
+                </SidebarHeader>
+                <SidebarContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'overview'} onClick={() => navigateAdminTab('overview')}>
+                                <BarChart3 className="h-4 w-4" />
+                                <span>Overview</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        {canAccessRole('support') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'users'} onClick={() => navigateAdminTab('users')}>
+                                    <Users className="h-4 w-4" />
+                                    <span>Users</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        {canAccessRole('billing') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'licenses'} onClick={() => navigateAdminTab('licenses')}>
+                                    <KeyRound className="h-4 w-4" />
+                                    <span>Licenses</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        {canAccessRole('billing') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'subscriptions'} onClick={() => navigateAdminTab('subscriptions')}>
+                                    <CreditCard className="h-4 w-4" />
+                                    <span>Subscriptions</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        {canAccessRole('support') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'inbox'} onClick={() => navigateAdminTab('inbox')}>
+                                    <Inbox className="h-4 w-4" />
+                                    <span>Inbox</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'features'} onClick={() => navigateAdminTab('features')}>
+                                <Flag className="h-4 w-4" />
+                                <span>Feature flags</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'usage'} onClick={() => navigateAdminTab('usage')}>
+                                <BarChart3 className="h-4 w-4" />
+                                <span>Usage</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'audit'} onClick={() => navigateAdminTab('audit')}>
+                                <Shield className="h-4 w-4" />
+                                <span>Audit</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        {canAccessRole('super') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'security'} onClick={() => navigateAdminTab('security')}>
+                                    <Shield className="h-4 w-4" />
+                                    <span>Security</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        {canAccessRole('super') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'release'} onClick={() => navigateAdminTab('release')}>
+                                    <TrendingUp className="h-4 w-4" />
+                                    <span>Release</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        {canAccessRole('billing') && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton isActive={activeTab === 'analytics'} onClick={() => navigateAdminTab('analytics')}>
+                                    <TrendingUp className="h-4 w-4" />
+                                    <span>Analytics</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'gpu-usage'} onClick={() => navigateAdminTab('gpu-usage')}>
+                                <Cpu className="h-4 w-4" />
+                                <span>GPU usage</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'activity'} onClick={() => navigateAdminTab('activity')}>
+                                <Activity className="h-4 w-4" />
+                                <span>Activity</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'diagnostics'} onClick={() => navigateAdminTab('diagnostics')}>
+                                <Bug className="h-4 w-4" />
+                                <span>Diagnostics</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'crash-recovery'} onClick={() => navigateAdminTab('crash-recovery')}>
+                                <Bug className="h-4 w-4" />
+                                <span>Crash recovery</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'platform-analytics'} onClick={() => navigateAdminTab('platform-analytics')}>
+                                <TrendingUp className="h-4 w-4" />
+                                <span>Platform analytics</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'user-analytics'} onClick={() => navigateAdminTab('user-analytics')}>
+                                <Users className="h-4 w-4" />
+                                <span>User analytics</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'feature-adoption'} onClick={() => navigateAdminTab('feature-adoption')}>
+                                <Flag className="h-4 w-4" />
+                                <span>Feature adoption</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'system-health'} onClick={() => navigateAdminTab('system-health')}>
+                                <Shield className="h-4 w-4" />
+                                <span>System health</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'ide-sync'} onClick={() => navigateAdminTab('ide-sync')}>
+                                <Activity className="h-4 w-4" />
+                                <span>IDE sync status</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton isActive={activeTab === 'revenue'} onClick={() => navigateAdminTab('revenue')}>
+                                <CreditCard className="h-4 w-4" />
+                                <span>Revenue</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarContent>
+            </Sidebar>
+
+            <SidebarInset className="min-w-0 flex-1 w-auto min-h-0 md:min-h-0">
+                <div className="flex items-center justify-between gap-3 border-b p-2 sm:p-4">
+                    <div className="flex items-center gap-2">
+                        <SidebarTrigger />
+                        <div className="leading-tight">
+                            <div className="text-sm font-semibold tracking-tight">Admin Panel</div>
+                            <div className="text-xs text-muted-foreground">Platform administration</div>
                         </div>
-                        <button
-                            className="button button--outline"
-                            onClick={handleLogout}
-                            style={{ marginTop: '8px', flexShrink: 0 }}
+                    </div>
+
+                    <div className="flex w-full max-w-md items-center gap-2">
+                        <input
+                            type="text"
+                            value={adminSearchQuery}
+                            onChange={(e) => setAdminSearchQuery(e.target.value)}
+                            placeholder="Search user (email or user_id)…"
+                            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                        />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                const match = resolveUserFromSearch(adminSearchQuery)
+                                const user = match?.users || {}
+                                const id = match?.user_id || user?.id
+                                if (!id) {
+                                    toast.error('User not found')
+                                    return
+                                }
+                                setAdminSearchQuery('')
+                                navigateToUserDetail(id)
+                            }}
                         >
-                            Logout
-                        </button>
+                            Go
+                        </Button>
                     </div>
                 </div>
-            </section>
 
-            <section className="aboutSection">
-                <div className="container">
-                    {/* Platform Stats */}
-                    {platformStats && (
-                        <div className="unifyGrid" style={{ marginBottom: '32px' }}>
-                            <article className="unifyCard">
-                                <div className="unifyCard__kicker">Total Users</div>
-                                <p className="unifyCard__body" style={{ fontSize: '32px', fontWeight: '700', marginTop: '8px', color: 'rgba(255,255,255,0.95)' }}>
-                                    {platformStats.total_users}
-                                </p>
-                            </article>
-                            <article className="unifyCard">
-                                <div className="unifyCard__kicker">Total Projects</div>
-                                <p className="unifyCard__body" style={{ fontSize: '32px', fontWeight: '700', marginTop: '8px', color: 'rgba(255,255,255,0.95)' }}>
-                                    {platformStats.total_projects}
-                                </p>
-                            </article>
-                            <article className="unifyCard">
-                                <div className="unifyCard__kicker">Total Downloads</div>
-                                <p className="unifyCard__body" style={{ fontSize: '32px', fontWeight: '700', marginTop: '8px', color: 'rgba(255,255,255,0.95)' }}>
-                                    {platformStats.total_downloads}
-                                </p>
-                            </article>
-                            <article className="unifyCard">
-                                <div className="unifyCard__kicker">Total Exports</div>
-                                <p className="unifyCard__body" style={{ fontSize: '32px', fontWeight: '700', marginTop: '8px', color: 'rgba(255,255,255,0.95)' }}>
-                                    {platformStats.total_exports}
-                                </p>
-                            </article>
-                        </div>
-                    )}
-
-                    {/* Tabs */}
-                    <div className="adminTabs">
-                        <button
-                            className={`adminTab ${activeTab === 'users' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('users')}
-                        >
-                            Users
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'licenses' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('licenses')}
-                        >
-                            Licenses
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'subscriptions' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('subscriptions')}
-                        >
-                            Subscriptions
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'inbox' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('inbox')}
-                        >
-                            Inbox
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'features' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('features')}
-                        >
-                            Feature Flags
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'usage' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('usage')}
-                        >
-                            Usage Overview
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'audit' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('audit')}
-                        >
-                            Audit Log
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'analytics' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('analytics')}
-                        >
-                            Analytics
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'gpu-usage' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('gpu-usage')}
-                        >
-                            GPU Usage
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'activity' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('activity')}
-                        >
-                            Activity
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'platform-analytics' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('platform-analytics')}
-                        >
-                            Platform Analytics
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'user-analytics' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('user-analytics')}
-                        >
-                            User Analytics
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'feature-adoption' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('feature-adoption')}
-                        >
-                            Feature Adoption
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'system-health' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('system-health')}
-                        >
-                            System Health
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'ide-sync' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('ide-sync')}
-                        >
-                            IDE Sync Status
-                        </button>
-                        <button
-                            className={`adminTab ${activeTab === 'revenue' ? 'adminTab--active' : ''}`}
-                            onClick={() => setActiveTab('revenue')}
-                        >
-                            Revenue
-                        </button>
-                    </div>
-
-                    {/* Users Tab */}
-                    {activeTab === 'users' && (
-                        <div className="adminContent">
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>Email</div>
-                                    <div>License</div>
-                                    <div>Status</div>
-                                    <div>Expires</div>
-                                    <div>Actions</div>
-                                </div>
-                                {users.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No users found. If this is a new environment, create a test account and log in once to populate user metadata.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                    </div>
-                                ) : (
-                                    users.map((item) => {
-                                        const user = item.users || {}
-                                        const license = item
-                                        return (
-                                            <div key={user?.id || item.user_id} className="dashTable__row">
-                                                <div>{user?.email || `User ${item.user_id?.substring(0, 8)}`}</div>
-                                                <div>{license.license_type || 'free'}</div>
-                                                <div>
-                                                    <span className={`dashStatus dashStatus--${license.is_active ? 'active' : 'archived'}`}>
-                                                        {license.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                                <div>{formatDate(license.expires_at)}</div>
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleToggleUser(item.user_id || user?.id, license.is_active)}
-                                                    >
-                                                        {license.is_active ? 'Deactivate' : 'Activate'}
-                                                    </button>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleForceLogout(item.user_id || user?.id)}
-                                                    >
-                                                        Force Logout
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
+                <div
+                    className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4"
+                    style={{ scrollbarGutter: "stable" }}
+                >
+                    <div className="w-full space-y-4">
+                        {activeTab === 'overview' && platformStats && (
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardDescription>Total users</CardDescription>
+                                        <CardTitle className="text-2xl">{platformStats.total_users}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent />
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardDescription>Total projects</CardDescription>
+                                        <CardTitle className="text-2xl">{platformStats.total_projects}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent />
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardDescription>Total downloads</CardDescription>
+                                        <CardTitle className="text-2xl">{platformStats.total_downloads}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent />
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardDescription>Total exports</CardDescription>
+                                        <CardTitle className="text-2xl">{platformStats.total_exports}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent />
+                                </Card>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Licenses Tab */}
-                    {activeTab === 'licenses' && (
-                        <div className="adminContent">
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>Email</div>
-                                    <div>License Type</div>
-                                    <div>Status</div>
-                                    <div>Expires</div>
-                                    <div>Offline</div>
-                                    <div>Actions</div>
-                                </div>
-                                {users.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No licenses found. Licenses are created when a user activates the desktop app or when an admin assigns a plan.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                    </div>
-                                ) : (
-                                    users.map((item) => {
-                                        const user = item.users || {}
-                                        const license = item
-                                        return (
-                                            <div key={user?.id || item.user_id} className="dashTable__row">
-                                                <div>{user?.email || `User ${item.user_id?.substring(0, 8)}`}</div>
-                                                <div>{license.license_type || 'free'}</div>
-                                                <div>
-                                                    <span className={`dashStatus dashStatus--${license.is_active ? 'active' : 'archived'}`}>
-                                                        {license.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                                <div>{formatDate(license.expires_at)}</div>
-                                                <div>
-                                                    <span className={`dashStatus dashStatus--${license.offline_enabled ? 'active' : 'archived'}`}>
-                                                        {license.offline_enabled ? 'Yes' : 'No'}
-                                                    </span>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <select
-                                                        onChange={(e) => handleAssignLicense(item.user_id || user?.id, e.target.value)}
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto', background: '#202224', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', borderRadius: '6px' }}
-                                                        defaultValue=""
-                                                    >
-                                                        <option value="">Assign Plan</option>
-                                                        <option value="free">Free</option>
-                                                        <option value="data_pro">Data Pro</option>
-                                                        <option value="train_pro">Train Pro</option>
-                                                        <option value="deploy_pro">Deploy Pro</option>
-                                                        <option value="enterprise">Enterprise</option>
-                                                    </select>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleUpdateExpiry(item.user_id || user?.id)}
-                                                    >
-                                                        Set Expiry
-                                                    </button>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleToggleOffline(item.user_id || user?.id, license.offline_enabled)}
-                                                    >
-                                                        {license.offline_enabled ? 'Disable Offline' : 'Enable Offline'}
-                                                    </button>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleRegenerateToken(item.user_id || user?.id)}
-                                                    >
-                                                        Regenerate Token
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
+                        {activeTab === 'user-detail' && (
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>User detail</CardTitle>
+                                        <CardDescription>Account 360 view</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {!selectedUserId ? (
+                                            <div className="text-sm text-muted-foreground">Search and select a user to view details.</div>
+                                        ) : (
+                                            (() => {
+                                                const record = users.find((u) => {
+                                                    const user = u?.users || {}
+                                                    return String(u?.user_id || user?.id || '') === String(selectedUserId)
+                                                })
+                                                const user = record?.users || {}
+                                                const license = record || {}
+                                                const isActive = Boolean(license?.is_active)
+
+                                                return (
+                                                    <div className="space-y-4">
+                                                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                            <Card>
+                                                                <CardHeader className="pb-2">
+                                                                    <CardDescription>Email</CardDescription>
+                                                                    <CardTitle className="text-base">{user.email || '—'}</CardTitle>
+                                                                </CardHeader>
+                                                            </Card>
+                                                            <Card>
+                                                                <CardHeader className="pb-2">
+                                                                    <CardDescription>User id</CardDescription>
+                                                                    <CardTitle className="text-base">{String(selectedUserId).substring(0, 12)}…</CardTitle>
+                                                                </CardHeader>
+                                                            </Card>
+                                                            <Card>
+                                                                <CardHeader className="pb-2">
+                                                                    <CardDescription>License</CardDescription>
+                                                                    <CardTitle className="text-base">{license.license_type || 'free'}</CardTitle>
+                                                                </CardHeader>
+                                                            </Card>
+                                                            <Card>
+                                                                <CardHeader className="pb-2">
+                                                                    <CardDescription>Expires</CardDescription>
+                                                                    <CardTitle className="text-base">{formatDate(license.expires_at)}</CardTitle>
+                                                                </CardHeader>
+                                                            </Card>
+                                                        </div>
+
+                                                        <Card>
+                                                            <CardHeader>
+                                                                <CardTitle>Quick actions</CardTitle>
+                                                                <CardDescription>Administrative actions for this user</CardDescription>
+                                                            </CardHeader>
+                                                            <CardContent className="space-y-3">
+                                                                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                                                                    <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                                                                        <select
+                                                                            value={userDetailLicenseType}
+                                                                            onChange={(e) => setUserDetailLicenseType(e.target.value)}
+                                                                            className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:max-w-xs"
+                                                                        >
+                                                                            <option value="">Assign license…</option>
+                                                                            <option value="free">free</option>
+                                                                            <option value="data_pro">data_pro</option>
+                                                                            <option value="train_pro">train_pro</option>
+                                                                            <option value="deploy_pro">deploy_pro</option>
+                                                                            <option value="enterprise">enterprise</option>
+                                                                        </select>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={!userDetailLicenseType}
+                                                                            onClick={() => {
+                                                                                handleAssignLicense(selectedUserId, userDetailLicenseType)
+                                                                                setUserDetailLicenseType('')
+                                                                            }}
+                                                                        >
+                                                                            Apply
+                                                                        </Button>
+                                                                    </div>
+
+                                                                    <div className="flex flex-wrap items-center justify-start gap-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleToggleUser(selectedUserId, isActive)}
+                                                                        >
+                                                                            {isActive ? 'Deactivate' : 'Activate'}
+                                                                        </Button>
+                                                                        <Button variant="outline" size="sm" onClick={() => handleForceLogout(selectedUserId)}>
+                                                                            Force logout
+                                                                        </Button>
+                                                                        <Button variant="outline" size="sm" onClick={() => handleUpdateExpiry(selectedUserId)}>
+                                                                            Update expiry
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleToggleOffline(selectedUserId, Boolean(license?.offline_enabled))}
+                                                                        >
+                                                                            {license?.offline_enabled ? 'Disable offline' : 'Enable offline'}
+                                                                        </Button>
+                                                                        <Button variant="outline" size="sm" onClick={() => handleRegenerateToken(selectedUserId)}>
+                                                                            Regenerate token
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </CardContent>
+                                                        </Card>
+
+                                                        {userDetailLoading ? (
+                                                            <div className="py-10 text-center">
+                                                                <LoadingSpinner />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="grid gap-4 lg:grid-cols-2">
+                                                                <Card>
+                                                                    <CardHeader>
+                                                                        <CardTitle>Recent IDE events</CardTitle>
+                                                                        <CardDescription>From ide_diagnostics_events</CardDescription>
+                                                                    </CardHeader>
+                                                                    <CardContent>
+                                                                        {userDetailEvents.length === 0 ? (
+                                                                            <div className="text-sm text-muted-foreground">No events found.</div>
+                                                                        ) : (
+                                                                            <div className="overflow-auto rounded-md border">
+                                                                                <table className="w-full text-sm">
+                                                                                    <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                                                        <tr className="border-b">
+                                                                                            <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Type</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Kind</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">App</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Message</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        {userDetailEvents.slice(0, 20).map((evt) => (
+                                                                                            <tr key={String(evt.id)} className="border-b last:border-b-0">
+                                                                                                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(evt.created_at)}</td>
+                                                                                                <td className="px-3 py-2">{evt.event_type || '—'}</td>
+                                                                                                <td className="px-3 py-2">{evt.kind || '—'}</td>
+                                                                                                <td className="px-3 py-2">{evt.app_version || '—'}</td>
+                                                                                                <td className="px-3 py-2 max-w-[420px] truncate">{evt.message || '—'}</td>
+                                                                                            </tr>
+                                                                                        ))}
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        )}
+                                                                    </CardContent>
+                                                                </Card>
+
+                                                                <Card>
+                                                                    <CardHeader>
+                                                                        <CardTitle>Recent admin actions</CardTitle>
+                                                                        <CardDescription>From admin_actions</CardDescription>
+                                                                    </CardHeader>
+                                                                    <CardContent>
+                                                                        {userDetailActions.length === 0 ? (
+                                                                            <div className="text-sm text-muted-foreground">No admin actions for this user.</div>
+                                                                        ) : (
+                                                                            <div className="overflow-auto rounded-md border">
+                                                                                <table className="w-full text-sm">
+                                                                                    <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                                                        <tr className="border-b">
+                                                                                            <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Admin</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Action</th>
+                                                                                            <th className="px-3 py-2 text-left font-medium">Details</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        {userDetailActions.slice(0, 20).map((action) => (
+                                                                                            <tr key={String(action.action_id)} className="border-b last:border-b-0">
+                                                                                                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(action.created_at)}</td>
+                                                                                                <td className="px-3 py-2">{getUserEmailById(action.admin_user_id) || 'N/A'}</td>
+                                                                                                <td className="px-3 py-2">{String(action.action_type || '').replace(/_/g, ' ')}</td>
+                                                                                                <td className="px-3 py-2 max-w-[420px] truncate">{action.details ? JSON.stringify(action.details) : '—'}</td>
+                                                                                            </tr>
+                                                                                        ))}
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        )}
+                                                                    </CardContent>
+                                                                </Card>
+                                                            </div>
+                                                        )}
+
+                                                        <Card>
+                                                            <CardHeader>
+                                                                <CardTitle>Subscriptions</CardTitle>
+                                                                <CardDescription>Latest records</CardDescription>
+                                                            </CardHeader>
+                                                            <CardContent>
+                                                                {userDetailSubscriptions.length === 0 ? (
+                                                                    <div className="text-sm text-muted-foreground">No subscription records found for this user.</div>
+                                                                ) : (
+                                                                    <div className="overflow-auto rounded-md border">
+                                                                        <table className="w-full text-sm">
+                                                                            <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                                                <tr className="border-b">
+                                                                                    <th className="px-3 py-2 text-left font-medium">Created</th>
+                                                                                    <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                                                    <th className="px-3 py-2 text-left font-medium">Plan</th>
+                                                                                    <th className="px-3 py-2 text-left font-medium">Period end</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {userDetailSubscriptions.slice(0, 10).map((sub) => (
+                                                                                    <tr key={String(sub.subscription_id || sub.id)} className="border-b last:border-b-0">
+                                                                                        <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(sub.created_at)}</td>
+                                                                                        <td className="px-3 py-2">{sub.status || '—'}</td>
+                                                                                        <td className="px-3 py-2">{sub.plan_type || sub.plan || '—'}</td>
+                                                                                        <td className="px-3 py-2 whitespace-nowrap">{formatDate(sub.current_period_end || sub.period_end)}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                )}
+                                                            </CardContent>
+                                                        </Card>
+                                                    </div>
+                                                )
+                                            })()
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Subscriptions Tab */}
-                    {activeTab === 'subscriptions' && (
-                        <div className="adminContent">
-                            <h3 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Active Subscriptions</h3>
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>User</div>
-                                    <div>Plan</div>
-                                    <div>Status</div>
-                                    <div>Period Start</div>
-                                    <div>Period End</div>
-                                    <div>Razorpay ID</div>
+                        {activeTab === 'overview' && (
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Control Tower</CardTitle>
+                                        <CardDescription>Platform health, revenue, and recent issues</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {overviewLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : (
+                                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardDescription>Crash events (latest 10)</CardDescription>
+                                                        <CardTitle className="text-2xl">{overviewRecentCrashes.length}</CardTitle>
+                                                    </CardHeader>
+                                                </Card>
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardDescription>Sync success rate</CardDescription>
+                                                        <CardTitle className="text-2xl">
+                                                            {systemHealth?.syncHealth?.successRate != null ? `${systemHealth.syncHealth.successRate}%` : '—'}
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                </Card>
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardDescription>MRR</CardDescription>
+                                                        <CardTitle className="text-2xl">
+                                                            {revenueAnalyticsEnhanced?.mrr != null
+                                                                ? `₹${parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}`
+                                                                : '—'}
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                </Card>
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardDescription>Active IDE sessions</CardDescription>
+                                                        <CardTitle className="text-2xl">{systemHealth?.activeSessions ?? '—'}</CardTitle>
+                                                    </CardHeader>
+                                                </Card>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <div className="grid gap-4 lg:grid-cols-2">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Expiring licenses</CardTitle>
+                                            <CardDescription>Next 14 days</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {(() => {
+                                                const now = Date.now()
+                                                const fourteenDays = 14 * 24 * 60 * 60 * 1000
+                                                const expiring = (users || [])
+                                                    .map((item) => {
+                                                        const user = item.users || {}
+                                                        const expiresAt = item.expires_at || null
+                                                        return { userId: item.user_id || user.id, email: user.email, expiresAt }
+                                                    })
+                                                    .filter((u) => u.expiresAt && new Date(u.expiresAt).getTime() - now <= fourteenDays)
+                                                    .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime())
+                                                    .slice(0, 10)
+
+                                                if (expiring.length === 0) {
+                                                    return <div className="text-sm text-muted-foreground">No expiring licenses found.</div>
+                                                }
+
+                                                return (
+                                                    <div className="divide-y rounded-md border">
+                                                        {expiring.map((u) => (
+                                                            <div key={String(u.userId)} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                <div className="min-w-0">
+                                                                    <div className="truncate font-medium">{u.email || String(u.userId || '').substring(0, 8) + '…'}</div>
+                                                                    <div className="text-xs text-muted-foreground">{String(u.userId || '').substring(0, 8)}…</div>
+                                                                </div>
+                                                                <div className="text-right text-sm">{formatDate(u.expiresAt)}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )
+                                            })()}
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Recent crashes</CardTitle>
+                                            <CardDescription>Latest events</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {overviewRecentCrashes.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground">No crash events found.</div>
+                                            ) : (
+                                                <div className="divide-y rounded-md border">
+                                                    {overviewRecentCrashes.map((evt) => (
+                                                        <div key={String(evt.id)} className="px-3 py-3 text-sm">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <div className="font-medium">{evt.kind || 'crash'}</div>
+                                                                <div className="text-xs text-muted-foreground">{formatDateTime(evt.created_at)}</div>
+                                                            </div>
+                                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                                {(evt.user_id || '').substring(0, 8)}… · {evt.platform || '—'} · {evt.app_version || '—'}
+                                                            </div>
+                                                            <div className="mt-1 max-w-[720px] truncate text-sm text-muted-foreground">{evt.message || '—'}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
                                 </div>
-                                {subscriptions.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No subscriptions found. This is expected for a new install before anyone purchases a plan.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                    </div>
-                                ) : (
-                                    subscriptions.map((sub) => (
-                                        <div key={sub.subscription_id} className="dashTable__row">
-                                            <div>{users.find(u => u.user_id === sub.user_id)?.users?.email || `User ${sub.user_id?.substring(0, 8)}`}</div>
-                                            <div>{sub.plan_type.replace('_', ' ')}</div>
-                                            <div>
-                                                <span className={`dashStatus dashStatus--${sub.status === 'active' ? 'active' : 'archived'}`}>
-                                                    {sub.status}
-                                                </span>
+
+                                <div className="grid gap-4 lg:grid-cols-2">
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                <div>
+                                                    <CardTitle>Blocklist</CardTitle>
+                                                    <CardDescription>Block email, IP, or user_id (super only)</CardDescription>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setSecurityActiveOnly((p) => !p)}
+                                                >
+                                                    {securityActiveOnly ? 'Showing active' : 'Showing all'}
+                                                </Button>
                                             </div>
-                                            <div>{formatDate(sub.current_period_start)}</div>
-                                            <div>{formatDate(sub.current_period_end)}</div>
-                                            <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
-                                                {sub.razorpay_subscription_id ? sub.razorpay_subscription_id.substring(0, 20) + '...' : '—'}
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={securityNewEmail}
+                                                    onChange={(e) => setSecurityNewEmail(e.target.value)}
+                                                    placeholder="Email (optional)"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={securityNewIp}
+                                                    onChange={(e) => setSecurityNewIp(e.target.value)}
+                                                    placeholder="IP address (optional)"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
                                             </div>
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={securityNewUserId}
+                                                    onChange={(e) => setSecurityNewUserId(e.target.value)}
+                                                    placeholder="User ID (optional)"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={securityNewReason}
+                                                    onChange={(e) => setSecurityNewReason(e.target.value)}
+                                                    placeholder="Reason"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={addBlocklistEntry} disabled={securityLoading}>
+                                                    Add
+                                                </Button>
+                                            </div>
+
+                                            {securityLoading ? (
+                                                <div className="py-6 text-center">
+                                                    <LoadingSpinner />
+                                                </div>
+                                            ) : securityBlocklist.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground">No blocklist entries.</div>
+                                            ) : (
+                                                <div className="overflow-auto rounded-md border">
+                                                    <table className="w-full text-sm">
+                                                        <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                            <tr className="border-b">
+                                                                <th className="px-3 py-2 text-left font-medium">Target</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Reason</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Active</th>
+                                                                <th className="px-3 py-2 text-right font-medium">Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {securityBlocklist.slice(0, 30).map((row) => {
+                                                                const target = row.email || row.ip_address || row.user_id || '—'
+                                                                return (
+                                                                    <tr key={String(row.block_id)} className="border-b last:border-b-0">
+                                                                        <td className="px-3 py-2">{String(target)}</td>
+                                                                        <td className="px-3 py-2 max-w-[360px] truncate">{row.reason || '—'}</td>
+                                                                        <td className="px-3 py-2">{row.is_active ? 'yes' : 'no'}</td>
+                                                                        <td className="px-3 py-2 text-right">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                disabled={!row.is_active || securityLoading}
+                                                                                onClick={() => deactivateBlocklistEntry(row.block_id)}
+                                                                            >
+                                                                                Deactivate
+                                                                            </Button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Security events</CardTitle>
+                                            <CardDescription>Latest admin security events</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {securityLoading ? (
+                                                <div className="py-6 text-center">
+                                                    <LoadingSpinner />
+                                                </div>
+                                            ) : securityEvents.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground">No events.</div>
+                                            ) : (
+                                                <div className="overflow-auto rounded-md border">
+                                                    <table className="w-full text-sm">
+                                                        <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                            <tr className="border-b">
+                                                                <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Type</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Severity</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Target</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {securityEvents.slice(0, 30).map((evt) => {
+                                                                const target = evt.email || evt.ip_address || evt.user_id || '—'
+                                                                return (
+                                                                    <tr key={String(evt.event_id)} className="border-b last:border-b-0">
+                                                                        <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(evt.created_at)}</td>
+                                                                        <td className="px-3 py-2">{evt.event_type || '—'}</td>
+                                                                        <td className="px-3 py-2">{evt.severity || 'info'}</td>
+                                                                        <td className="px-3 py-2">{String(target)}</td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Diagnostics Tab */}
+                        {activeTab === 'diagnostics' && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <CardTitle>Diagnostics</CardTitle>
+                                            <CardDescription>IDE diagnostics events (latest 200)</CardDescription>
                                         </div>
-                                    ))
-                                )}
-                            </div>
-
-                            <h3 style={{ marginTop: '48px', marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Recent Payments</h3>
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>Date</div>
-                                    <div>User</div>
-                                    <div>Amount</div>
-                                    <div>Status</div>
-                                    <div>Payment ID</div>
-                                </div>
-                                {billingHistory.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No payments found. Once a subscription is created, payments will appear here as invoices settle.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setDiagnosticsQuery('')
+                                                setDiagnosticsTypeFilter('')
+                                                setDiagnosticsKindFilter('')
+                                                setDiagnosticsAppVersionFilter('')
+                                            }}
+                                        >
+                                            Reset
+                                        </Button>
                                     </div>
-                                ) : (
-                                    billingHistory.map((payment) => (
-                                        <div key={payment.billing_id} className="dashTable__row">
-                                            <div>{formatDate(payment.created_at)}</div>
-                                            <div>{payment.user_id?.substring(0, 8)}</div>
-                                            <div>₹{(payment.amount / 100).toFixed(2)}</div>
-                                            <div>
-                                                <span className={`dashStatus dashStatus--${payment.status === 'paid' ? 'active' : 'archived'}`}>
-                                                    {payment.status}
-                                                </span>
-                                            </div>
-                                            <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>
-                                                {payment.razorpay_payment_id ? payment.razorpay_payment_id.substring(0, 20) + '...' : '—'}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Inbox Tab */}
-                    {activeTab === 'inbox' && (
-                        <div className="adminContent">
-                            <h3 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: '600' }}>Inbox</h3>
-                            {inboxLoading ? (
-                                <div style={{ padding: '24px' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Time</div>
-                                        <div>Type</div>
-                                        <div>Email</div>
-                                        <div>Company</div>
-                                        <div>Status</div>
-                                        <div>Resends</div>
-                                        <div>Actions</div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                        <input
+                                            type="text"
+                                            value={diagnosticsQuery}
+                                            onChange={(e) => setDiagnosticsQuery(e.target.value)}
+                                            placeholder="Search message/platform/user/app_version…"
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                        />
+                                        <select
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                            value={diagnosticsTypeFilter}
+                                            onChange={(e) => setDiagnosticsTypeFilter(e.target.value)}
+                                        >
+                                            <option value="">All types</option>
+                                            <option value="crash">crash</option>
+                                            <option value="perf">perf</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={diagnosticsKindFilter}
+                                            onChange={(e) => setDiagnosticsKindFilter(e.target.value)}
+                                            placeholder="Filter kind"
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={diagnosticsAppVersionFilter}
+                                            onChange={(e) => setDiagnosticsAppVersionFilter(e.target.value)}
+                                            placeholder="Filter app_version"
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                        />
                                     </div>
-                                    {inboxMessages.length === 0 ? (
-                                        <div className="dashTable__row dashTable__row--empty">
-                                            <div className="dashMuted">No messages found. Access requests (e.g., air-gapped/offline licensing) will show up here.</div>
-                                            <div />
-                                            <div />
-                                            <div />
-                                            <div />
-                                            <div />
-                                            <div />
+
+                                    {diagnosticsLoading ? (
+                                        <div className="py-10 text-center">
+                                            <LoadingSpinner />
                                         </div>
                                     ) : (
-                                        inboxMessages.map((msg) => (
-                                            <div key={msg.request_id} className="dashTable__row">
-                                                <div>{formatDateTime(msg.created_at)}</div>
-                                                <div>{(msg.request_type || '').replace(/_/g, ' ')}</div>
-                                                <div>{msg.email}</div>
-                                                <div>{msg.company || '—'}</div>
+                                        <div className="overflow-auto rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                    <tr className="border-b">
+                                                        <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                        <th className="px-3 py-2 text-left font-medium">User</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Type</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Kind</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Platform</th>
+                                                        <th className="px-3 py-2 text-left font-medium">App</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Message</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {diagnosticsEvents.length === 0 ? (
+                                                        <tr>
+                                                            <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={7}>
+                                                                No diagnostics events found.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        diagnosticsEvents.map((evt) => (
+                                                            <tr key={String(evt.id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(evt.created_at)}</td>
+                                                                <td className="px-3 py-2 whitespace-nowrap">{(evt.user_id || '').substring(0, 8)}…</td>
+                                                                <td className="px-3 py-2">{evt.event_type || '—'}</td>
+                                                                <td className="px-3 py-2">{evt.kind || '—'}</td>
+                                                                <td className="px-3 py-2">{evt.platform || '—'}</td>
+                                                                <td className="px-3 py-2">{evt.app_version || '—'}</td>
+                                                                <td className="px-3 py-2 max-w-[520px] truncate">{evt.message || '—'}</td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {activeTab === 'crash-recovery' && (
+                            <div className="grid gap-4 lg:grid-cols-2">
+                                <div className="space-y-4">
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                 <div>
-                                                    <span className={`dashStatus dashStatus--${msg.status === 'handled' ? 'active' : 'archived'}`}>
-                                                        {msg.status || 'new'}
-                                                    </span>
+                                                    <CardTitle>Crash Recovery</CardTitle>
+                                                    <CardDescription>Crash and perf events from ide_diagnostics_events (latest 200)</CardDescription>
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)' }}>{msg.resend_count || 0}</div>
-                                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
-                                                        {msg.resent_at ? `Last: ${formatDateTime(msg.resent_at)}` : '—'}
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setDiagnosticsQuery('')
+                                                        setDiagnosticsTypeFilter('crash')
+                                                        setDiagnosticsKindFilter('')
+                                                        setDiagnosticsAppVersionFilter('')
+                                                    }}
+                                                >
+                                                    Reset
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={diagnosticsQuery}
+                                                    onChange={(e) => setDiagnosticsQuery(e.target.value)}
+                                                    placeholder="Search message/platform/app_version/kind…"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={diagnosticsAppVersionFilter}
+                                                    onChange={(e) => setDiagnosticsAppVersionFilter(e.target.value)}
+                                                    placeholder="Filter app_version"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={diagnosticsKindFilter}
+                                                    onChange={(e) => setDiagnosticsKindFilter(e.target.value)}
+                                                    placeholder="Filter kind (main/renderer/renderer-gone…)"
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                />
+                                                <select
+                                                    className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                    value={diagnosticsTypeFilter}
+                                                    onChange={(e) => setDiagnosticsTypeFilter(e.target.value)}
+                                                >
+                                                    <option value="crash">crash</option>
+                                                    <option value="perf">perf</option>
+                                                </select>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle>Distribution: app_version</CardTitle>
+                                                <CardDescription>Top versions by event count</CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {(() => {
+                                                    const filtered = (diagnosticsEvents || []).filter((e) => !diagnosticsTypeFilter || e?.event_type === diagnosticsTypeFilter)
+                                                    const byApp = filtered.reduce((acc, evt) => {
+                                                        const key = String(evt?.app_version || 'unknown')
+                                                        acc[key] = (acc[key] || 0) + 1
+                                                        return acc
+                                                    }, {})
+                                                    const rows = Object.entries(byApp)
+                                                        .sort((a, b) => b[1] - a[1])
+                                                        .slice(0, 8)
+
+                                                    if (rows.length === 0) {
+                                                        return <div className="text-sm text-muted-foreground">No events.</div>
+                                                    }
+
+                                                    return (
+                                                        <div className="divide-y rounded-md border">
+                                                            {rows.map(([app, count]) => (
+                                                                <div key={app} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                    <div className="font-medium">{app}</div>
+                                                                    <div className="text-muted-foreground">{count}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle>Distribution: platform</CardTitle>
+                                                <CardDescription>Top platforms by event count</CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {(() => {
+                                                    const filtered = (diagnosticsEvents || []).filter((e) => !diagnosticsTypeFilter || e?.event_type === diagnosticsTypeFilter)
+                                                    const byPlatform = filtered.reduce((acc, evt) => {
+                                                        const key = String(evt?.platform || 'unknown')
+                                                        acc[key] = (acc[key] || 0) + 1
+                                                        return acc
+                                                    }, {})
+                                                    const rows = Object.entries(byPlatform)
+                                                        .sort((a, b) => b[1] - a[1])
+                                                        .slice(0, 8)
+
+                                                    if (rows.length === 0) {
+                                                        return <div className="text-sm text-muted-foreground">No events.</div>
+                                                    }
+
+                                                    return (
+                                                        <div className="divide-y rounded-md border">
+                                                            {rows.map(([platform, count]) => (
+                                                                <div key={platform} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                    <div className="font-medium">{platform}</div>
+                                                                    <div className="text-muted-foreground">{count}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Top crash signatures</CardTitle>
+                                            <CardDescription>Grouped by kind + source + message</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {(() => {
+                                                const filtered = (diagnosticsEvents || []).filter((e) => !diagnosticsTypeFilter || e?.event_type === diagnosticsTypeFilter)
+                                                const groups = filtered.reduce((acc, evt) => {
+                                                    const kind = String(evt?.kind || '')
+                                                    const source = String(evt?.source || '')
+                                                    const message = String(evt?.message || '')
+                                                    const key = `${kind}::${source}::${message}`
+                                                    const existing = acc[key]
+                                                    if (!existing) {
+                                                        acc[key] = {
+                                                            key,
+                                                            kind,
+                                                            source,
+                                                            message,
+                                                            count: 1,
+                                                            lastAt: evt?.created_at,
+                                                            sample: evt,
+                                                        }
+                                                    } else {
+                                                        existing.count += 1
+                                                        if (evt?.created_at && (!existing.lastAt || new Date(evt.created_at) > new Date(existing.lastAt))) {
+                                                            existing.lastAt = evt.created_at
+                                                            existing.sample = evt
+                                                        }
+                                                    }
+                                                    return acc
+                                                }, {})
+
+                                                const rows = Object.values(groups)
+                                                    .sort((a, b) => b.count - a.count)
+                                                    .slice(0, 8)
+
+                                                if (rows.length === 0) {
+                                                    return <div className="text-sm text-muted-foreground">No signatures.</div>
+                                                }
+
+                                                return (
+                                                    <div className="divide-y rounded-md border">
+                                                        {rows.map((sig) => (
+                                                            <button
+                                                                key={sig.key}
+                                                                type="button"
+                                                                className="w-full px-3 py-3 text-left text-sm hover:bg-muted/30"
+                                                                onClick={() => setSelectedDiagnosticsEvent(sig.sample)}
+                                                            >
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <div className="min-w-0">
+                                                                        <div className="font-medium">
+                                                                            {sig.kind || '—'}{sig.source ? ` · ${sig.source}` : ''}
+                                                                        </div>
+                                                                        <div className="mt-1 max-w-[520px] truncate text-xs text-muted-foreground">{sig.message || '—'}</div>
+                                                                    </div>
+                                                                    <div className="shrink-0 text-right">
+                                                                        <div className="font-medium">{sig.count}</div>
+                                                                        <div className="text-xs text-muted-foreground">{formatDateTime(sig.lastAt)}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )
+                                            })()}
+                                        </CardContent>
+                                    </Card>
+
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Event list</CardTitle>
+                                            <CardDescription>Click any row to view details</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {diagnosticsLoading ? (
+                                                <div className="py-10 text-center">
+                                                    <LoadingSpinner />
+                                                </div>
+                                            ) : (
+                                                <div className="overflow-auto rounded-md border">
+                                                    <table className="w-full text-sm">
+                                                        <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                            <tr className="border-b">
+                                                                <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                                <th className="px-3 py-2 text-left font-medium">User</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Kind</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Platform</th>
+                                                                <th className="px-3 py-2 text-left font-medium">App</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Message</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {diagnosticsEvents.length === 0 ? (
+                                                                <tr>
+                                                                    <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>
+                                                                        No events found.
+                                                                    </td>
+                                                                </tr>
+                                                            ) : (
+                                                                diagnosticsEvents
+                                                                    .filter((e) => !diagnosticsTypeFilter || e?.event_type === diagnosticsTypeFilter)
+                                                                    .map((evt) => (
+                                                                        <tr
+                                                                            key={String(evt.id)}
+                                                                            className="cursor-pointer border-b hover:bg-muted/30 last:border-b-0"
+                                                                            onClick={() => setSelectedDiagnosticsEvent(evt)}
+                                                                        >
+                                                                            <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(evt.created_at)}</td>
+                                                                            <td className="px-3 py-2 whitespace-nowrap">{(evt.user_id || '').substring(0, 8)}…</td>
+                                                                            <td className="px-3 py-2">{evt.kind || '—'}</td>
+                                                                            <td className="px-3 py-2">{evt.platform || '—'}</td>
+                                                                            <td className="px-3 py-2">{evt.app_version || '—'}</td>
+                                                                            <td className="px-3 py-2 max-w-[520px] truncate">{evt.message || '—'}</td>
+                                                                        </tr>
+                                                                    ))
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>Event Details</CardTitle>
+                                                <CardDescription>Message, stack trace, and payload</CardDescription>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!selectedDiagnosticsEvent}
+                                                    onClick={() => {
+                                                        navigator.clipboard?.writeText?.(String(selectedDiagnosticsEvent?.id || ''))
+                                                        toast.success('Copied event id')
+                                                    }}
+                                                >
+                                                    Copy ID
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!selectedDiagnosticsEvent}
+                                                    onClick={() => {
+                                                        navigator.clipboard?.writeText?.(String(selectedDiagnosticsEvent?.message || ''))
+                                                        toast.success('Copied message')
+                                                    }}
+                                                >
+                                                    Copy message
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!selectedDiagnosticsEvent}
+                                                    onClick={() => {
+                                                        navigator.clipboard?.writeText?.(String(selectedDiagnosticsEvent?.stack || ''))
+                                                        toast.success('Copied stack')
+                                                    }}
+                                                >
+                                                    Copy stack
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={!selectedDiagnosticsEvent}
+                                                    onClick={() => {
+                                                        const text = selectedDiagnosticsEvent ? JSON.stringify(selectedDiagnosticsEvent, null, 2) : ''
+                                                        navigator.clipboard?.writeText?.(text)
+                                                        toast.success('Copied event JSON')
+                                                    }}
+                                                >
+                                                    Copy JSON
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {!selectedDiagnosticsEvent ? (
+                                            <div className="text-sm text-muted-foreground">Select an event from the list to view details.</div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                    <div className="rounded-md border p-3">
+                                                        <div className="text-xs font-medium text-muted-foreground">Time</div>
+                                                        <div className="mt-1 text-sm">{formatDateTime(selectedDiagnosticsEvent.created_at)}</div>
+                                                    </div>
+                                                    <div className="rounded-md border p-3">
+                                                        <div className="text-xs font-medium text-muted-foreground">User</div>
+                                                        <div className="mt-1 text-sm">{(selectedDiagnosticsEvent.user_id || '').substring(0, 8)}…</div>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleResendInboxMessage(msg.request_id)}
-                                                    >
-                                                        Resend
-                                                    </button>
-                                                    <button
-                                                        className="button button--outline"
-                                                        style={{ fontSize: '12px', padding: '4px 8px', height: 'auto' }}
-                                                        onClick={() => handleMarkInboxHandled(msg.request_id, msg.status !== 'handled')}
-                                                    >
-                                                        {msg.status === 'handled' ? 'Mark New' : 'Mark Handled'}
-                                                    </button>
+
+                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                    <div className="rounded-md border p-3">
+                                                        <div className="text-xs font-medium text-muted-foreground">Kind</div>
+                                                        <div className="mt-1 text-sm">{selectedDiagnosticsEvent.kind || '—'}</div>
+                                                    </div>
+                                                    <div className="rounded-md border p-3">
+                                                        <div className="text-xs font-medium text-muted-foreground">Source</div>
+                                                        <div className="mt-1 text-sm">{selectedDiagnosticsEvent.source || '—'}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-md border p-3">
+                                                    <div className="text-xs font-medium text-muted-foreground">Message</div>
+                                                    <div className="mt-1 text-sm whitespace-pre-wrap">{selectedDiagnosticsEvent.message || '—'}</div>
+                                                </div>
+
+                                                <div className="rounded-md border p-3">
+                                                    <div className="text-xs font-medium text-muted-foreground">Stack</div>
+                                                    <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap text-xs">{selectedDiagnosticsEvent.stack || '—'}</pre>
+                                                </div>
+
+                                                <div className="rounded-md border p-3">
+                                                    <div className="text-xs font-medium text-muted-foreground">Payload</div>
+                                                    <pre className="mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap text-xs">{selectedDiagnosticsEvent.payload ? JSON.stringify(selectedDiagnosticsEvent.payload, null, 2) : '—'}</pre>
                                                 </div>
                                             </div>
-                                        ))
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Users Tab */}
+                        {activeTab === 'users' && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <CardTitle>Users</CardTitle>
+                                            <CardDescription>Manage accounts and access</CardDescription>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">Total: {users.length}</div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-auto rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                <tr className="border-b">
+                                                    <th className="px-3 py-2 text-left font-medium">Email</th>
+                                                    <th className="px-3 py-2 text-left font-medium">License</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Expires</th>
+                                                    <th className="px-3 py-2 text-right font-medium">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {users.length === 0 ? (
+                                                    <tr>
+                                                        <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={5}>
+                                                            No users found. If this is a new environment, create a test account and log in once to populate user metadata.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    users.map((item) => {
+                                                        const user = item.users || {}
+                                                        const license = item
+                                                        return (
+                                                            <tr key={String(user?.id || item.user_id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">{user?.email || `User ${item.user_id?.substring(0, 8)}`}</td>
+                                                                <td className="px-3 py-2">{license.license_type || 'free'}</td>
+                                                                <td className="px-3 py-2">{license.is_active ? 'Active' : 'Inactive'}</td>
+                                                                <td className="px-3 py-2">{formatDate(license.expires_at)}</td>
+                                                                <td className="px-3 py-2 text-right">
+                                                                    <div className="inline-flex flex-wrap justify-end gap-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => navigateToUserDetail(item.user_id || user?.id)}
+                                                                        >
+                                                                            View
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleToggleUser(item.user_id || user?.id, license.is_active)}
+                                                                        >
+                                                                            {license.is_active ? 'Deactivate' : 'Activate'}
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleForceLogout(item.user_id || user?.id)}
+                                                                        >
+                                                                            Force Logout
+                                                                        </Button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Licenses Tab */}
+                        {activeTab === 'licenses' && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <CardTitle>Licenses</CardTitle>
+                                            <CardDescription>Assign plans, expiry, offline flags and tokens</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-auto rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                <tr className="border-b">
+                                                    <th className="px-3 py-2 text-left font-medium">Email</th>
+                                                    <th className="px-3 py-2 text-left font-medium">License</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Expires</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Offline</th>
+                                                    <th className="px-3 py-2 text-right font-medium">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {users.length === 0 ? (
+                                                    <tr>
+                                                        <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>
+                                                            No licenses found. Licenses are created when a user activates the desktop app or when an admin assigns a plan.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    users.map((item) => {
+                                                        const user = item.users || {}
+                                                        const license = item
+                                                        return (
+                                                            <tr key={String(user?.id || item.user_id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">{user?.email || `User ${item.user_id?.substring(0, 8)}`}</td>
+                                                                <td className="px-3 py-2">{license.license_type || 'free'}</td>
+                                                                <td className="px-3 py-2">{license.is_active ? 'Active' : 'Inactive'}</td>
+                                                                <td className="px-3 py-2">{formatDate(license.expires_at)}</td>
+                                                                <td className="px-3 py-2">{license.offline_enabled ? 'Yes' : 'No'}</td>
+                                                                <td className="px-3 py-2 text-right">
+                                                                    <div className="inline-flex flex-wrap justify-end gap-2">
+                                                                        <select
+                                                                            onChange={(e) => handleAssignLicense(item.user_id || user?.id, e.target.value)}
+                                                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                                                            defaultValue=""
+                                                                        >
+                                                                            <option value="">Assign Plan</option>
+                                                                            <option value="free">Free</option>
+                                                                            <option value="data_pro">Data Pro</option>
+                                                                            <option value="train_pro">Train Pro</option>
+                                                                            <option value="deploy_pro">Deploy Pro</option>
+                                                                            <option value="enterprise">Enterprise</option>
+                                                                        </select>
+                                                                        <Button variant="outline" size="sm" onClick={() => handleUpdateExpiry(item.user_id || user?.id)}>
+                                                                            Set Expiry
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => handleToggleOffline(item.user_id || user?.id, license.offline_enabled)}
+                                                                        >
+                                                                            {license.offline_enabled ? 'Disable Offline' : 'Enable Offline'}
+                                                                        </Button>
+                                                                        <Button variant="outline" size="sm" onClick={() => handleRegenerateToken(item.user_id || user?.id)}>
+                                                                            Regenerate Token
+                                                                        </Button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Subscriptions Tab */}
+                        {activeTab === 'subscriptions' && (
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Subscriptions</CardTitle>
+                                        <CardDescription>Active subscriptions</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-auto rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                    <tr className="border-b">
+                                                        <th className="px-3 py-2 text-left font-medium">User</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Plan</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Period Start</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Period End</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Razorpay</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {subscriptions.length === 0 ? (
+                                                        <tr>
+                                                            <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>
+                                                                No subscriptions found. This is expected for a new install before anyone purchases a plan.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        subscriptions.map((sub) => (
+                                                            <tr key={String(sub.subscription_id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">
+                                                                    {users.find((u) => u.user_id === sub.user_id)?.users?.email || `User ${sub.user_id?.substring(0, 8)}`}
+                                                                </td>
+                                                                <td className="px-3 py-2">{String(sub.plan_type || '').replace('_', ' ')}</td>
+                                                                <td className="px-3 py-2">{sub.status || '—'}</td>
+                                                                <td className="px-3 py-2">{formatDate(sub.current_period_start)}</td>
+                                                                <td className="px-3 py-2">{formatDate(sub.current_period_end)}</td>
+                                                                <td className="px-3 py-2 font-mono text-xs">
+                                                                    {sub.razorpay_subscription_id ? String(sub.razorpay_subscription_id).substring(0, 20) + '…' : '—'}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Recent payments</CardTitle>
+                                        <CardDescription>Latest 50 billing events</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="overflow-auto rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                    <tr className="border-b">
+                                                        <th className="px-3 py-2 text-left font-medium">Date</th>
+                                                        <th className="px-3 py-2 text-left font-medium">User</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Amount</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Payment ID</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {billingHistory.length === 0 ? (
+                                                        <tr>
+                                                            <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={5}>
+                                                                No payments found. Once a subscription is created, payments will appear here as invoices settle.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        billingHistory.map((payment) => (
+                                                            <tr key={String(payment.billing_id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">{formatDate(payment.created_at)}</td>
+                                                                <td className="px-3 py-2">{payment.user_id?.substring(0, 8)}</td>
+                                                                <td className="px-3 py-2">₹{(Number(payment.amount || 0) / 100).toFixed(2)}</td>
+                                                                <td className="px-3 py-2">{payment.status || '—'}</td>
+                                                                <td className="px-3 py-2 font-mono text-xs">
+                                                                    {payment.razorpay_payment_id ? String(payment.razorpay_payment_id).substring(0, 20) + '…' : '—'}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Inbox Tab */}
+                        {activeTab === 'inbox' && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <CardTitle>Inbox</CardTitle>
+                                            <CardDescription>Access requests and follow-ups</CardDescription>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">Total: {inboxMessages.length}</div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="grid gap-2 sm:grid-cols-3">
+                                        <select
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                            value={inboxStatusFilter}
+                                            onChange={(e) => setInboxStatusFilter(e.target.value)}
+                                        >
+                                            <option value="">All statuses</option>
+                                            <option value="new">new</option>
+                                            <option value="investigating">investigating</option>
+                                            <option value="resolved">resolved</option>
+                                        </select>
+                                        <select
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                            value={inboxTagFilter}
+                                            onChange={(e) => setInboxTagFilter(e.target.value)}
+                                        >
+                                            <option value="">All tags</option>
+                                            <option value="billing">billing</option>
+                                            <option value="license">license</option>
+                                            <option value="crash">crash</option>
+                                            <option value="perf">perf</option>
+                                            <option value="bug">bug</option>
+                                            <option value="other">other</option>
+                                        </select>
+                                        <select
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                            value={inboxAssignedFilter}
+                                            onChange={(e) => setInboxAssignedFilter(e.target.value)}
+                                        >
+                                            <option value="">All assignments</option>
+                                            <option value="me">Assigned to me</option>
+                                            <option value="unassigned">Unassigned</option>
+                                        </select>
+                                    </div>
+
+                                    {inboxLoading ? (
+                                        <div className="py-10 text-center">
+                                            <LoadingSpinner />
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-auto rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                    <tr className="border-b">
+                                                        <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Type</th>
+                                                        <th className="px-3 py-2 text-left font-medium">User</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Tag</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Crash</th>
+                                                        <th className="px-3 py-2 text-left font-medium">Message</th>
+                                                        <th className="px-3 py-2 text-right font-medium">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {inboxMessages.length === 0 ? (
+                                                        <tr>
+                                                            <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={8}>
+                                                                No messages found. Access requests (e.g., air-gapped/offline licensing) will show up here.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        inboxMessages
+                                                            .filter((msg) => {
+                                                                if (inboxStatusFilter && String(msg.status || '').toLowerCase() !== inboxStatusFilter) return false
+                                                                if (inboxTagFilter && String(msg.tag || '').toLowerCase() !== inboxTagFilter) return false
+                                                                if (inboxAssignedFilter === 'unassigned') {
+                                                                    if (msg.assigned_to) return false
+                                                                }
+                                                                if (inboxAssignedFilter === 'me') {
+                                                                    if (!session?.user?.id) return false
+                                                                    if (String(msg.assigned_to || '') !== String(session.user.id)) return false
+                                                                }
+                                                                return true
+                                                            })
+                                                            .map((msg) => (
+                                                                <tr key={String(msg.request_id)} className="border-b last:border-b-0">
+                                                                    <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(msg.created_at)}</td>
+                                                                    <td className="px-3 py-2">{String(msg.request_type || '').replace(/_/g, ' ')}</td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap">
+                                                                        {msg.linked_user_id ? String(msg.linked_user_id).substring(0, 8) + '…' : String(msg.user_id || '').substring(0, 8) + '…'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2">
+                                                                        <select
+                                                                            value={msg.status || 'new'}
+                                                                            onChange={(e) => updateInboxRequest(msg.request_id, { status: e.target.value })}
+                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                        >
+                                                                            <option value="new">new</option>
+                                                                            <option value="investigating">investigating</option>
+                                                                            <option value="resolved">resolved</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td className="px-3 py-2">
+                                                                        <select
+                                                                            value={msg.tag || ''}
+                                                                            onChange={(e) => updateInboxRequest(msg.request_id, { tag: e.target.value })}
+                                                                            className="h-8 rounded-md border bg-background px-2 text-xs"
+                                                                        >
+                                                                            <option value="">—</option>
+                                                                            <option value="billing">billing</option>
+                                                                            <option value="license">license</option>
+                                                                            <option value="crash">crash</option>
+                                                                            <option value="perf">perf</option>
+                                                                            <option value="bug">bug</option>
+                                                                            <option value="other">other</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap">
+                                                                        {msg.crash_event_id ? String(msg.crash_event_id).substring(0, 8) + '…' : '—'}
+                                                                    </td>
+                                                                    <td className="px-3 py-2 max-w-[520px] truncate">{msg.message || msg.details || '—'}</td>
+                                                                    <td className="px-3 py-2 text-right">
+                                                                        <div className="inline-flex flex-wrap justify-end gap-2">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => {
+                                                                                    const uid = msg.linked_user_id || msg.user_id
+                                                                                    if (uid) navigateToUserDetail(uid)
+                                                                                }}
+                                                                            >
+                                                                                User
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                disabled={!msg.crash_event_id}
+                                                                                onClick={() => {
+                                                                                    if (msg.crash_event_id) navigateToCrashEvent(msg.crash_event_id)
+                                                                                }}
+                                                                            >
+                                                                                Crash
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => {
+                                                                                    const current = msg.assigned_to || null
+                                                                                    const me = session?.user?.id || null
+                                                                                    const next = current ? null : me
+                                                                                    updateInboxRequest(msg.request_id, { assigned_to: next })
+                                                                                }}
+                                                                            >
+                                                                                {msg.assigned_to ? 'Unassign' : 'Assign to me'}
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleResendInboxMessage(msg.request_id)}
+                                                                            >
+                                                                                Resend
+                                                                            </Button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     )}
-                                </div>
-                            )}
+                                </CardContent>
+                            </Card>
+                        )}
 
-                            {inboxMessages.length > 0 && (
-                                <div style={{ marginTop: '16px', color: 'rgba(255,255,255,0.65)', fontSize: '12px' }}>
-                                    Tip: Open “Resend” to track follow-ups in the inbox. For full email sending integration, we can wire this to an email provider.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Feature Flags Tab */}
-                    {activeTab === 'features' && (
-                        <div className="adminContent">
-                            <div className="unifyGrid">
-                                {featureFlags.map((flag) => (
-                                    <article key={flag.flag_id} className="unifyCard">
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '16px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div className="unifyCard__kicker">{flag.flag_name}</div>
-                                                <p className="unifyCard__body">{flag.description}</p>
-                                                <div style={{ marginTop: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
-                                                    Category: {flag.category.replace(/_/g, ' ')}
-                                                </div>
+                        {/* Feature Flags Tab */}
+                        {activeTab === 'features' && (
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>Feature flags</CardTitle>
+                                                <CardDescription>Toggle flags for experiments and rollouts</CardDescription>
                                             </div>
-                                            <button
-                                                className={`button ${flag.enabled ? 'button--primary' : 'button--outline'}`}
-                                                onClick={() => handleToggleFeature(flag.flag_key, flag.enabled)}
-                                                style={{ minWidth: '100px', flexShrink: 0 }}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleEmergencyDisable}
                                             >
-                                                {flag.enabled ? 'Enabled' : 'Disabled'}
-                                            </button>
+                                                Emergency Disable All
+                                            </Button>
                                         </div>
-                                    </article>
-                                ))}
+                                    </CardHeader>
+                                    <CardContent>
+                                        {featureFlags.length === 0 ? (
+                                            <div className="text-sm text-muted-foreground">No feature flags found.</div>
+                                        ) : (
+                                            <div className="grid gap-3 md:grid-cols-2">
+                                                {featureFlags.map((flag) => (
+                                                    <Card key={String(flag.flag_id)}>
+                                                        <CardHeader className="pb-2">
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="min-w-0">
+                                                                    <CardTitle className="text-base">{flag.flag_name}</CardTitle>
+                                                                    <CardDescription className="mt-1">
+                                                                        {flag.description}
+                                                                    </CardDescription>
+                                                                </div>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleToggleFeature(flag.flag_key, flag.enabled)}
+                                                                >
+                                                                    {flag.enabled ? 'Enabled' : 'Disabled'}
+                                                                </Button>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent className="pt-0">
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Category: {String(flag.category || '').replace(/_/g, ' ')}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
-                            <div style={{ marginTop: '24px' }}>
-                                <button
-                                    className="button button--outline"
-                                    onClick={handleEmergencyDisable}
-                                    style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: 'rgba(239, 68, 68, 0.9)' }}
-                                >
-                                    Emergency Disable All
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Usage Overview Tab */}
-                    {activeTab === 'usage' && (
-                        <div className="adminContent">
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>Email</div>
-                                    <div>Projects</div>
-                                    <div>Datasets</div>
-                                    <div>Downloads</div>
-                                    <div>Exports</div>
-                                    <div>Training Runs</div>
-                                </div>
-                                {users.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No users found. Create a test account to verify usage tracking and admin controls end-to-end.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
+                        {/* Usage Overview Tab */}
+                        {activeTab === 'usage' && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Usage overview</CardTitle>
+                                    <CardDescription>Per-user usage counters</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-auto rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                <tr className="border-b">
+                                                    <th className="px-3 py-2 text-left font-medium">Email</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Projects</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Datasets</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Downloads</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Exports</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Training Runs</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {users.length === 0 ? (
+                                                    <tr>
+                                                        <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>
+                                                            No users found. Create a test account to verify usage tracking and admin controls end-to-end.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    users.map((item) => {
+                                                        const user = item.users || {}
+                                                        const usage = userUsage[item.user_id] || {}
+                                                        return (
+                                                            <tr key={String(user?.id || item.user_id)} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">{user?.email || `User ${item.user_id?.substring(0, 8)}`}</td>
+                                                                <td className="px-3 py-2">{usage.projects_count || 0}</td>
+                                                                <td className="px-3 py-2">{usage.datasets_count || 0}</td>
+                                                                <td className="px-3 py-2">{usage.downloads_count || 0}</td>
+                                                                <td className="px-3 py-2">{usage.exports_count || 0}</td>
+                                                                <td className="px-3 py-2">{usage.training_runs || 0}</td>
+                                                            </tr>
+                                                        )
+                                                    })
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                ) : (
-                                    users.map((item) => {
-                                        const user = item.users || {}
-                                        const usage = userUsage[item.user_id] || {}
-                                        return (
-                                            <div key={user?.id || item.user_id} className="dashTable__row">
-                                                <div>{user?.email || `User ${item.user_id?.substring(0, 8)}`}</div>
-                                                <div>{usage.projects_count || 0}</div>
-                                                <div>{usage.datasets_count || 0}</div>
-                                                <div>{usage.downloads_count || 0}</div>
-                                                <div>{usage.exports_count || 0}</div>
-                                                <div>{usage.training_runs || 0}</div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </div>
-                        </div>
-                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
-                    {/* Audit Log Tab */}
-                    {activeTab === 'audit' && (
-                        <div className="adminContent">
-                            <div className="dashTable">
-                                <div className="dashTable__head">
-                                    <div>Time</div>
-                                    <div>Admin</div>
-                                    <div>Action</div>
-                                    <div>Target</div>
-                                    <div>Details</div>
-                                </div>
-                                {auditLog.length === 0 ? (
-                                    <div className="dashTable__row dashTable__row--empty">
-                                        <div className="dashMuted">No audit log entries found. Admin actions (plan assignment, user toggles, token resets) will appear here.</div>
-                                        <div />
-                                        <div />
-                                        <div />
-                                        <div />
+                        {/* Audit Log Tab */}
+                        {activeTab === 'audit' && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Audit log</CardTitle>
+                                    <CardDescription>Recent admin actions</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-auto rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                <tr className="border-b">
+                                                    <th className="px-3 py-2 text-left font-medium">Time</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Admin</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Action</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Target</th>
+                                                    <th className="px-3 py-2 text-left font-medium">Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {auditLog.length === 0 ? (
+                                                    <tr>
+                                                        <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={5}>
+                                                            No audit log entries found. Admin actions (plan assignment, user toggles, token resets) will appear here.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    auditLog.map((action) => (
+                                                        <tr key={String(action.action_id)} className="border-b last:border-b-0">
+                                                            <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(action.created_at)}</td>
+                                                            <td className="px-3 py-2">{getUserEmailById(action.admin_user_id) || 'N/A'}</td>
+                                                            <td className="px-3 py-2">{String(action.action_type || '').replace(/_/g, ' ')}</td>
+                                                            <td className="px-3 py-2">{getUserEmailById(action.target_user_id) || '—'}</td>
+                                                            <td className="px-3 py-2 max-w-[420px] truncate">
+                                                                {action.details ? JSON.stringify(action.details) : '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                ) : (
-                                    auditLog.map((action) => (
-                                        <div key={action.action_id} className="dashTable__row">
-                                            <div>{formatDateTime(action.created_at)}</div>
-                                            <div>{getUserEmailById(action.admin_user_id) || 'N/A'}</div>
-                                            <div>{action.action_type.replace(/_/g, ' ')}</div>
-                                            <div>{getUserEmailById(action.target_user_id) || '—'}</div>
-                                            <div style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {action.details ? JSON.stringify(action.details).substring(0, 50) + '...' : '—'}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
-                    {/* Analytics Tab */}
-                    {activeTab === 'analytics' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Analytics Dashboard</h2>
+                        {activeTab === 'security' && (
+                            <Suspense fallback={<div className="py-10 text-center"><LoadingSpinner /></div>}>
+                                <AdminSecurityTab
+                                    inboxMessages={inboxMessages}
+                                    inboxLoading={inboxLoading}
+                                    auditLog={auditLog}
+                                    securityActiveOnly={securityActiveOnly}
+                                    setSecurityActiveOnly={setSecurityActiveOnly}
+                                    securityNewEmail={securityNewEmail}
+                                    setSecurityNewEmail={setSecurityNewEmail}
+                                    securityNewIp={securityNewIp}
+                                    setSecurityNewIp={setSecurityNewIp}
+                                    securityNewUserId={securityNewUserId}
+                                    setSecurityNewUserId={setSecurityNewUserId}
+                                    securityNewReason={securityNewReason}
+                                    setSecurityNewReason={setSecurityNewReason}
+                                    securityLoading={securityLoading}
+                                    securityBlocklist={securityBlocklist}
+                                    securityEvents={securityEvents}
+                                    addBlocklistEntry={addBlocklistEntry}
+                                    deactivateBlocklistEntry={deactivateBlocklistEntry}
+                                    formatDateTime={formatDateTime}
+                                    getUserEmailById={getUserEmailById}
+                                    navigateToUserDetail={navigateToUserDetail}
+                                />
+                            </Suspense>
+                        )}
 
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Quick Stats */}
-                                    <div className="analytics-dashboard">
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Total Subscriptions</div>
-                                            <div className="analytics-card__value">
-                                                {subscriptions.length}
-                                            </div>
-                                            <div className="analytics-card__change">Active subscriptions</div>
-                                        </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Total Revenue</div>
-                                            <div className="analytics-card__value">
-                                                {revenueAnalytics
-                                                    ? `₹${((revenueAnalytics.reduce((sum, r) => sum + (r.paid_revenue_paise || 0), 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                                    : '₹0.00'}
-                                            </div>
-                                            <div className="analytics-card__change">All time</div>
-                                        </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Active Users</div>
-                                            <div className="analytics-card__value">
-                                                {users.filter(u => u.is_active).length}
-                                            </div>
-                                            <div className="analytics-card__change">Out of {users.length} total</div>
-                                        </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Monthly Recurring Revenue</div>
-                                            <div className="analytics-card__value">
-                                                {revenueAnalytics
-                                                    ? `₹${((revenueAnalytics.filter(r => r.month === new Date().toISOString().slice(0, 7)).reduce((sum, r) => sum + (r.paid_revenue_paise || 0), 0)) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                                    : '₹0.00'}
-                                            </div>
-                                            <div className="analytics-card__change">This month</div>
-                                        </div>
-                                    </div>
+                        {activeTab === 'release' && (
+                            <Suspense fallback={<div className="py-10 text-center"><LoadingSpinner /></div>}>
+                                <AdminReleaseTab
+                                    diagnosticsEvents={diagnosticsEvents}
+                                    diagnosticsLoading={diagnosticsLoading}
+                                    featureFlags={featureFlags}
+                                    handleToggleFeature={handleToggleFeature}
+                                />
+                            </Suspense>
+                        )}
 
-                                    {/* Subscription Analytics Chart */}
-                                    {subscriptionAnalytics && subscriptionAnalytics.length > 0 && (
-                                        <div style={{ marginTop: '32px' }}>
-                                            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
-                                                Subscription Trends
-                                            </h3>
-                                            <UsageChart
-                                                data={subscriptionAnalytics.map(a => ({
-                                                    date: a.date,
-                                                    label: new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                                                    value: a.new_subscriptions || 0,
-                                                }))}
-                                                type="bar"
-                                                title="New Subscriptions"
-                                                height={250}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Revenue Chart */}
-                                    {revenueAnalytics && revenueAnalytics.length > 0 && (
-                                        <div style={{ marginTop: '32px' }}>
-                                            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
-                                                Revenue Trends
-                                            </h3>
-                                            <UsageChart
-                                                data={revenueAnalytics.map(r => ({
-                                                    date: r.date,
-                                                    label: new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                                                    value: (r.paid_revenue_paise || 0) / 100,
-                                                }))}
-                                                type="line"
-                                                title="Daily Revenue (₹)"
-                                                height={250}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Export Buttons */}
-                                    <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
-                                        <button
-                                            className="button button--outline"
-                                            onClick={() => {
-                                                if (subscriptionAnalytics) {
-                                                    exportToCSV(subscriptionAnalytics, 'subscription-analytics.csv')
-                                                    toast.success('Subscription analytics exported')
-                                                }
-                                            }}
-                                        >
-                                            Export Subscription Analytics
-                                        </button>
-                                        <button
-                                            className="button button--outline"
-                                            onClick={() => {
-                                                if (revenueAnalytics) {
-                                                    exportToCSV(revenueAnalytics, 'revenue-analytics.csv')
-                                                    toast.success('Revenue analytics exported')
-                                                }
-                                            }}
-                                        >
-                                            Export Revenue Analytics
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {/* GPU Usage Tab */}
-                    {activeTab === 'gpu-usage' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>GPU Usage Tracking</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : gpuUsage ? (
-                                <>
-                                    {/* GPU Usage Stats */}
-                                    <div className="analytics-dashboard">
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Total GPU Hours</div>
-                                            <div className="analytics-card__value">
-                                                {gpuUsage.totals.totalHours.toFixed(2)}
+                        {activeTab === 'gpu-usage' && (
+                            <div className="space-y-4">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>GPU usage</CardTitle>
+                                                <CardDescription>Resource tracking and cost</CardDescription>
                                             </div>
-                                            <div className="analytics-card__change">All time</div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (gpuUsage?.usage) {
+                                                        exportToCSV(gpuUsage.usage, 'gpu-usage.csv')
+                                                        toast.success('GPU usage data exported')
+                                                    }
+                                                }}
+                                            >
+                                                Export CSV
+                                            </Button>
                                         </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Total Cost</div>
-                                            <div className="analytics-card__value">
-                                                ₹{gpuUsage.totals.totalCost.toFixed(2)}
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
                                             </div>
-                                            <div className="analytics-card__change">GPU costs</div>
-                                        </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Usage Sessions</div>
-                                            <div className="analytics-card__value">
-                                                {gpuUsage.totals.count}
-                                            </div>
-                                            <div className="analytics-card__change">Total sessions</div>
-                                        </div>
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Avg Cost/Session</div>
-                                            <div className="analytics-card__value">
-                                                ₹{gpuUsage.totals.count > 0 ? (gpuUsage.totals.totalCost / gpuUsage.totals.count).toFixed(2) : '0.00'}
-                                            </div>
-                                            <div className="analytics-card__change">Average</div>
-                                        </div>
-                                    </div>
-
-                                    {/* GPU Usage Table */}
-                                    <div style={{ marginTop: '32px' }}>
-                                        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
-                                            Recent GPU Usage
-                                        </h3>
-                                        <div className="dashTable">
-                                            <div className="dashTable__head">
-                                                <div>User</div>
-                                                <div>GPU Type</div>
-                                                <div>Hours</div>
-                                                <div>Cost</div>
-                                                <div>Date</div>
-                                                <div>Status</div>
-                                            </div>
-                                            {gpuUsage.usage && gpuUsage.usage.length > 0 ? (
-                                                gpuUsage.usage.slice(0, 50).map((usage) => (
-                                                    <div key={usage.usage_id} className="dashTable__row">
-                                                        <div>{usage.user_id?.substring(0, 8)}...</div>
-                                                        <div>{usage.gpu_type} x{usage.gpu_count}</div>
-                                                        <div>{parseFloat(usage.hours_used || 0).toFixed(2)}</div>
-                                                        <div>₹{parseFloat(usage.total_cost || 0).toFixed(2)}</div>
-                                                        <div>{formatDate(usage.usage_start)}</div>
-                                                        <div>
-                                                            <span className={`dashStatus dashStatus--${usage.status === 'completed' ? 'active' : 'archived'}`}>
-                                                                {usage.status}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="dashTable__row dashTable__row--empty">
-                                                    <div className="dashMuted">No GPU usage recorded yet.</div>
-                                                    <div />
-                                                    <div />
-                                                    <div />
-                                                    <div />
-                                                    <div />
+                                        ) : !gpuUsage ? (
+                                            <div className="text-sm text-muted-foreground">No GPU usage data available.</div>
+                                        ) : (
+                                            <>
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total GPU hours</CardDescription>
+                                                            <CardTitle className="text-2xl">{Number(gpuUsage.totals?.totalHours || 0).toFixed(2)}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">All time</CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total cost</CardDescription>
+                                                            <CardTitle className="text-2xl">₹{Number(gpuUsage.totals?.totalCost || 0).toFixed(2)}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">All time</CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Usage sessions</CardDescription>
+                                                            <CardTitle className="text-2xl">{Number(gpuUsage.totals?.count || 0)}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent />
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Avg cost / session</CardDescription>
+                                                            <CardTitle className="text-2xl">
+                                                                ₹{Number(gpuUsage.totals?.count || 0) > 0 ? (Number(gpuUsage.totals?.totalCost || 0) / Number(gpuUsage.totals.count)).toFixed(2) : '0.00'}
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent />
+                                                    </Card>
                                                 </div>
+
+                                                <div className="overflow-auto rounded-md border">
+                                                    <table className="w-full text-sm">
+                                                        <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                            <tr className="border-b">
+                                                                <th className="px-3 py-2 text-left font-medium">User</th>
+                                                                <th className="px-3 py-2 text-left font-medium">GPU</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Hours</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Cost</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Date</th>
+                                                                <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {gpuUsage.usage && gpuUsage.usage.length > 0 ? (
+                                                                gpuUsage.usage.slice(0, 50).map((usage) => (
+                                                                    <tr key={String(usage.usage_id)} className="border-b last:border-b-0">
+                                                                        <td className="px-3 py-2">{usage.user_id?.substring(0, 8)}…</td>
+                                                                        <td className="px-3 py-2">{usage.gpu_type} x{usage.gpu_count}</td>
+                                                                        <td className="px-3 py-2">{Number(usage.hours_used || 0).toFixed(2)}</td>
+                                                                        <td className="px-3 py-2">₹{Number(usage.total_cost || 0).toFixed(2)}</td>
+                                                                        <td className="px-3 py-2">{formatDate(usage.usage_start)}</td>
+                                                                        <td className="px-3 py-2">{usage.status || '—'}</td>
+                                                                    </tr>
+                                                                ))
+                                                            ) : (
+                                                                <tr>
+                                                                    <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>
+                                                                        No GPU usage recorded yet.
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Platform Analytics Tab */}
+                        {activeTab === 'platform-analytics' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>Platform Analytics</CardTitle>
+                                                <CardDescription>Platform-wide usage and plan distribution</CardDescription>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : !platformUsageStats ? (
+                                            <div className="text-sm text-muted-foreground">No platform statistics available.</div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total users</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalUsers}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Active subscriptions</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.activeSubscriptions}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total projects</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalProjects}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total models</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalModels}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Training runs</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalTrainingRuns}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total exports</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalExports}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total GPU hours</CardDescription>
+                                                            <CardTitle className="text-2xl">{platformUsageStats.totalGpuHours}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                </div>
+
+                                                {Object.keys(platformUsageStats.planDistribution || {}).length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Plan Distribution</CardTitle>
+                                                            <CardDescription>Users by plan</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="divide-y rounded-md border">
+                                                                {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
+                                                                    <div key={plan} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                        <div className="font-medium">
+                                                                            {plan.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                                        </div>
+                                                                        <div className="text-muted-foreground">{count} users</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* User Analytics Tab */}
+                        {activeTab === 'user-analytics' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>User Analytics</CardTitle>
+                                                <CardDescription>Per-user usage and subscription metadata</CardDescription>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => exportAdminDataToCSV(userLevelAnalytics, 'user-analytics.csv')}
+                                                disabled={userLevelAnalytics.length === 0}
+                                            >
+                                                Export CSV
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid gap-3 md:grid-cols-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Search by email..."
+                                                value={userSearchFilter}
+                                                onChange={(e) => setUserSearchFilter(e.target.value)}
+                                                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                            />
+                                            <select
+                                                value={userPlanFilter}
+                                                onChange={(e) => setUserPlanFilter(e.target.value)}
+                                                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                            >
+                                                <option value="">All Plans</option>
+                                                <option value="free">Free</option>
+                                                <option value="data_pro">Data Pro</option>
+                                                <option value="train_pro">Train Pro</option>
+                                                <option value="deploy_pro">Deploy Pro</option>
+                                                <option value="enterprise">Enterprise</option>
+                                            </select>
+                                            <select
+                                                value={userStatusFilter}
+                                                onChange={(e) => setUserStatusFilter(e.target.value)}
+                                                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                            >
+                                                <option value="">All Statuses</option>
+                                                <option value="active">Active</option>
+                                                <option value="trialing">Trialing</option>
+                                                <option value="canceled">Canceled</option>
+                                                <option value="past_due">Past Due</option>
+                                            </select>
+                                        </div>
+
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : userLevelAnalytics.length === 0 ? (
+                                            <div className="text-sm text-muted-foreground">No users found.</div>
+                                        ) : (
+                                            <div className="overflow-hidden rounded-md border">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-muted/30 text-xs text-muted-foreground">
+                                                        <tr className="border-b">
+                                                            <th className="px-3 py-2 text-left font-medium">Email</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Plan</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Status</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Projects</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Exports</th>
+                                                            <th className="px-3 py-2 text-left font-medium">GPU hours</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Training runs</th>
+                                                            <th className="px-3 py-2 text-left font-medium">Models</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {userLevelAnalytics.map((user) => (
+                                                            <tr key={user.userId} className="border-b last:border-b-0">
+                                                                <td className="px-3 py-2">{user.email}</td>
+                                                                <td className="px-3 py-2">{user.planType.replace('_', ' ')}</td>
+                                                                <td className="px-3 py-2">
+                                                                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                                                                        {user.subscriptionStatus}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-3 py-2">{user.projectsCount}</td>
+                                                                <td className="px-3 py-2">{user.exportsCount}</td>
+                                                                <td className="px-3 py-2">{user.gpuHoursUsed}</td>
+                                                                <td className="px-3 py-2">{user.trainingRunsCount}</td>
+                                                                <td className="px-3 py-2">{user.modelsCount}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Feature Adoption Tab */}
+                        {activeTab === 'feature-adoption' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>Feature Adoption</CardTitle>
+                                                <CardDescription>Usage and adoption rates across feature gates</CardDescription>
+                                            </div>
+                                            {featureAdoption && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => exportAdminDataToCSV(featureAdoption.features, 'feature-adoption.csv')}
+                                                >
+                                                    Export CSV
+                                                </Button>
                                             )}
                                         </div>
-                                    </div>
-
-                                    {/* Export Button */}
-                                    <div style={{ marginTop: '24px' }}>
-                                        <button
-                                            className="button button--outline"
-                                            onClick={() => {
-                                                if (gpuUsage.usage) {
-                                                    exportToCSV(gpuUsage.usage, 'gpu-usage.csv')
-                                                    toast.success('GPU usage data exported')
-                                                }
-                                            }}
-                                        >
-                                            Export GPU Usage Data
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No GPU usage data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Platform Analytics Tab */}
-                    {activeTab === 'platform-analytics' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : platformUsageStats ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Users</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalUsers}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Active Subscriptions</div>
-                                            <div className="stat-card__value">{platformUsageStats.activeSubscriptions}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Projects</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalProjects}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Models</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalModels}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Training Runs</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalTrainingRuns}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Exports</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalExports}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total GPU Hours</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalGpuHours}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Plan Distribution */}
-                                    {Object.keys(platformUsageStats.planDistribution || {}).length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Plan Distribution</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
-                                                    <div key={plan} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <span style={{ fontWeight: '500' }}>
-                                                            {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>{count} users</span>
-                                                    </div>
-                                                ))}
+                                    </CardHeader>
+                                    <CardContent>
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
                                             </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No platform statistics available.
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                        ) : !featureAdoption ? (
+                                            <div className="text-sm text-muted-foreground">No feature adoption data available.</div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-3 sm:grid-cols-2">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total feature checks</CardDescription>
+                                                            <CardTitle className="text-2xl">{featureAdoption.totalFeatureChecks}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Unique features</CardDescription>
+                                                            <CardTitle className="text-2xl">{featureAdoption.uniqueFeatures}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                </div>
 
-                    {/* User Analytics Tab */}
-                    {activeTab === 'user-analytics' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>User-Level Analytics</h2>
-                                <button
-                                    className="button button--outline"
-                                    onClick={() => exportAdminDataToCSV(userLevelAnalytics, 'user-analytics.csv')}
-                                    disabled={userLevelAnalytics.length === 0}
-                                >
-                                    Export CSV
-                                </button>
+                                                <Card>
+                                                    <CardHeader>
+                                                        <CardTitle>Top Features by Usage</CardTitle>
+                                                        <CardDescription>Highest adoption features</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="divide-y rounded-md border">
+                                                            {featureAdoption.features.slice(0, 20).map((feature) => (
+                                                                <div key={feature.feature} className="space-y-2 px-3 py-3">
+                                                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                                                        <div className="font-medium">
+                                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                                        </div>
+                                                                        <div className="text-muted-foreground">
+                                                                            {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
+                                                                        <div
+                                                                            className="h-full bg-primary"
+                                                                            style={{ width: `${feature.adoptionRate}%` }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {featureAdoption.mostRequested && featureAdoption.mostRequested.length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Most Requested Features (Access Denied)</CardTitle>
+                                                            <CardDescription>Denied requests</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="divide-y rounded-md border">
+                                                                {featureAdoption.mostRequested.map((feature) => (
+                                                                    <div key={feature.feature} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                        <div className="font-medium">
+                                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                                        </div>
+                                                                        <div className="text-muted-foreground">{feature.denied} denied requests</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
+                        )}
 
-                            {/* Filters */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                gap: '16px',
-                                marginBottom: '24px',
-                                padding: '16px',
-                                backgroundColor: 'var(--dr-surface-2)',
-                                borderRadius: '8px'
-                            }}>
-                                <input
-                                    type="text"
-                                    placeholder="Search by email..."
-                                    value={userSearchFilter}
-                                    onChange={(e) => setUserSearchFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                />
-                                <select
-                                    value={userPlanFilter}
-                                    onChange={(e) => setUserPlanFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="">All Plans</option>
-                                    <option value="free">Free</option>
-                                    <option value="data_pro">Data Pro</option>
-                                    <option value="train_pro">Train Pro</option>
-                                    <option value="deploy_pro">Deploy Pro</option>
-                                    <option value="enterprise">Enterprise</option>
-                                </select>
-                                <select
-                                    value={userStatusFilter}
-                                    onChange={(e) => setUserStatusFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="active">Active</option>
-                                    <option value="trialing">Trialing</option>
-                                    <option value="canceled">Canceled</option>
-                                    <option value="past_due">Past Due</option>
-                                </select>
+                        {/* System Health Tab */}
+                        {activeTab === 'system-health' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>System Health</CardTitle>
+                                        <CardDescription>Sync success, error rates, and service health</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : !systemHealth ? (
+                                            <div className="text-sm text-muted-foreground">No system health data available.</div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Sync success rate</CardDescription>
+                                                            <CardTitle className="text-2xl">{systemHealth.syncHealth.successRate}%</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">
+                                                            {systemHealth.syncHealth.successfulSyncs} / {systemHealth.syncHealth.totalSyncs}
+                                                        </CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Active IDE sessions</CardDescription>
+                                                            <CardTitle className="text-2xl">{systemHealth.activeSessions}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">Last hour</CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Access denial rate</CardDescription>
+                                                            <CardTitle className="text-2xl">{systemHealth.accessDenialRate}%</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">Last 7 days</CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>API error rate</CardDescription>
+                                                            <CardTitle className="text-2xl">{systemHealth.apiErrorRate}%</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">Last 7 days</CardContent>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Database</CardDescription>
+                                                            <CardTitle className="text-2xl">{String(systemHealth.dbHealth || '').toUpperCase()}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">Status</CardContent>
+                                                    </Card>
+                                                </div>
+
+                                                <Card>
+                                                    <CardHeader>
+                                                        <CardTitle>Sync Health Details</CardTitle>
+                                                        <CardDescription>Last 24 hours</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="divide-y rounded-md border">
+                                                            <div className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                <div>Total syncs (24h)</div>
+                                                                <div className="font-medium">{systemHealth.syncHealth.totalSyncs}</div>
+                                                            </div>
+                                                            <div className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                <div>Successful</div>
+                                                                <div className="font-medium">{systemHealth.syncHealth.successfulSyncs}</div>
+                                                            </div>
+                                                            <div className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                <div>Failed</div>
+                                                                <div className="font-medium">{systemHealth.syncHealth.failedSyncs}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-3 text-right text-xs text-muted-foreground">
+                                                            Last updated: {formatDateTime(systemHealth.lastUpdated)}
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
+                        )}
 
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : userLevelAnalytics.length > 0 ? (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Email</div>
-                                        <div>Plan</div>
-                                        <div>Status</div>
-                                        <div>Projects</div>
-                                        <div>Exports</div>
-                                        <div>GPU Hours</div>
-                                        <div>Training Runs</div>
-                                        <div>Models</div>
-                                    </div>
-                                    {userLevelAnalytics.map((user) => (
-                                        <div key={user.userId} className="dashTable__row">
-                                            <div>{user.email}</div>
-                                            <div>{user.planType.replace('_', ' ')}</div>
+                        {/* IDE Sync Status Tab */}
+                        {activeTab === 'ide-sync' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
-                                                <span className={`dashStatus dashStatus--${user.subscriptionStatus === 'active' ? 'active' : 'archived'}`}>
-                                                    {user.subscriptionStatus}
-                                                </span>
+                                                <CardTitle>IDE Sync Status</CardTitle>
+                                                <CardDescription>Events and errors from IDE-to-web sync</CardDescription>
                                             </div>
-                                            <div>{user.projectsCount}</div>
-                                            <div>{user.exportsCount}</div>
-                                            <div>{user.gpuHoursUsed}</div>
-                                            <div>{user.trainingRunsCount}</div>
-                                            <div>{user.modelsCount}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No users found.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Feature Adoption Tab */}
-                    {activeTab === 'feature-adoption' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Feature Adoption Tracking</h2>
-                                {featureAdoption && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(featureAdoption.features, 'feature-adoption.csv')}
-                                    >
-                                        Export CSV
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : featureAdoption ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Feature Checks</div>
-                                            <div className="stat-card__value">{featureAdoption.totalFeatureChecks}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Unique Features</div>
-                                            <div className="stat-card__value">{featureAdoption.uniqueFeatures}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Top Features */}
-                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                        <h3 className="dashCard__title">Top Features by Usage</h3>
-                                        <div style={{ padding: '16px 0' }}>
-                                            {featureAdoption.features.slice(0, 20).map((feature) => (
-                                                <div key={feature.feature} style={{
-                                                    padding: '16px 0',
-                                                    borderBottom: '1px solid var(--dr-border-weak)'
-                                                }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                        <span style={{ fontWeight: '500', fontSize: '14px' }}>
-                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                                            {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
-                                                        </span>
-                                                    </div>
-                                                    <div style={{
-                                                        width: '100%',
-                                                        height: '6px',
-                                                        backgroundColor: 'var(--dr-border-weak)',
-                                                        borderRadius: '3px',
-                                                        overflow: 'hidden'
-                                                    }}>
-                                                        <div style={{
-                                                            width: `${feature.adoptionRate}%`,
-                                                            height: '100%',
-                                                            backgroundColor: feature.adoptionRate > 80 ? '#14b8a6' : feature.adoptionRate > 50 ? '#f59e0b' : '#ef4444',
-                                                            transition: 'width 0.3s ease'
-                                                        }} />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Most Requested Features */}
-                                    {featureAdoption.mostRequested && featureAdoption.mostRequested.length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {featureAdoption.mostRequested.map((feature) => (
-                                                    <div key={feature.feature} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <span style={{ fontWeight: '500' }}>
-                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>
-                                                            {feature.denied} denied requests
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No feature adoption data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* System Health Tab */}
-                    {activeTab === 'system-health' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : systemHealth ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Sync Success Rate</div>
-                                            <div className="stat-card__value">{systemHealth.syncHealth.successRate}%</div>
-                                            <div className="stat-card__subtext">
-                                                {systemHealth.syncHealth.successfulSyncs} / {systemHealth.syncHealth.totalSyncs}
-                                            </div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Active IDE Sessions</div>
-                                            <div className="stat-card__value">{systemHealth.activeSessions}</div>
-                                            <div className="stat-card__subtext">Last hour</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Access Denial Rate</div>
-                                            <div className="stat-card__value">{systemHealth.accessDenialRate}%</div>
-                                            <div className="stat-card__subtext">Last 7 days</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">API Error Rate</div>
-                                            <div className="stat-card__value">{systemHealth.apiErrorRate}%</div>
-                                            <div className="stat-card__subtext">Last 7 days</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Database Health</div>
-                                            <div className="stat-card__value">
-                                                <span style={{
-                                                    color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
-                                                    fontWeight: '600'
-                                                }}>
-                                                    {systemHealth.dbHealth.toUpperCase()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Sync Health Details */}
-                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                        <h3 className="dashCard__title">Sync Health Details</h3>
-                                        <div style={{ padding: '16px 0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
-                                                <span>Total Syncs (24h)</span>
-                                                <span style={{ fontWeight: '500' }}>{systemHealth.syncHealth.totalSyncs}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
-                                                <span>Successful</span>
-                                                <span style={{ color: '#14b8a6', fontWeight: '500' }}>{systemHealth.syncHealth.successfulSyncs}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
-                                                <span>Failed</span>
-                                                <span style={{ color: '#ef4444', fontWeight: '500' }}>{systemHealth.syncHealth.failedSyncs}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ fontSize: '12px', color: 'var(--dr-muted)', textAlign: 'right' }}>
-                                        Last updated: {formatDateTime(systemHealth.lastUpdated)}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No system health data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* IDE Sync Status Tab */}
-                    {activeTab === 'ide-sync' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>IDE Sync Status Dashboard</h2>
-                                {ideSyncStatus && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(ideSyncStatus.events, 'ide-sync-events.csv')}
-                                    >
-                                        Export CSV
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : ideSyncStatus ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Events</div>
-                                            <div className="stat-card__value">{ideSyncStatus.totalEvents}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Unique Users</div>
-                                            <div className="stat-card__value">{ideSyncStatus.uniqueUsers}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Successful</div>
-                                            <div className="stat-card__value" style={{ color: '#14b8a6' }}>
-                                                {ideSyncStatus.byStatus.success}
-                                            </div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Failed</div>
-                                            <div className="stat-card__value" style={{ color: '#ef4444' }}>
-                                                {ideSyncStatus.byStatus.failed}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Events by Type */}
-                                    {Object.keys(ideSyncStatus.byEventType || {}).length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Events by Type</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
-                                                    <div key={type} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: '500' }}>
-                                                                {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </span>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
-                                                                {stats.success} success, {stats.failed} failed
-                                                            </div>
-                                                        </div>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>{stats.total} total</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Recent Errors */}
-                                    {ideSyncStatus.recentErrors && ideSyncStatus.recentErrors.length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Recent Errors</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {ideSyncStatus.recentErrors.map((error) => (
-                                                    <div key={error.id} style={{
-                                                        padding: '12px',
-                                                        marginBottom: '12px',
-                                                        backgroundColor: '#fef2f2',
-                                                        border: '1px solid #fecaca',
-                                                        borderRadius: '4px'
-                                                    }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                            <span style={{ fontWeight: '500', fontSize: '14px' }}>{error.user}</span>
-                                                            <span style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
-                                                                {formatDateTime(error.timestamp)}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
-                                                            {error.type}
-                                                        </div>
-                                                        <div style={{ fontSize: '12px', color: '#991b1b' }}>
-                                                            {error.error}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No IDE sync data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Revenue Tab */}
-                    {activeTab === 'revenue' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Revenue Analytics</h2>
-                                {revenueAnalyticsEnhanced && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(revenueAnalyticsEnhanced.revenueTrend, 'revenue-trend.csv')}
-                                    >
-                                        Export Revenue Trend
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : revenueAnalyticsEnhanced ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Monthly Recurring Revenue (MRR)</div>
-                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Annual Recurring Revenue (ARR)</div>
-                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.arr).toLocaleString('en-IN')}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Subscriptions</div>
-                                            <div className="stat-card__value">{revenueAnalyticsEnhanced.totalSubscriptions}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Revenue Trend Chart */}
-                                    {revenueAnalyticsEnhanced.revenueTrend && revenueAnalyticsEnhanced.revenueTrend.length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Revenue Trend (Last 12 Months)</h3>
-                                            <UsageChart
-                                                data={revenueAnalyticsEnhanced.revenueTrend}
-                                                type="line"
-                                                title="MRR"
-                                                height={300}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Revenue by Plan */}
-                                    {Object.keys(revenueAnalyticsEnhanced.revenueByPlan || {}).length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Revenue by Plan</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
-                                                    <div key={plan} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: '500' }}>
-                                                                {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </span>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
-                                                                {revenue.count} subscriptions
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ textAlign: 'right' }}>
-                                                            <div style={{ fontWeight: '500' }}>
-                                                                ₹{((revenue.monthly || 0) + (revenue.yearly || 0) / 12).toFixed(2)}
-                                                            </div>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
-                                                                Monthly
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No revenue data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Platform Analytics Tab */}
-                    {activeTab === 'platform-analytics' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>Platform-Wide Analytics</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : platformUsageStats ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Users</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalUsers}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Active Subscriptions</div>
-                                            <div className="stat-card__value">{platformUsageStats.activeSubscriptions}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Projects</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalProjects}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Models</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalModels}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Training Runs</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalTrainingRuns}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Exports</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalExports}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total GPU Hours</div>
-                                            <div className="stat-card__value">{platformUsageStats.totalGpuHours}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Plan Distribution */}
-                                    {Object.keys(platformUsageStats.planDistribution || {}).length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Plan Distribution</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(platformUsageStats.planDistribution).map(([plan, count]) => (
-                                                    <div key={plan} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <span style={{ fontWeight: '500' }}>
-                                                            {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>{count} users</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No platform statistics available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* User Analytics Tab */}
-                    {activeTab === 'user-analytics' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>User-Level Analytics</h2>
-                                <button
-                                    className="button button--outline"
-                                    onClick={() => exportAdminDataToCSV(userLevelAnalytics, 'user-analytics.csv')}
-                                    disabled={userLevelAnalytics.length === 0}
-                                >
-                                    Export CSV
-                                </button>
-                            </div>
-
-                            {/* Filters */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                gap: '16px',
-                                marginBottom: '24px',
-                                padding: '16px',
-                                backgroundColor: 'var(--dr-surface-2)',
-                                borderRadius: '8px'
-                            }}>
-                                <input
-                                    type="text"
-                                    placeholder="Search by email..."
-                                    value={userSearchFilter}
-                                    onChange={(e) => setUserSearchFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                />
-                                <select
-                                    value={userPlanFilter}
-                                    onChange={(e) => setUserPlanFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="">All Plans</option>
-                                    <option value="free">Free</option>
-                                    <option value="data_pro">Data Pro</option>
-                                    <option value="train_pro">Train Pro</option>
-                                    <option value="deploy_pro">Deploy Pro</option>
-                                    <option value="enterprise">Enterprise</option>
-                                </select>
-                                <select
-                                    value={userStatusFilter}
-                                    onChange={(e) => setUserStatusFilter(e.target.value)}
-                                    style={{
-                                        padding: '8px 12px',
-                                        border: '1px solid var(--dr-border)',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="active">Active</option>
-                                    <option value="trialing">Trialing</option>
-                                    <option value="canceled">Canceled</option>
-                                    <option value="past_due">Past Due</option>
-                                </select>
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : userLevelAnalytics.length > 0 ? (
-                                <div className="dashTable">
-                                    <div className="dashTable__head">
-                                        <div>Email</div>
-                                        <div>Plan</div>
-                                        <div>Status</div>
-                                        <div>Projects</div>
-                                        <div>Exports</div>
-                                        <div>GPU Hours</div>
-                                        <div>Training Runs</div>
-                                        <div>Models</div>
-                                    </div>
-                                    {userLevelAnalytics.map((user) => (
-                                        <div key={user.userId} className="dashTable__row">
-                                            <div>{user.email}</div>
-                                            <div>{user.planType.replace('_', ' ')}</div>
-                                            <div>
-                                                <span className={`dashStatus dashStatus--${user.subscriptionStatus === 'active' ? 'active' : 'archived'}`}>
-                                                    {user.subscriptionStatus}
-                                                </span>
-                                            </div>
-                                            <div>{user.projectsCount}</div>
-                                            <div>{user.exportsCount}</div>
-                                            <div>{user.gpuHoursUsed}</div>
-                                            <div>{user.trainingRunsCount}</div>
-                                            <div>{user.modelsCount}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No users found.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Feature Adoption Tab */}
-                    {activeTab === 'feature-adoption' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Feature Adoption Tracking</h2>
-                                {featureAdoption && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(featureAdoption.features, 'feature-adoption.csv')}
-                                    >
-                                        Export CSV
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : featureAdoption ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Feature Checks</div>
-                                            <div className="stat-card__value">{featureAdoption.totalFeatureChecks}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Unique Features</div>
-                                            <div className="stat-card__value">{featureAdoption.uniqueFeatures}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Top Features */}
-                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                        <h3 className="dashCard__title">Top Features by Usage</h3>
-                                        <div style={{ padding: '16px 0' }}>
-                                            {featureAdoption.features.slice(0, 20).map((feature) => (
-                                                <div key={feature.feature} style={{
-                                                    padding: '16px 0',
-                                                    borderBottom: '1px solid var(--dr-border-weak)'
-                                                }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                        <span style={{ fontWeight: '500', fontSize: '14px' }}>
-                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)', fontSize: '14px' }}>
-                                                            {feature.granted} / {feature.total} ({feature.adoptionRate.toFixed(1)}%)
-                                                        </span>
-                                                    </div>
-                                                    <div style={{
-                                                        width: '100%',
-                                                        height: '6px',
-                                                        backgroundColor: 'var(--dr-border-weak)',
-                                                        borderRadius: '3px',
-                                                        overflow: 'hidden'
-                                                    }}>
-                                                        <div style={{
-                                                            width: `${feature.adoptionRate}%`,
-                                                            height: '100%',
-                                                            backgroundColor: feature.adoptionRate > 80 ? '#14b8a6' : feature.adoptionRate > 50 ? '#f59e0b' : '#ef4444',
-                                                            transition: 'width 0.3s ease'
-                                                        }} />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Most Requested Features */}
-                                    {featureAdoption.mostRequested && featureAdoption.mostRequested.length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Most Requested Features (Access Denied)</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {featureAdoption.mostRequested.map((feature) => (
-                                                    <div key={feature.feature} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <span style={{ fontWeight: '500' }}>
-                                                            {feature.feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                        </span>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>
-                                                            {feature.denied} denied requests
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No feature adoption data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* System Health Tab */}
-                    {activeTab === 'system-health' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>System Health Monitoring</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : systemHealth ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Sync Success Rate</div>
-                                            <div className="stat-card__value">{systemHealth.syncHealth.successRate}%</div>
-                                            <div className="stat-card__subtext">
-                                                {systemHealth.syncHealth.successfulSyncs} / {systemHealth.syncHealth.totalSyncs}
-                                            </div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Active IDE Sessions</div>
-                                            <div className="stat-card__value">{systemHealth.activeSessions}</div>
-                                            <div className="stat-card__subtext">Last hour</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Access Denial Rate</div>
-                                            <div className="stat-card__value">{systemHealth.accessDenialRate}%</div>
-                                            <div className="stat-card__subtext">Last 7 days</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">API Error Rate</div>
-                                            <div className="stat-card__value">{systemHealth.apiErrorRate}%</div>
-                                            <div className="stat-card__subtext">Last 7 days</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Database Health</div>
-                                            <div className="stat-card__value">
-                                                <span style={{
-                                                    color: systemHealth.dbHealth === 'healthy' ? '#14b8a6' : '#f59e0b',
-                                                    fontWeight: '600'
-                                                }}>
-                                                    {systemHealth.dbHealth.toUpperCase()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Sync Health Details */}
-                                    <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                        <h3 className="dashCard__title">Sync Health Details</h3>
-                                        <div style={{ padding: '16px 0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
-                                                <span>Total Syncs (24h)</span>
-                                                <span style={{ fontWeight: '500' }}>{systemHealth.syncHealth.totalSyncs}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--dr-border-weak)' }}>
-                                                <span>Successful</span>
-                                                <span style={{ color: '#14b8a6', fontWeight: '500' }}>{systemHealth.syncHealth.successfulSyncs}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
-                                                <span>Failed</span>
-                                                <span style={{ color: '#ef4444', fontWeight: '500' }}>{systemHealth.syncHealth.failedSyncs}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ fontSize: '12px', color: 'var(--dr-muted)', textAlign: 'right' }}>
-                                        Last updated: {formatDateTime(systemHealth.lastUpdated)}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No system health data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* IDE Sync Status Tab */}
-                    {activeTab === 'ide-sync' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>IDE Sync Status Dashboard</h2>
-                                {ideSyncStatus && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(ideSyncStatus.events, 'ide-sync-events.csv')}
-                                    >
-                                        Export CSV
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : ideSyncStatus ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Events</div>
-                                            <div className="stat-card__value">{ideSyncStatus.totalEvents}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Unique Users</div>
-                                            <div className="stat-card__value">{ideSyncStatus.uniqueUsers}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Successful</div>
-                                            <div className="stat-card__value" style={{ color: '#14b8a6' }}>
-                                                {ideSyncStatus.byStatus.success}
-                                            </div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Failed</div>
-                                            <div className="stat-card__value" style={{ color: '#ef4444' }}>
-                                                {ideSyncStatus.byStatus.failed}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Events by Type */}
-                                    {Object.keys(ideSyncStatus.byEventType || {}).length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Events by Type</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
-                                                    <div key={type} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: '500' }}>
-                                                                {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </span>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
-                                                                {stats.success} success, {stats.failed} failed
-                                                            </div>
-                                                        </div>
-                                                        <span style={{ color: 'var(--dr-muted)' }}>{stats.total} total</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Recent Errors */}
-                                    {ideSyncStatus.recentErrors && ideSyncStatus.recentErrors.length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Recent Errors</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {ideSyncStatus.recentErrors.map((error) => (
-                                                    <div key={error.id} style={{
-                                                        padding: '12px',
-                                                        marginBottom: '12px',
-                                                        backgroundColor: '#fef2f2',
-                                                        border: '1px solid #fecaca',
-                                                        borderRadius: '4px'
-                                                    }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                            <span style={{ fontWeight: '500', fontSize: '14px' }}>{error.user}</span>
-                                                            <span style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
-                                                                {formatDateTime(error.timestamp)}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ fontSize: '12px', color: '#991b1b', marginBottom: '4px' }}>
-                                                            {error.type}
-                                                        </div>
-                                                        <div style={{ fontSize: '12px', color: '#991b1b' }}>
-                                                            {error.error}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No IDE sync data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Revenue Tab */}
-                    {activeTab === 'revenue' && (
-                        <div className="adminContent">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                                <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Revenue Analytics</h2>
-                                {revenueAnalyticsEnhanced && (
-                                    <button
-                                        className="button button--outline"
-                                        onClick={() => exportAdminDataToCSV(revenueAnalyticsEnhanced.revenueTrend, 'revenue-trend.csv')}
-                                    >
-                                        Export Revenue Trend
-                                    </button>
-                                )}
-                            </div>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : revenueAnalyticsEnhanced ? (
-                                <>
-                                    <div className="stats-grid" style={{ marginBottom: '32px' }}>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Monthly Recurring Revenue (MRR)</div>
-                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Annual Recurring Revenue (ARR)</div>
-                                            <div className="stat-card__value">₹{parseFloat(revenueAnalyticsEnhanced.arr).toLocaleString('en-IN')}</div>
-                                        </div>
-                                        <div className="stat-card">
-                                            <div className="stat-card__label">Total Subscriptions</div>
-                                            <div className="stat-card__value">{revenueAnalyticsEnhanced.totalSubscriptions}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Revenue Trend Chart */}
-                                    {revenueAnalyticsEnhanced.revenueTrend && revenueAnalyticsEnhanced.revenueTrend.length > 0 && (
-                                        <div className="dashCard" style={{ marginBottom: '32px' }}>
-                                            <h3 className="dashCard__title">Revenue Trend (Last 12 Months)</h3>
-                                            <UsageChart
-                                                data={revenueAnalyticsEnhanced.revenueTrend}
-                                                type="line"
-                                                title="MRR"
-                                                height={300}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Revenue by Plan */}
-                                    {Object.keys(revenueAnalyticsEnhanced.revenueByPlan || {}).length > 0 && (
-                                        <div className="dashCard">
-                                            <h3 className="dashCard__title">Revenue by Plan</h3>
-                                            <div style={{ padding: '16px 0' }}>
-                                                {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
-                                                    <div key={plan} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        padding: '12px 0',
-                                                        borderBottom: '1px solid var(--dr-border-weak)'
-                                                    }}>
-                                                        <div>
-                                                            <span style={{ fontWeight: '500' }}>
-                                                                {plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </span>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)', marginTop: '4px' }}>
-                                                                {revenue.count} subscriptions
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ textAlign: 'right' }}>
-                                                            <div style={{ fontWeight: '500' }}>
-                                                                ₹{((revenue.monthly || 0) + (revenue.yearly || 0) / 12).toFixed(2)}
-                                                            </div>
-                                                            <div style={{ fontSize: '12px', color: 'var(--dr-muted)' }}>
-                                                                Monthly
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No revenue data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Activity Tab */}
-                    {activeTab === 'activity' && (
-                        <div className="adminContent">
-                            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: '600' }}>User Activity</h2>
-
-                            {analyticsLoading ? (
-                                <div style={{ padding: '48px', textAlign: 'center' }}>
-                                    <LoadingSpinner />
-                                </div>
-                            ) : userActivity ? (
-                                <>
-                                    {/* Activity Stats */}
-                                    <div className="analytics-dashboard">
-                                        <div className="analytics-card">
-                                            <div className="analytics-card__title">Total Activities</div>
-                                            <div className="analytics-card__value">
-                                                {userActivity.total}
-                                            </div>
-                                            <div className="analytics-card__change">All time</div>
-                                        </div>
-                                        {Object.entries(userActivity.grouped || {}).slice(0, 3).map(([type, count]) => (
-                                            <div key={type} className="analytics-card">
-                                                <div className="analytics-card__title">{type.replace(/_/g, ' ')}</div>
-                                                <div className="analytics-card__value">{count}</div>
-                                                <div className="analytics-card__change">Events</div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Activity Feed */}
-                                    <div style={{ marginTop: '32px' }}>
-                                        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>
-                                            Recent Activity
-                                        </h3>
-                                        <div className="activity-feed">
-                                            {userActivity.activities && userActivity.activities.length > 0 ? (
-                                                userActivity.activities.slice(0, 50).map((activity) => (
-                                                    <div key={activity.activity_id} className="activity-item">
-                                                        <div className="activity-item__icon">
-                                                            {activity.activity_type === 'login' ? '🔐' :
-                                                                activity.activity_type === 'feature_used' ? '⚡' :
-                                                                    activity.activity_type === 'project_created' ? '📁' : '📊'}
-                                                        </div>
-                                                        <div className="activity-item__content">
-                                                            <div className="activity-item__title">
-                                                                {activity.activity_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </div>
-                                                            <div className="activity-item__time">
-                                                                {formatDateTime(activity.created_at)}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                                    No activity recorded yet.
-                                                </div>
+                                            {ideSyncStatus && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => exportAdminDataToCSV(ideSyncStatus.events, 'ide-sync-events.csv')}
+                                                >
+                                                    Export CSV
+                                                </Button>
                                             )}
                                         </div>
-                                    </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : !ideSyncStatus ? (
+                                            <div className="text-sm text-muted-foreground">No IDE sync data available.</div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total events</CardDescription>
+                                                            <CardTitle className="text-2xl">{ideSyncStatus.totalEvents}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Unique users</CardDescription>
+                                                            <CardTitle className="text-2xl">{ideSyncStatus.uniqueUsers}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Successful</CardDescription>
+                                                            <CardTitle className="text-2xl">{ideSyncStatus.byStatus.success}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Failed</CardDescription>
+                                                            <CardTitle className="text-2xl">{ideSyncStatus.byStatus.failed}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                </div>
 
-                                    {/* Export Button */}
-                                    <div style={{ marginTop: '24px' }}>
-                                        <button
-                                            className="button button--outline"
+                                                {Object.keys(ideSyncStatus.byEventType || {}).length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Events by Type</CardTitle>
+                                                            <CardDescription>Breakdown by event type</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="divide-y rounded-md border">
+                                                                {Object.entries(ideSyncStatus.byEventType).map(([type, stats]) => (
+                                                                    <div key={type} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
+                                                                        <div>
+                                                                            <div className="font-medium">{type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</div>
+                                                                            <div className="text-xs text-muted-foreground">{stats.success} success, {stats.failed} failed</div>
+                                                                        </div>
+                                                                        <div className="text-muted-foreground">{stats.total} total</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {ideSyncStatus.recentErrors && ideSyncStatus.recentErrors.length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Recent Errors</CardTitle>
+                                                            <CardDescription>Latest failed events</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="space-y-3">
+                                                                {ideSyncStatus.recentErrors.map((error) => (
+                                                                    <div key={error.id} className="rounded-md border bg-muted/20 p-3 text-sm">
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <div className="font-medium">{error.user}</div>
+                                                                            <div className="text-xs text-muted-foreground">{formatDateTime(error.timestamp)}</div>
+                                                                        </div>
+                                                                        <div className="mt-1 text-xs text-muted-foreground">{error.type}</div>
+                                                                        <div className="mt-1 text-xs">{error.error}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Revenue Tab */}
+                        {activeTab === 'revenue' && (
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <CardTitle>Revenue</CardTitle>
+                                                <CardDescription>MRR/ARR and revenue trend analytics</CardDescription>
+                                            </div>
+                                            {revenueAnalyticsEnhanced && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => exportAdminDataToCSV(revenueAnalyticsEnhanced.revenueTrend, 'revenue-trend.csv')}
+                                                >
+                                                    Export Revenue Trend
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {analyticsLoading ? (
+                                            <div className="py-10 text-center">
+                                                <LoadingSpinner />
+                                            </div>
+                                        ) : !revenueAnalyticsEnhanced ? (
+                                            <div className="text-sm text-muted-foreground">No revenue data available.</div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Monthly recurring revenue (MRR)</CardDescription>
+                                                            <CardTitle className="text-2xl">₹{parseFloat(revenueAnalyticsEnhanced.mrr).toLocaleString('en-IN')}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Annual recurring revenue (ARR)</CardDescription>
+                                                            <CardTitle className="text-2xl">₹{parseFloat(revenueAnalyticsEnhanced.arr).toLocaleString('en-IN')}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                    <Card>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>Total subscriptions</CardDescription>
+                                                            <CardTitle className="text-2xl">{revenueAnalyticsEnhanced.totalSubscriptions}</CardTitle>
+                                                        </CardHeader>
+                                                    </Card>
+                                                </div>
+
+                                                {revenueAnalyticsEnhanced.revenueTrend && revenueAnalyticsEnhanced.revenueTrend.length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Revenue Trend</CardTitle>
+                                                            <CardDescription>Last 12 months</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <UsageChart
+                                                                data={revenueAnalyticsEnhanced.revenueTrend}
+                                                                type="line"
+                                                                title="MRR"
+                                                                height={300}
+                                                            />
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+
+                                                {Object.keys(revenueAnalyticsEnhanced.revenueByPlan || {}).length > 0 && (
+                                                    <Card>
+                                                        <CardHeader>
+                                                            <CardTitle>Revenue by Plan</CardTitle>
+                                                            <CardDescription>Monthly equivalent</CardDescription>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="divide-y rounded-md border">
+                                                                {Object.entries(revenueAnalyticsEnhanced.revenueByPlan).map(([plan, revenue]) => (
+                                                                    <div key={plan} className="flex items-start justify-between gap-3 px-3 py-3 text-sm">
+                                                                        <div>
+                                                                            <div className="font-medium">{plan.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</div>
+                                                                            <div className="mt-0.5 text-xs text-muted-foreground">{revenue.count} subscriptions</div>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <div className="font-medium">₹{((revenue.monthly || 0) + (revenue.yearly || 0) / 12).toFixed(2)}</div>
+                                                                            <div className="mt-0.5 text-xs text-muted-foreground">Monthly</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* Activity Tab */}
+                        {activeTab === 'activity' && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <CardTitle>Activity</CardTitle>
+                                            <CardDescription>Latest user activity events</CardDescription>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             onClick={() => {
-                                                if (userActivity.activities) {
+                                                if (userActivity?.activities) {
                                                     exportToCSV(userActivity.activities, 'user-activity.csv')
                                                     toast.success('User activity data exported')
                                                 }
                                             }}
                                         >
-                                            Export Activity Data
-                                        </button>
+                                            Export CSV
+                                        </Button>
                                     </div>
-                                </>
-                            ) : (
-                                <div className="dashMuted" style={{ padding: '24px', textAlign: 'center' }}>
-                                    No activity data available.
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {analyticsLoading ? (
+                                        <div className="py-10 text-center">
+                                            <LoadingSpinner />
+                                        </div>
+                                    ) : !userActivity ? (
+                                        <div className="text-sm text-muted-foreground">No activity data available.</div>
+                                    ) : (
+                                        <>
+                                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardDescription>Total activities</CardDescription>
+                                                        <CardTitle className="text-2xl">{userActivity.total}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="text-xs text-muted-foreground">All time</CardContent>
+                                                </Card>
+                                                {Object.entries(userActivity.grouped || {}).slice(0, 3).map(([type, count]) => (
+                                                    <Card key={type}>
+                                                        <CardHeader className="pb-2">
+                                                            <CardDescription>{type.replace(/_/g, ' ')}</CardDescription>
+                                                            <CardTitle className="text-2xl">{count}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="text-xs text-muted-foreground">Events</CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+
+                                            <div className="overflow-hidden rounded-md border">
+                                                <div className="bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">Recent activity</div>
+                                                <div className="divide-y">
+                                                    {userActivity.activities && userActivity.activities.length > 0 ? (
+                                                        userActivity.activities.slice(0, 50).map((activity) => (
+                                                            <div key={activity.activity_id} className="flex items-start justify-between gap-3 px-3 py-3 text-sm">
+                                                                <div className="min-w-0">
+                                                                    <div className="font-semibold tracking-tight">
+                                                                        {String(activity.activity_type || '').replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground">{formatDateTime(activity.created_at)}</div>
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">{String(activity.user_id || '').substring(0, 8)}…</div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="px-3 py-6 text-sm text-muted-foreground">No activity recorded yet.</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 </div>
-            </section>
-        </>
+            </SidebarInset>
+        </SidebarProvider>
     )
 }
 

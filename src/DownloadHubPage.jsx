@@ -1,15 +1,74 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import './App.css'
 
 function DownloadHubPage({ navigate }) {
     const [activeOS, setActiveOS] = useState('windows')
 
+    const updateBaseUrl = import.meta.env.VITE_BRAINTRAIN_UPDATE_BASE_URL
+
+    const manifestPathByOs = useMemo(
+        () => ({
+            windows: 'windows/latest.json',
+            linux: 'linux/latest.json',
+        }),
+        []
+    )
+
+    const [manifestByOs, setManifestByOs] = useState({})
+    const [manifestLoading, setManifestLoading] = useState(false)
+    const [manifestError, setManifestError] = useState(null)
+
+    useEffect(() => {
+        const manifestPath = manifestPathByOs[activeOS]
+        if (!manifestPath) return
+
+        if (!updateBaseUrl) {
+            setManifestError('Download server is not configured.')
+            return
+        }
+
+        let cancelled = false
+
+        async function fetchManifest() {
+            try {
+                setManifestLoading(true)
+                setManifestError(null)
+                const normalizedBase = String(updateBaseUrl).replace(/\/+$/, '')
+                const url = `${normalizedBase}/${manifestPath}`
+                const response = await fetch(url, { cache: 'no-store' })
+                const json = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(json?.error || json?.message || `Failed to fetch ${url}`)
+                }
+
+                if (!cancelled) {
+                    setManifestByOs((prev) => ({ ...prev, [activeOS]: json }))
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setManifestError(error?.message || String(error))
+                }
+            } finally {
+                if (!cancelled) {
+                    setManifestLoading(false)
+                }
+            }
+        }
+
+        fetchManifest()
+
+        return () => {
+            cancelled = true
+        }
+    }, [activeOS, manifestPathByOs, updateBaseUrl])
+
     const osData = {
         windows: {
             name: 'Windows',
             icon: '🪟',
-            version: '0.1.0',
-            file: 'ML FORGE-Setup-0.1.0.exe',
+            version: '—',
+            file: 'Installer',
             requirements: [
                 { label: 'OS', value: 'Windows 10 (64-bit) or Windows 11' },
                 { label: 'RAM', value: '8GB minimum, 16GB recommended' },
@@ -34,8 +93,8 @@ function DownloadHubPage({ navigate }) {
         linux: {
             name: 'Linux',
             icon: '🐧',
-            version: 'Coming Soon',
-            file: 'ML FORGE-Setup-0.1.0.AppImage',
+            version: '—',
+            file: 'Installer',
             requirements: [
                 { label: 'OS', value: 'Ubuntu 20.04+ or compatible Linux distribution' },
                 { label: 'RAM', value: '8GB minimum, 16GB recommended' },
@@ -47,6 +106,28 @@ function DownloadHubPage({ navigate }) {
     }
 
     const currentOS = osData[activeOS]
+    const manifest = manifestByOs[activeOS]
+
+    const installers = useMemo(() => {
+        if (!manifest) return []
+        if (Array.isArray(manifest.installers)) return manifest.installers
+        if (manifest.installer) return [manifest.installer]
+        return []
+    }, [manifest])
+
+    const primaryInstaller = installers[0] || null
+    const releaseNotes = Array.isArray(manifest?.notes) ? manifest.notes : []
+    const latestVersion = manifest?.version || currentOS.version
+    const releaseDate = manifest?.releaseDate || null
+
+    const badgeText =
+        activeOS === 'macos'
+            ? 'Coming Soon'
+            : manifestLoading
+                ? 'Checking…'
+                : primaryInstaller?.url
+                    ? 'Available'
+                    : 'Coming Soon'
 
     return (
         <>
@@ -56,7 +137,7 @@ function DownloadHubPage({ navigate }) {
                     <div className="downloadHero__titleWrapper">
                         <h1 className="downloadHero__title">Download for desktop</h1>
                         <div className="downloadHero__badge">
-                            <span className="downloadHero__badgeText">Coming Soon</span>
+                            <span className="downloadHero__badgeText">{badgeText}</span>
                         </div>
                     </div>
                     <p className="downloadHero__subtitle">
@@ -75,7 +156,7 @@ function DownloadHubPage({ navigate }) {
                             aria-selected={activeOS === 'windows'}
                             onClick={() => setActiveOS('windows')}
                         >
-                            <span className="downloadTab__icon">🪟</span>
+                            <span className="downloadTab__icon">{osData.windows.icon}</span>
                             Windows
                         </button>
                         <button
@@ -85,7 +166,7 @@ function DownloadHubPage({ navigate }) {
                             aria-selected={activeOS === 'macos'}
                             onClick={() => setActiveOS('macos')}
                         >
-                            <span className="downloadTab__icon">🍎</span>
+                            <span className="downloadTab__icon">{osData.macos.icon}</span>
                             macOS
                             <span className="downloadTab__badge">Soon</span>
                         </button>
@@ -96,7 +177,7 @@ function DownloadHubPage({ navigate }) {
                             aria-selected={activeOS === 'linux'}
                             onClick={() => setActiveOS('linux')}
                         >
-                            <span className="downloadTab__icon">🐧</span>
+                            <span className="downloadTab__icon">{osData.linux.icon}</span>
                             Linux
                             <span className="downloadTab__badge">Soon</span>
                         </button>
@@ -110,28 +191,58 @@ function DownloadHubPage({ navigate }) {
                                     <div className="downloadHubCard__title">ML FORGE IDE</div>
                                     <div className="downloadHubCard__version">
                                         <span className="downloadHubCard__versionLabel">Latest Version:</span>
-                                        <span className="downloadHubCard__versionValue">{currentOS.version}</span>
+                                        <span className="downloadHubCard__versionValue">{latestVersion}</span>
                                     </div>
+                                    {releaseDate ? (
+                                        <div className="downloadHubCard__version">
+                                            <span className="downloadHubCard__versionLabel">Released:</span>
+                                            <span className="downloadHubCard__versionValue">{releaseDate}</span>
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                             <div className="downloadHubCard__actions">
                                 <a
-                                    className={`button button--primary button--large ${activeOS !== 'windows' ? 'button--disabled' : ''}`}
-                                    href="#"
+                                    className={`button button--primary button--large ${!primaryInstaller?.url ? 'button--disabled' : ''}`}
+                                    href={primaryInstaller?.url || '#'}
                                     onClick={(e) => {
-                                        e.preventDefault()
+                                        if (!primaryInstaller?.url) {
+                                            e.preventDefault()
+                                        }
                                         if (activeOS === 'windows') {
                                             // Download logic here when available
                                         }
                                     }}
-                                    style={activeOS !== 'windows' ? { pointerEvents: 'none', opacity: 0.6 } : {}}
+                                    style={!primaryInstaller?.url ? { pointerEvents: 'none', opacity: 0.6 } : {}}
                                 >
-                                    <span className="button__icon">⬇</span>
+                                    <span className="button__icon"></span>
                                     Download for {currentOS.name}
                                 </a>
-                                <p className="downloadHubCard__note">{currentOS.file} (Coming Soon)</p>
+                                <p className="downloadHubCard__note">
+                                    {manifestLoading ? 'Checking latest release…' : manifestError ? manifestError : primaryInstaller?.url ? 'Direct download' : 'Not available'}
+                                </p>
                             </div>
                             <div className="downloadHubCard__body">
+                                {installers.length > 1 ? (
+                                    <div className="downloadHubSection">
+                                        <h3 className="downloadHubSection__title">Other installers</h3>
+                                        <div className="downloadHubCard__actions">
+                                            {installers.slice(1).map((installer, index) => (
+                                                <a
+                                                    key={`${installer?.url || 'installer'}-${index}`}
+                                                    className={`button button--outline ${!installer?.url ? 'button--disabled' : ''}`}
+                                                    href={installer?.url || '#'}
+                                                    onClick={(e) => {
+                                                        if (!installer?.url) e.preventDefault()
+                                                    }}
+                                                    style={!installer?.url ? { pointerEvents: 'none', opacity: 0.6 } : {}}
+                                                >
+                                                    Download
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <div className="downloadHubSection">
                                     <h3 className="downloadHubSection__title">System Requirements</h3>
                                     <ul className="downloadHubList">
@@ -144,12 +255,21 @@ function DownloadHubPage({ navigate }) {
                                 </div>
                                 <div className="downloadHubSection">
                                     <h3 className="downloadHubSection__title">Verification</h3>
-                                    <div className="downloadHubRow">
-                                        <div className="downloadHubRow__label">SHA256 Checksum</div>
-                                        <div className="downloadHubRow__value downloadHubRow__value--mono">
-                                            (Available upon release)
+                                    {installers.length ? (
+                                        installers.map((installer, index) => (
+                                            <div key={`${installer?.sha256 || 'sha'}-${index}`} className="downloadHubRow">
+                                                <div className="downloadHubRow__label">SHA256</div>
+                                                <div className="downloadHubRow__value downloadHubRow__value--mono">
+                                                    {installer?.sha256 || '—'}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="downloadHubRow">
+                                            <div className="downloadHubRow__label">SHA256</div>
+                                            <div className="downloadHubRow__value downloadHubRow__value--mono">—</div>
                                         </div>
-                                    </div>
+                                    )}
                                     <p className="downloadHubCard__help">
                                         Verify your download integrity using the checksum above.
                                     </p>
@@ -163,18 +283,19 @@ function DownloadHubPage({ navigate }) {
                             <div className="downloadHubReleases">
                                 <div className="downloadHubRelease">
                                     <div className="downloadHubRelease__header">
-                                        <div className="downloadHubRelease__version">0.1.0</div>
-                                        <div className="downloadHubRelease__date">Coming Soon</div>
+                                        <div className="downloadHubRelease__version">{latestVersion}</div>
+                                        <div className="downloadHubRelease__date">{releaseDate || (activeOS === 'macos' ? 'Coming Soon' : '—')}</div>
                                     </div>
                                     <div className="downloadHubRelease__body">
-                                        <p>Initial public release of ML FORGE IDE</p>
-                                        <ul>
-                                            <li>Complete Vision AI workflow pipeline</li>
-                                            <li>Dataset Manager with versioning</li>
-                                            <li>Annotation Studio with review workflows</li>
-                                            <li>Training engine with reproducible configs (e.g., YOLO)</li>
-                                            <li>Export wizard for deployment (ONNX, TensorRT, CoreML)</li>
-                                        </ul>
+                                        {releaseNotes.length ? (
+                                            <ul>
+                                                {releaseNotes.map((note, idx) => (
+                                                    <li key={`${idx}-${String(note)}`}>{String(note)}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p>{activeOS === 'macos' ? 'Coming Soon' : 'No release notes published yet.'}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -238,21 +359,27 @@ function DownloadHubPage({ navigate }) {
                                         <div className="downloadHubStep__number">1</div>
                                         <div className="downloadHubStep__content">
                                             <strong>Download the installer</strong>
-                                            <p>Click the download button above to get {currentOS.file}</p>
+                                            <p>Choose an installer above and download it from the official HTTPS host.</p>
                                         </div>
                                     </li>
                                     <li className="downloadHubStep">
                                         <div className="downloadHubStep__number">2</div>
                                         <div className="downloadHubStep__content">
-                                            <strong>Run the installer</strong>
-                                            <p>Double-click the downloaded file and follow the installation wizard</p>
+                                            <strong>Verify SHA256</strong>
+                                            <p>
+                                                {activeOS === 'windows'
+                                                    ? 'PowerShell: Get-FileHash .\\Installer.exe -Algorithm SHA256'
+                                                    : activeOS === 'linux'
+                                                        ? 'Terminal: sha256sum ./installer-file'
+                                                        : 'Coming Soon'}
+                                            </p>
                                         </div>
                                     </li>
                                     <li className="downloadHubStep">
                                         <div className="downloadHubStep__number">3</div>
                                         <div className="downloadHubStep__content">
-                                            <strong>Launch ML FORGE</strong>
-                                            <p>Open ML FORGE IDE from your {activeOS === 'windows' ? 'Start menu' : activeOS === 'macos' ? 'Applications folder' : 'application launcher'} or desktop shortcut</p>
+                                            <strong>Install and launch</strong>
+                                            <p>Run the installer and open the app from your {activeOS === 'windows' ? 'Start menu' : activeOS === 'macos' ? 'Applications folder' : 'application launcher'}.</p>
                                         </div>
                                     </li>
                                     <li className="downloadHubStep">
@@ -263,6 +390,35 @@ function DownloadHubPage({ navigate }) {
                                         </div>
                                     </li>
                                 </ol>
+                            </article>
+
+                            <article className="downloadHubCard">
+                                <div className="downloadHubCard__kicker">Hosting</div>
+                                <div className="downloadHubCard__title">What the desktop app expects</div>
+                                <div className="downloadHubCard__meta">
+                                    <div className="downloadHubRow">
+                                        <div className="downloadHubRow__label">Manifest</div>
+                                        <div className="downloadHubRow__value downloadHubRow__value--mono">
+                                            {updateBaseUrl ? `${String(updateBaseUrl).replace(/\/+$/, '')}/{os}/latest.json` : '{BRAINTRAIN_UPDATE_BASE_URL}/{os}/latest.json'}
+                                        </div>
+                                    </div>
+                                    <div className="downloadHubRow">
+                                        <div className="downloadHubRow__label">Windows</div>
+                                        <div className="downloadHubRow__value downloadHubRow__value--mono">/windows/latest.json</div>
+                                    </div>
+                                    <div className="downloadHubRow">
+                                        <div className="downloadHubRow__label">Linux</div>
+                                        <div className="downloadHubRow__value downloadHubRow__value--mono">/linux/latest.json</div>
+                                    </div>
+                                    <div className="downloadHubRow">
+                                        <div className="downloadHubRow__label">Runtime env</div>
+                                        <div className="downloadHubRow__value downloadHubRow__value--mono">BRAINTRAIN_UPDATE_BASE_URL (required)</div>
+                                    </div>
+                                    <div className="downloadHubRow">
+                                        <div className="downloadHubRow__label">Optional</div>
+                                        <div className="downloadHubRow__value downloadHubRow__value--mono">BRAINTRAIN_UPDATE_CHANNEL=stable|beta</div>
+                                    </div>
+                                </div>
                             </article>
 
                             <article className="downloadHubCard downloadHubCard--cta">
