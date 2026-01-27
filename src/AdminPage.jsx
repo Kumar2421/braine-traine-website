@@ -39,7 +39,7 @@ import {
     exportAdminDataToCSV,
 } from './utils/adminAnalytics'
 import { UsageChart } from './components/UsageChart'
-import LoadingSpinner from './components/LoadingSpinner'
+import { LoadingSpinner } from './components/LoadingSpinner'
 import { useToast } from './utils/toast'
 import {
     Sidebar,
