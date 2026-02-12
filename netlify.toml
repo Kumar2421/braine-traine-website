@@ -1,6 +1,6 @@
 [build]
-  publish = "dist"
-  command = "npm run build"
+  publish = "apps/web/dist"
+  command = "npm --prefix apps/web run build"
 
 # Fix MIME type issues for JavaScript modules
 [[headers]]

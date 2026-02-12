@@ -1,0 +1,1 @@
+import{j as n}from"./index-UkIvKgPy.js";function m({src:o,alt:l,size:s="md",className:a}){const t=["rounded-full object-cover",s==="2xl"?"h-20 w-20 md:h-24 md:w-24":s==="xl"?"h-16 w-16":s==="lg"?"h-12 w-12":s==="sm"?"h-8 w-8":"h-10 w-10",a].filter(Boolean).join(" ");return n.jsx("img",{src:o,alt:l,className:t,loading:"lazy"})}export{m as A};

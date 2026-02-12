@@ -1,0 +1,1 @@
+import{r as i,j as m}from"./index-UkIvKgPy.js";const t={xl:"uiButton--xl",lg:"uiButton--lg",md:"uiButton--md",sm:"uiButton--sm"},B=i.forwardRef(function({className:o="",size:s="md",type:u="button",...n},r){return m.jsx("button",{ref:r,type:u,className:["uiButton",t[s]||t.md,o].join(" "),...n})});export{B};
