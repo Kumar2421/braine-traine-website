@@ -30,8 +30,8 @@ const NAVBAR_HTML = SHARED_STYLES + `
   <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
     <div class="flex items-center gap-12">
       <a href="landing_page.html" class="flex items-center gap-3 group">
-        <img src="logo.jpeg" alt="ML Forge" class="w-8 h-8 rounded shadow-[0_0_15px_rgba(102,255,153,0.3)] transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 object-cover" />
-        <span class="text-base font-black tracking-tighter uppercase italic text-white group-hover:text-primary transition-colors">ML FORGE</span>
+        <img src="ml-forge-icon.png" alt="ML Forge" class="w-8 h-8 rounded shadow-[0_0_15px_rgba(102,255,153,0.3)] transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 object-cover" />
+        <span class="text-xl font-black tracking-tighter uppercase italic text-white group-hover:text-primary transition-colors" style="font-family: 'Inter', sans-serif;">ML FORGE</span>
       </a>
       <div class="hidden lg:flex items-center gap-8 text-[13px] font-medium text-gray-400">
         <div class="relative group">
@@ -133,8 +133,8 @@ const FOOTER_HTML = `
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 mb-24">
         <div class="col-span-2">
           <a href="landing_page.html" class="flex items-center gap-3 mb-8 group">
-            <img src="logo.jpeg" alt="ML Forge" class="w-10 h-10 rounded shadow-[0_0_15px_rgba(102,255,153,0.2)] transition-transform group-hover:scale-110 object-cover" />
-            <span class="text-lg font-black tracking-tighter uppercase italic text-white group-hover:text-primary transition-colors">ML FORGE</span>
+            <img src="ml-forge-icon.png" alt="ML Forge" class="w-10 h-10 rounded shadow-[0_0_15px_rgba(102,255,153,0.2)] transition-transform group-hover:scale-110 object-cover" />
+            <span class="text-2xl font-black tracking-tighter uppercase italic text-white group-hover:text-primary transition-colors" style="font-family: 'Inter', sans-serif;">ML FORGE</span>
           </a>
           <p class="text-gray-500 text-sm max-w-xs mb-8 leading-relaxed">The local-first Vision AI IDE. Built for engineers who demand sovereignty and performance.</p>
           <div class="flex gap-5">

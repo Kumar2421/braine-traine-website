@@ -1,15 +1,9 @@
 import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabaseClient"
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"form">) {
+export function LoginForm() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = searchParams.get('next') || '/dashboard'
@@ -18,137 +12,92 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-
     try {
-      console.log("Attempting login for:", email.trim())
-      const { data, error: signInErr } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-      if (signInErr) {
-        console.error("Supabase sign-in error details:", {
-          message: signInErr.message,
-          status: signInErr.status,
-          name: signInErr.name
-        })
-        throw signInErr
-      }
-      if (!data?.session) throw new Error('Login failed. No session created.')
-
-      console.log("Login successful, session created")
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      if (signInErr) throw signInErr
+      if (!data?.session) throw new Error('Login failed.')
       navigate(nextPath, { replace: true })
     } catch (err) {
-      console.error("Caught login error:", err)
       let msg = 'Unable to log in. Please try again.'
       if (err instanceof Error) {
         msg = err.message
-        if (msg.includes('Invalid login credentials')) {
-          msg = 'Invalid email or password. Please check your credentials or sign up if you don\'t have an account.'
-        } else if (msg.includes('Email not confirmed')) {
-          msg = 'Your email is not confirmed. Please check your inbox for the confirmation link.'
-        }
+        if (msg.includes('Invalid login credentials')) msg = 'Invalid email or password.'
+        else if (msg.includes('Email not confirmed')) msg = 'Please check your inbox to confirm your email.'
       }
       setError(msg)
-    } finally {
-      setIsLoading(false)
-    }
+    } finally { setIsLoading(false) }
   }
 
   const handleGoogleSignIn = async () => {
     setError("")
     setIsLoading(true)
     try {
-      const { error: googleErr } = await supabase.auth.signInWithOAuth({
+      const { error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}${nextPath}`
-        }
+        options: { redirectTo: `${window.location.origin}${nextPath}` }
       })
-      if (googleErr) throw googleErr
+      if (err) throw err
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Google sign in failed.'
-      setError(msg)
+      setError(err instanceof Error ? err.message : 'Google sign in failed.')
       setIsLoading(false)
     }
   }
 
-  const handleGitHubSignIn = async () => {
-    setError("")
-    setIsLoading(true)
-    try {
-      const { error: githubErr } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}${nextPath}`
-        }
-      })
-      if (githubErr) throw githubErr
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'GitHub sign in failed.'
-      setError(msg)
-      setIsLoading(false)
-    }
-  }
+  const inputOuterClass = `
+    p-[2px] rounded-lg bg-[#f9fafb] border border-[#e5e7eb]
+    focus-within:border-[#3ecf8e]/50 focus-within:ring-4 focus-within:ring-[#3ecf8e]/10
+    transition-all duration-200
+  `
+
+  const inputClass = `
+    w-full h-[40px] px-3 text-[14px] text-[#1c1917]
+    bg-white border border-[#d1d5db] rounded-md
+    placeholder:text-[#9ca3af]
+    outline-none transition-all duration-150
+    hover:border-[#9ca3af]
+    focus:border-[#3ecf8e]
+    disabled:opacity-50 disabled:cursor-not-allowed
+  `
+
+  const socialBtnClass = `
+    w-full h-[48px] flex items-center justify-center gap-3
+    bg-white border border-[#d4d4d8] rounded-md
+    text-[16px] font-medium text-[#1c1917]
+    transition-all duration-150
+    hover:border-[#a1a1aa] hover:bg-[#fafaf9]
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/40 focus-visible:border-[#3ecf8e]
+    disabled:opacity-50 disabled:cursor-not-allowed
+  `
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Login to your account</h1>
-        <p className="text-balance text-sm text-muted-foreground">
-          Enter your email below to login to your account
-        </p>
-      </div>
+    <form className="flex flex-col w-full" onSubmit={handleSubmit} noValidate>
 
-      {error && <div className="text-sm text-red-500 text-center">{error}</div>}
+      {/* Heading - 2X size and Bold */}
+      <h1 className="text-[32px] font-bold text-[#111827] tracking-tight leading-tight mb-1">
+        Welcome back
+      </h1>
+      <p className="text-[14px] text-[#6b7280] mb-6">
+        Sign in to your account
+      </p>
 
-      <div className="grid gap-6">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="m@example.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-          />
+      {/* Error */}
+      {error && (
+        <div className="mb-4 text-[13px] text-[#dc2626] bg-[#fef2f2] border border-[#fecaca] rounded-md px-3 py-2 shadow-sm">
+          {error}
         </div>
-        <div className="grid gap-2">
-          <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
-            <Link
-              to="/forgot-password"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-            >
-              Forgot your password?
-            </Link>
-          </div>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login"}
-        </Button>
-        <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-          <span className="relative z-10 bg-background px-2 text-muted-foreground">
-            Or continue with
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" className="w-full" type="button" disabled={isLoading} onClick={handleGoogleSignIn}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
+      )}
+
+      {/* Social buttons - Google only */}
+      <div className="mb-6">
+        <div className="relative p-[1px] rounded-lg bg-gradient-to-b from-[#e5e7eb] to-[#d1d5db] shadow-sm">
+          <button type="button" disabled={isLoading} onClick={handleGoogleSignIn} className={`${socialBtnClass} border-none`}>
+            <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -162,29 +111,60 @@ export function LoginForm({
                 fill="#FBBC05"
               />
               <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 fill="#EA4335"
               />
             </svg>
-            Google
-          </Button>
-          <Button variant="outline" className="w-full" type="button" disabled={isLoading} onClick={handleGitHubSignIn}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-              <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-                fill="currentColor"
-              />
-            </svg>
-            GitHub
-          </Button>
+            Continue with Google
+          </button>
         </div>
       </div>
-      <div className="text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <Link to="/signup" className="underline underline-offset-4">
-          Sign up
-        </Link>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-1 h-px bg-[#e5e7eb]" />
+        <span className="text-[12px] font-medium text-[#9ca3af]">or</span>
+        <div className="flex-1 h-px bg-[#e5e7eb]" />
       </div>
+
+      {/* Fields */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="login-email" className="text-[13px] font-medium text-[#374151]">Email address</label>
+          <div className={inputOuterClass}>
+            <input id="login-email" type="email" autoComplete="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} className={inputClass} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="login-password" className="text-[13px] font-medium text-[#374151]">Password</label>
+            <Link to="/forgot-password" tabIndex={-1} className="text-[12px] font-medium text-[#3ecf8e] hover:text-[#2db97d] transition-colors underline">
+              Forgot password?
+            </Link>
+          </div>
+          <div className={inputOuterClass}>
+            <div className="relative">
+              <input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className={`${inputClass} pr-10`} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#6b7280] transition-colors outline-none">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Submit */}
+      <button type="submit" disabled={isLoading} className="w-full h-[40px] bg-[#c1f2d6] hover:bg-[#a7f3d0] active:bg-[#6ee7b7] text-[#065f46] text-[14px] font-medium rounded-md shadow-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/50 disabled:opacity-60 disabled:cursor-not-allowed mb-6">
+        {isLoading ? "Signing in…" : "Sign in"}
+      </button>
+
+      {/* Switch */}
+      <p className="text-center text-[13px] text-[#6b7280]">
+        Don&apos;t have an account?{" "}
+        <Link to="/signup" className="text-[#111827] font-semibold hover:text-[#3ecf8e] transition-all underline">Sign up now</Link>
+      </p>
+
     </form>
   )
 }

@@ -1,15 +1,8 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabaseClient"
 
-export function OTPValidationForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"form">) {
+export function OTPValidationForm() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const email = searchParams.get('email') || ""
@@ -21,53 +14,57 @@ export function OTPValidationForm({
     e.preventDefault()
     setError("")
     setIsLoading(true)
-
     try {
-      const { error: verifyErr } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'signup'
-      })
+      const { error: verifyErr } = await supabase.auth.verifyOtp({ email, token: otp, type: 'signup' })
       if (verifyErr) throw verifyErr
       navigate("/dashboard")
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Invalid OTP. Please try again.'
-      setError(msg)
-    } finally {
-      setIsLoading(false)
-    }
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.')
+    } finally { setIsLoading(false) }
   }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Verify OTP</h1>
-        <p className="text-balance text-sm text-muted-foreground">
-          Enter the 6-digit code sent to {email}
-        </p>
-      </div>
+    <form className="flex flex-col w-full" onSubmit={handleSubmit} noValidate>
+      <h1 className="text-[32px] font-normal text-[#1c1917] tracking-[-0.02em] leading-tight mb-2">Verify OTP</h1>
+      <p className="text-[14px] text-[#78716c] mb-8">
+        Enter the 6-digit code sent to <span className="text-[#1c1917] font-medium">{email || "your email"}</span>
+      </p>
 
-      {error && <div className="text-sm text-red-500 text-center">{error}</div>}
+      {error && <div className="mb-5 text-[13px] text-[#dc2626] bg-[#fef2f2] border border-[#fecaca] rounded-md px-3 py-2.5">{error}</div>}
 
-      <div className="grid gap-6">
-        <div className="grid gap-2">
-          <Label htmlFor="otp">Verification Code</Label>
-          <Input
-            id="otp"
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-[6px]">
+          <label htmlFor="otp-code" className="text-[13px] font-medium text-[#44403c]">Verification Code</label>
+          <input
+            id="otp-code"
             type="text"
             placeholder="000000"
             required
             maxLength={6}
             value={otp}
-            onChange={(e) => setOtp(e.target.value)}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
             disabled={isLoading}
-            className="text-center text-2xl tracking-widest"
+            className="
+              w-full h-[52px] px-3 text-[24px] text-[#1c1917] text-center tracking-[0.3em] font-mono
+              bg-white border border-[#d4d4d8] rounded-md
+              placeholder:text-[#d4d4d8] placeholder:tracking-[0.3em]
+              outline-none transition-all duration-150
+              hover:border-[#a1a1aa]
+              focus:ring-2 focus:ring-[#3ecf8e]/25 focus:border-[#3ecf8e]
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
           />
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Verifying..." : "Verify OTP"}
-        </Button>
       </div>
+
+      <button type="submit" disabled={isLoading} className="w-full h-[44px] bg-[#3ecf8e] hover:bg-[#2db97d] active:bg-[#27a570] text-[#022c1e] text-[15px] font-normal rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3ecf8e]/50 disabled:opacity-60 mb-6">
+        {isLoading ? "Verifying…" : "Verify OTP"}
+      </button>
+
+      <p className="text-center text-[12px] text-[#a1a1aa] leading-relaxed">
+        Didn&apos;t receive a code? Check your spam folder or{" "}
+        <button type="button" className="underline underline-offset-2 hover:text-[#78716c] transition-colors">request a new code</button>.
+      </p>
     </form>
   )
 }

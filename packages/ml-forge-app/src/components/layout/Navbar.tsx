@@ -28,7 +28,7 @@ export default function Navbar() {
             <div className="navbar-container">
                 {/* Logo */}
                 <NavLink to="/" className="navbar-logo">
-                    <img src="/logo.jpeg" alt="ML Forge" className="logo-image" />
+                    <img src="/ml-forge-icon.png" alt="ML Forge" className="logo-image" />
                     <span className="logo-text">ML Forge</span>
                 </NavLink>
 
