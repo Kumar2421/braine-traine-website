@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>ML Forge - System Guarantees & Operational Boundaries</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Manrope:wght@400;500;700;800&amp;family=Space+Mono:wght@400;700&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#66FF99",
+            "primary-hover": "#52E085",
+            "background-dark": "#0B0B0B",
+            "surface-dark": "#141414",
+            "accent-yellow": "#FFFF33",
+            "text-dark": "#E5E5E5",
+            "subtle-dark": "#1A1A1A",
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            display: ["Manrope", "sans-serif"],
+            mono: ["Space Mono", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+  <style type="text/tailwindcss">
+    .glass-card {
+            background: rgba(20, 20, 20, 0.4);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: #66FF99;
+            background: rgba(102, 255, 153, 0.03);
+            transform: translateY(-4px);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(102, 255, 153, 0.5);
+        }
+        .dashboard-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+        .scanline-effect::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(102, 255, 153, 0.05), transparent);
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+        }
+        .technical-label {
+            font-size: 9px;
+            font-family: 'Space Mono', monospace;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        @keyframes slide-up {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slide-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+        .security-badge {
+            @apply px-2 py-1 bg-primary/10 border border-primary/30 text-primary text-[8px] font-black uppercase tracking-widest rounded;
+        }
+    </style>
+</head>
+
+<body class="bg-background-dark text-text-dark font-sans selection:bg-primary selection:text-black">
+  <!-- Navigation -->
+  <!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+  <div id="navbar-placeholder"></div>
+
+  <!-- Hero Section -->
+  <header class="relative pt-32 pb-40 overflow-hidden border-b border-white/5 bg-background-dark scanline-effect">
+    <div class="absolute inset-0 opacity-10 dashboard-grid"></div>
+    <div class="max-w-5xl mx-auto px-4 relative z-10 text-center">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1 rounded bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-8">
+        Operational Ownership // Trust Boundaries
+      </div>
+      <h1
+        class="text-6xl md:text-9xl font-black text-white leading-[0.8] tracking-tighter uppercase italic mb-8 animate-slide-up">
+        Guarantees <br /><span class="text-primary text-glow">& Boundaries.</span>
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-400 max-w-4xl mx-auto leading-relaxed font-medium animate-slide-up"
+        style="animation-delay: 0.1s;">
+        Technical definitions for system-level operational ownership. ML Forge provides high-fidelity evidence, enabling
+        engineering teams to reason about risk and reproducibility before deployment.
+      </p>
+    </div>
+  </header>
+
+  <main class="py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Section: System Guarantees -->
+      <div class="mb-40">
+        <div class="flex justify-between items-end mb-16">
+          <div>
+            <span class="technical-label">Contractual Architecture</span>
+            <h2 class="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter">System Guarantees.
+            </h2>
+          </div>
+          <div class="hidden md:block">
+            <span class="security-badge">Infrastructure integrity ensured</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Local Runtime Integrity -->
+          <div class="glass-card p-10 border-white/5 hover:border-primary/40 group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">lan</span>
+              <span class="text-[8px] font-mono text-gray-700">KERNEL_ISOLATION</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">No Telemetry by Default
+            </h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">All training runs local. ML Forge enforces no
+              telemetry by default and no forced cloud dependency. Your infrastructure never transmits data unless
+              explicitly configured.</p>
+          </div>
+
+          <!-- Predictable Execution -->
+          <div class="glass-card p-10 border-white/5 hover:border-accent-yellow transition-all group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-accent-yellow text-3xl group-hover:scale-110 transition-transform">history</span>
+              <span class="text-[8px] font-mono text-gray-700">BIT_PARITY</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">Predictable Execution</h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">Identical inputs (dataset version, configuration,
+              runtime environment) produce repeatable, inspectable outputs. Every parameter hash is preserved for exact
+              state reconstruction.</p>
+          </div>
+
+          <!-- Traceability & Lineage -->
+          <div class="glass-card p-10 border-white/5 hover:border-white transition-all group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-white text-3xl group-hover:scale-110 transition-transform">account_tree</span>
+              <span class="text-[8px] font-mono text-gray-700">DATA_OWNERSHIP</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">Absolute Data Ownership
+            </h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">Dataset ownership remains strictly with the user.
+              You retain complete control over your datasets, annotations, and generated model weights forever.</p>
+          </div>
+
+          <!-- Permanent Metadata Audit -->
+          <div class="glass-card p-10 border-white/5 hover:border-primary/40 group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">inventory_2</span>
+              <span class="text-[8px] font-mono text-gray-700">AUDIT_RETENTION</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">Permanent Metadata Audit
+            </h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">Config and run metadata for every experiment is
+              stored to facilitate re-runs or forensic audits. Parameterization and artifact sets are immutable objects
+              in our distribution hub.</p>
+          </div>
+
+          <!-- Verified Export Bundles -->
+          <div class="glass-card p-10 border-white/5 hover:border-accent-yellow transition-all group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-accent-yellow text-3xl group-hover:scale-110 transition-transform">verified</span>
+              <span class="text-[8px] font-mono text-gray-700">HASH_LOCK</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">Verified Export Bundles
+            </h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">Model exports are cryptographically packaged with
+              associated evidence (metrics, configs, run IDs). Verification of training provenance is baked into every
+              binary.</p>
+          </div>
+
+          <!-- Explicit Workflow Handlers -->
+          <div class="glass-card p-10 border-white/5 hover:border-white transition-all group">
+            <div class="flex justify-between items-start mb-6">
+              <span
+                class="material-symbols-outlined text-white text-3xl group-hover:scale-110 transition-transform">terminal</span>
+              <span class="text-[8px] font-mono text-gray-700">STEP_VERBOSE</span>
+            </div>
+            <h4 class="text-white font-black uppercase italic tracking-tighter text-xl mb-4">Explicit Workflow Handlers
+            </h4>
+            <p class="text-xs text-gray-500 leading-relaxed italic">Actions are executed as explicit sequential steps,
+              never as silent black-box background decisions. Inputs and outcomes are exposed via real-time telemetry
+              streams.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Operational Boundaries -->
+      <div class="mb-40 p-12 glass-card border-white/5 bg-background-dark relative overflow-hidden">
+        <div
+          class="absolute inset-0 dashboard-grid shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] opacity-20 pointer-events-none">
+        </div>
+        <div class="relative z-10">
+          <span class="technical-label">Infrastructure Responsibility Matrix</span>
+          <h2 class="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter mb-16">System
+            Boundaries.</h2>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div class="space-y-6">
+              <!-- Result Outcomes -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">warning</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Model Performance Targets
+                  </h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">ML Forge cannot guarantee accuracy,
+                  robustness, or fairness targets. Outcomes are strictly dependent on your data quality, labeling
+                  policy, and evaluation design.</p>
+              </div>
+
+              <!-- Runtime Dependencies -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">memory</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Cross-Hardware
+                    Reproducibility</h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">Identical results are not guaranteed across
+                  materially different hardware, CUDA toolchain versions, or nondeterministic third-party libraries.
+                  Reproducibility is hardware-locked to your runtime environment.</p>
+              </div>
+
+              <!-- Ground Truth -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">spellcheck</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Annotation Authenticity
+                  </h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">ML Forge provides the workflow structure and
+                  evidence capture, but does not guarantee that your annotations are accurate, consistent, or complete.
+                  Data truth remains a human-in-the-loop responsibility.</p>
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <!-- Governance -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">gavel</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Governance & Compliance
+                  </h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">Platform auditability supports your
+                  governance program but does not replace it. Teams must maintain their own access controls, approval
+                  workflows, and validation protocols.</p>
+              </div>
+
+              <!-- Experimental Design -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">science</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Engineering Design
+                    Integrity</h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">The system makes evidence reviewable but
+                  does not prevent poor experimental design, data leakage, or inappropriate metric choice. Accountably
+                  remains with the engineering lead.</p>
+              </div>
+
+              <!-- Deployment Constraints -->
+              <div class="group p-6 border border-white/5 bg-black/40 rounded hover:border-red-400/50 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                  <span class="material-symbols-outlined text-red-400">speed</span>
+                  <h4 class="text-white font-black uppercase italic tracking-tighter text-lg">Inference Performance</h4>
+                </div>
+                <p class="text-[11px] text-gray-500 italic leading-relaxed">Latency, throughput, and memory footprint in
+                  downstream environments are not guaranteed by the Forge bin. These must be validated against your
+                  target deployment constraints.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA Section -->
+      <div class="py-20 text-center relative overflow-hidden">
+        <div class="absolute inset-0 bg-primary/5 blur-3xl rounded-full scale-150 opacity-20"></div>
+        <div class="relative z-10">
+          <h2 class="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter mb-12">Ready to run
+            the workflow locally?</h2>
+          <div class="flex flex-wrap justify-center gap-6">
+            <a href="landing_page.html"
+              class="px-10 py-5 bg-primary text-black text-[11px] font-black uppercase tracking-widest rounded-sm hover:shadow-[0_0_30px_rgba(102,255,153,0.4)] transition-all">See
+              the workflow</a>
+            <a href="vector_db_page.html"
+              class="px-10 py-5 border border-white/10 bg-white/5 text-white text-[11px] font-black uppercase tracking-widest rounded-sm hover:bg-white/10 transition-all">Open
+              Documentation</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+  <div id="footer-placeholder"></div>
+  <script src="components.js"></script>
+</body>
+
+</html>

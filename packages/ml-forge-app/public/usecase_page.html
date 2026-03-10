@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>ML FORGE - End-to-end vision model workflow</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#000000", // Black primary as seen in brand
+            accent: "#4ADE80", // The vibrant mint green
+            "background-light": "#FFFFFF",
+            "background-dark": "#0D0D0D",
+            "card-dark": "#1F2937", // Dark gray for cards
+            "text-light": "#111827",
+            "text-dark": "#F3F4F6",
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.375rem",
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans antialiased">
+  <!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+  <div id="navbar-placeholder"></div>
+  <section class="bg-accent w-full pt-16 pb-24 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="mb-4">
+        <span class="text-xs font-bold tracking-widest text-gray-800 uppercase mb-4 block">Canonical Use Case</span>
+      </div>
+      <h1 class="text-5xl md:text-7xl font-medium tracking-tight text-gray-900 leading-[1.1] mb-12 max-w-5xl">
+        End-to-end vision model workflow in ML FORGE
+      </h1>
+      <div class="max-w-4xl">
+        <p class="text-xl md:text-2xl text-gray-800 font-normal leading-relaxed opacity-90">
+          A concrete, end-to-end example you can adapt: import data, label, train locally, evaluate, and export to
+          ONNX/TensorRT — with dataset locks, config snapshots, and full lineage. YOLO is a common starting point, but
+          the workflow supports other model families and task types.
+        </p>
+      </div>
+    </div>
+  
+  <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="bento-card bg-black border border-white/10 p-6 rounded-xl font-mono text-xs overflow-x-auto text-gray-300">
+      <h4 class="text-white text-sm font-bold mb-4 font-sans">Example Directory Structure</h4>
+      <pre>
+workspace/
+├── data/
+│   ├── raw_images/
+│   └── dataset_v1.0.snapshot/
+├── config.yaml
+├── metrics.json
+└── exports/
+    ├── model_v1_0.onnx
+    └── model_v1_0.trt.engine
+      </pre>
+    </div>
+    <div class="bento-card bg-black border border-white/10 p-6 rounded-xl font-mono text-xs overflow-x-auto text-gray-300">
+      <h4 class="text-white text-sm font-bold mb-4 font-sans">Example config.yaml</h4>
+      <pre>
+# Deterministic build parameters
+dataset:
+  version: "v1.0"
+  seed: 42
+training:
+  engine: "pytorch"
+  epochs: 100
+  batch_size: 16
+  learning_rate: 0.001
+export:
+  targets: ["onnx", "tensorrt8"]
+      </pre>
+    </div>
+    <div class="bento-card bg-black border border-white/10 p-6 rounded-xl font-mono text-xs overflow-x-auto text-gray-300">
+      <h4 class="text-white text-sm font-bold mb-4 font-sans">Sample metrics.json</h4>
+      <pre>
+{
+  "precision": 0.942,
+  "recall": 0.961,
+  "mAP_50": 0.985,
+  "mAP_50_95": 0.723,
+  "inference_latency_ms": 1.42
+}
+      </pre>
+    </div>
+    <div class="bento-card bg-black border border-white/10 p-6 rounded-xl font-mono text-xs overflow-x-auto text-gray-300">
+      <h4 class="text-white text-sm font-bold mb-4 font-sans">CLI Export Example</h4>
+      <pre>
+$ mforge export --model checkpoints/best.pt \
+                --format tensorrt \
+                --fp16 \
+                --output exports/model_v1.trt
+      </pre>
+    </div>
+  </div>
+  
+</section>
+  <section class="bg-background-light dark:bg-background-dark py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="mb-12">
+        <h2 class="text-4xl md:text-5xl font-normal text-gray-900 dark:text-white mb-6 tracking-tight">
+          Inputs → Outputs
+        </h2>
+        <p class="text-lg text-gray-600 dark:text-gray-400 font-normal">
+          What you start with, what ML FORGE produces, and what you ship.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-[#1C1C1E] p-8 rounded min-h-[320px] flex flex-col">
+          <h3 class="text-accent font-semibold text-lg mb-4">Inputs</h3>
+          <p class="text-gray-300 leading-relaxed text-base font-normal">
+            Image folders or video files, labels (optional), and a target task type (detection, segmentation,
+            classification, pose). You stay in control of storage and infrastructure.
+          </p>
+        </div>
+        <div class="bg-[#1C1C1E] p-8 rounded min-h-[320px] flex flex-col">
+          <h3 class="text-accent font-semibold text-lg mb-4">Core artifacts</h3>
+          <p class="text-gray-300 leading-relaxed text-base font-normal">
+            Immutable dataset version, approved labels, config snapshot, metrics report, checkpoints, and a
+            reproducibility chain.
+          </p>
+        </div>
+        <div class="bg-[#1C1C1E] p-8 rounded min-h-[320px] flex flex-col">
+          <h3 class="text-accent font-semibold text-lg mb-4">Outputs</h3>
+          <p class="text-gray-300 leading-relaxed text-base font-normal">
+            Export bundles for deployment (ONNX / TensorRT), including model + class map + dataset version + metrics +
+            config snapshot.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section
+    class="bg-gray-50 dark:bg-[#0A0A0A] py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-200 dark:border-gray-800">
+    <div class="max-w-7xl mx-auto">
+      <div class="mb-20">
+        <h2 class="text-4xl md:text-5xl font-normal text-gray-900 dark:text-white mb-6 tracking-tight">
+          Deep-Dive Workflow
+        </h2>
+        <p class="text-lg text-gray-600 dark:text-gray-400 font-normal max-w-2xl">
+          A technical breakdown of the production pipeline, from raw bytes to optimized inference engine.
+        </p>
+      </div>
+      <div class="space-y-24">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div class="order-2 lg:order-1">
+            <div class="flex items-center gap-4 mb-6">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-black font-bold text-lg">1</span>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-white">Secure Ingestion</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+              Connect local directories without uploading data. The system hashes files for integrity verification while
+              respecting your local security boundaries. Zero-copy import for datasets up to 100TB.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Local filesystem indexing</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">SHA-256 integrity checksums</span>
+              </li>
+            </ul>
+          </div>
+          <div class="order-1 lg:order-2 bg-[#1C1C1E] rounded-lg p-8 border border-gray-800 shadow-2xl">
+            <div class="flex flex-col gap-4 font-mono text-sm">
+              <div class="flex items-center justify-between text-gray-400 border-b border-gray-700 pb-2">
+                <span>/mnt/data/production_v1</span>
+                <span class="text-xs bg-gray-700 px-2 py-1 rounded">RO</span>
+              </div>
+              <div class="space-y-3 pt-2">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-accent">folder</span>
+                  <span class="text-white">raw_images</span>
+                  <span class="ml-auto text-gray-500">4,203 files</span>
+                </div>
+                <div class="flex items-center gap-3 pl-6 opacity-75">
+                  <span class="material-symbols-outlined text-gray-500">image</span>
+                  <span class="text-gray-300">img_001.jpg</span>
+                  <span class="ml-auto text-accent text-xs">HASH VERIFIED</span>
+                </div>
+                <div class="flex items-center gap-3 pl-6 opacity-75">
+                  <span class="material-symbols-outlined text-gray-500">image</span>
+                  <span class="text-gray-300">img_002.jpg</span>
+                  <span class="ml-auto text-accent text-xs">HASH VERIFIED</span>
+                </div>
+                <div class="flex items-center gap-3 pl-6 opacity-50">
+                  <span class="material-symbols-outlined text-gray-500">image</span>
+                  <span class="text-gray-300">...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div
+            class="order-1 bg-[#1C1C1E] rounded-lg p-1 overflow-hidden border border-gray-800 shadow-2xl relative min-h-[300px] flex items-center justify-center">
+            <div
+              class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542831371-29b0f74f9713?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=1000&amp;q=80')] bg-cover bg-center opacity-30">
+            </div>
+            <div
+              class="relative w-3/4 aspect-video bg-black/40 backdrop-blur-sm border border-accent/30 rounded flex items-center justify-center">
+              <svg class="w-full h-full absolute inset-0" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <polygon fill="rgba(74, 222, 128, 0.2)" points="20,80 30,30 70,25 85,75" stroke="#4ADE80"
+                  stroke-dasharray="2" stroke-width="0.5"></polygon>
+                <circle cx="20" cy="80" fill="#4ADE80" r="1.5"></circle>
+                <circle cx="30" cy="30" fill="#4ADE80" r="1.5"></circle>
+                <circle cx="70" cy="25" fill="#4ADE80" r="1.5"></circle>
+                <circle cx="85" cy="75" fill="#4ADE80" r="1.5"></circle>
+              </svg>
+              <div
+                class="absolute top-4 left-4 bg-black/80 text-white text-xs px-2 py-1 rounded border border-gray-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-accent text-sm">auto_fix_high</span>
+                Smart Polygon
+              </div>
+            </div>
+          </div>
+          <div class="order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-black font-bold text-lg">2</span>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-white">Precision Annotation</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+              Accelerate labeling with AI-assisted tools. The Smart Polygon tool snaps to object boundaries
+              automatically, reducing click fatigue by 80%. Review queues ensure 99.9% label accuracy before training
+              begins.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">SAM-powered auto-segmentation</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Consensus scoring for multi-annotator flows</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div class="order-2 lg:order-1">
+            <div class="flex items-center gap-4 mb-6">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-black font-bold text-lg">3</span>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-white">Local-First Training</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+              Train directly on your hardware. Monitor real-time loss curves, mAP metrics, and GPU thermals without
+              leaving the IDE. Auto-checkpointing saves the best weights automatically.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Native PyTorch / TensorFlow support</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Multi-GPU DDP orchestration</span>
+              </li>
+            </ul>
+          </div>
+          <div class="order-1 lg:order-2 bg-[#1C1C1E] rounded-lg p-6 border border-gray-800 shadow-2xl">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="bg-gray-900/50 p-3 rounded border border-gray-700">
+                <div class="text-xs text-gray-400 mb-2">Training Loss</div>
+                <div class="h-20 flex items-end gap-1">
+                  <div class="w-1 bg-accent/20 h-full"></div>
+                  <div class="w-1 bg-accent/30 h-5/6"></div>
+                  <div class="w-1 bg-accent/40 h-4/6"></div>
+                  <div class="w-1 bg-accent/50 h-3/6"></div>
+                  <div class="w-1 bg-accent/60 h-2/6"></div>
+                  <div class="w-1 bg-accent/80 h-1/6"></div>
+                  <div class="w-1 bg-accent h-[10%]"></div>
+                </div>
+              </div>
+              <div class="bg-gray-900/50 p-3 rounded border border-gray-700">
+                <div class="text-xs text-gray-400 mb-2">mAP @ 0.5</div>
+                <div class="h-20 flex items-end gap-1">
+                  <div class="w-1 bg-white/20 h-[10%]"></div>
+                  <div class="w-1 bg-white/30 h-[20%]"></div>
+                  <div class="w-1 bg-white/40 h-[35%]"></div>
+                  <div class="w-1 bg-white/50 h-[50%]"></div>
+                  <div class="w-1 bg-white/60 h-[70%]"></div>
+                  <div class="w-1 bg-white/80 h-[85%]"></div>
+                  <div class="w-1 bg-white h-[92%]"></div>
+                </div>
+              </div>
+            </div>
+            <div class="border-t border-gray-700 pt-4 mt-2">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-mono text-gray-400">NVIDIA RTX 4090 #1</span>
+                <span class="text-xs font-mono text-accent">98% UTIL</span>
+              </div>
+              <div class="w-full bg-gray-700 rounded-full h-1.5">
+                <div class="bg-accent h-1.5 rounded-full" style="width: 98%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div
+            class="order-1 bg-[#1C1C1E] rounded-lg p-8 border border-gray-800 shadow-2xl flex items-center justify-center">
+            <div class="relative w-64 h-64">
+              <svg class="w-full h-full opacity-30" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" fill="none" r="40" stroke="white" stroke-width="0.5"></circle>
+                <circle cx="50" cy="50" fill="none" r="30" stroke="white" stroke-width="0.5"></circle>
+                <circle cx="50" cy="50" fill="none" r="20" stroke="white" stroke-width="0.5"></circle>
+                <circle cx="50" cy="50" fill="none" r="10" stroke="white" stroke-width="0.5"></circle>
+                <line stroke="white" stroke-width="0.5" x1="50" x2="50" y1="10" y2="90"></line>
+                <line stroke="white" stroke-width="0.5" x1="10" x2="90" y1="50" y2="50"></line>
+              </svg>
+              <svg class="w-full h-full absolute inset-0" viewBox="0 0 100 100">
+                <polygon fill="rgba(74, 222, 128, 0.4)" points="50,15 85,50 50,80 20,50" stroke="#4ADE80"
+                  stroke-width="2"></polygon>
+                <text fill="white" font-size="4" text-anchor="middle" x="50" y="8">Accuracy</text>
+                <text fill="white" font-size="4" text-anchor="start" x="92" y="52">Speed</text>
+                <text fill="white" font-size="4" text-anchor="middle" x="50" y="96">Size</text>
+                <text fill="white" font-size="4" text-anchor="end" x="8" y="52">Robustness</text>
+              </svg>
+              <div class="absolute bottom-0 right-0 text-xs text-accent font-mono bg-black/50 px-2 rounded">v2.1
+                (Current)</div>
+            </div>
+          </div>
+          <div class="order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-black font-bold text-lg">4</span>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-white">Final Benchmarking</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+              Compare model candidates side-by-side. Our evaluation engine automatically calculates confusion matrices,
+              F1 scores across classes, and inference latency on target hardware profiles.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Version-to-version diffing</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">Hard negative mining visualization</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div class="order-2 lg:order-1">
+            <div class="flex items-center gap-4 mb-6">
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-black font-bold text-lg">5</span>
+              <h3 class="text-2xl font-semibold text-gray-900 dark:text-white">Edge Deployment</h3>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-8">
+              One-click export to production-ready formats. ML FORGE handles the graph optimization and quantization for
+              you, delivering an artifact ready for your inference server or edge device.
+            </p>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">TensorRT INT8 Quantization</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent mt-0.5">check_circle</span>
+                <span class="text-gray-600 dark:text-gray-400">ONNX Runtime compatibility</span>
+              </li>
+            </ul>
+          </div>
+          <div
+            class="order-1 lg:order-2 bg-[#1C1C1E] rounded-lg p-8 border border-gray-800 shadow-2xl flex flex-col items-center justify-center gap-6">
+            <div class="w-full flex justify-around">
+              <div class="flex flex-col items-center gap-3 group cursor-pointer">
+                <div
+                  class="w-16 h-16 rounded-xl bg-gray-800 flex items-center justify-center border border-gray-700 group-hover:border-accent transition-colors">
+                  <span class="material-symbols-outlined text-3xl text-white">memory</span>
+                </div>
+                <span class="text-sm text-gray-400 font-mono">TensorRT</span>
+              </div>
+              <div class="flex flex-col items-center gap-3 group cursor-pointer">
+                <div
+                  class="w-16 h-16 rounded-xl bg-gray-800 flex items-center justify-center border border-gray-700 group-hover:border-accent transition-colors">
+                  <span class="material-symbols-outlined text-3xl text-white">deployed_code</span>
+                </div>
+                <span class="text-sm text-gray-400 font-mono">ONNX</span>
+              </div>
+              <div class="flex flex-col items-center gap-3 group cursor-pointer">
+                <div
+                  class="w-16 h-16 rounded-xl bg-gray-800 flex items-center justify-center border border-gray-700 group-hover:border-accent transition-colors">
+                  <span class="material-symbols-outlined text-3xl text-white">smartphone</span>
+                </div>
+                <span class="text-sm text-gray-400 font-mono">CoreML</span>
+              </div>
+            </div>
+            <button
+              class="mt-4 bg-accent text-black font-semibold py-2 px-6 rounded hover:bg-green-400 transition-colors flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">download</span>
+              Export Bundle
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+  <div id="footer-placeholder"></div>
+  <script src="components.js"></script>
+
+</body>
+
+</html>

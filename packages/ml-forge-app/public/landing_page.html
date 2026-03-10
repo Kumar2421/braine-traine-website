@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>ML Forge - Local-First Deterministic Vision Engineering Environment</title>
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+  <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
+
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#3ECF8E",
+            "primary-hover": "#34b27b",
+            "background-light": "#ffffff",
+            "background-dark": "#000000",
+            "surface-dark": "#111111",
+            "surface-darker": "#080808",
+            "border-dark": "#222222",
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Absolute Theme Reset */
+    html {
+      background-color: #000000 !important;
+      color-scheme: dark;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Noise Texture */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.03;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      z-index: 50;
+    }
+
+    /* Core Animations */
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes beam {
+      0% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 1;
+      }
+
+      90% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.15;
+      }
+
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.25;
+      }
+    }
+
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reveal {
+      animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite !important;
+    }
+
+    .animate-beam {
+      animation: beam 4s linear infinite !important;
+    }
+
+    .nav-glass {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+    }
+
+    .nav-scrolled {
+      background: rgba(0, 0, 0, 0.8) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .animate-pulse-slow {
+      animation: pulse-glow 8s ease-in-out infinite !important;
+    }
+
+    @keyframes scroll {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    .animate-scroll {
+      animation: scroll 40s linear infinite !important;
+    }
+
+    /* Hide scrollbar */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+
+    body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    /* Utilities */
+    .grid-pattern {
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .glass-panel {
+      background: rgba(8, 8, 8, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .text-gradient {
+      background: linear-gradient(to right, #ffffff, #888888);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .material-icons-outlined {
+      font-family: 'Material Icons Outlined';
+      font-size: 20px;
+      vertical-align: middle;
+    }
+
+    /* Typography */
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.03em;
+    }
+
+    /* Bento Card custom */
+    .bento-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 1rem;
+      border: 1px solid #222;
+      background: #080808;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .bento-card:hover {
+      border-color: #444;
+      transform: translateY(-2px);
+    }
+
+    /* SVG Icon Animations */
+    @keyframes draw-box {
+      0% {
+        stroke-dashoffset: 400;
+        fill: transparent;
+      }
+
+      50% {
+        stroke-dashoffset: 0;
+        fill: rgba(62, 207, 142, 0.1);
+      }
+
+      100% {
+        stroke-dashoffset: -400;
+        fill: transparent;
+      }
+    }
+
+    .animate-draw {
+      stroke-dasharray: 400;
+      animation: draw-box 3s ease-in-out infinite;
+    }
+
+    @keyframes data-pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.3;
+      }
+
+      50% {
+        transform: scale(1.5);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 0.3;
+      }
+    }
+
+    .animate-data {
+      animation: data-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes rotate-slow {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .animate-rotate {
+      animation: rotate-slow 10s linear infinite;
+    }
+
+    @keyframes scan-v {
+      0% {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+    }
+
+    .animate-scan {
+      animation: scan-v 2.5s ease-in-out infinite;
+    }
+
+    @keyframes speed-move {
+      0% {
+        transform: rotate(-90deg);
+      }
+
+      50% {
+        transform: rotate(90deg);
+      }
+
+      100% {
+        transform: rotate(-90deg);
+      }
+    }
+
+    .animate-speed {
+      transform-origin: bottom center;
+      animation: speed-move 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-signal {
+      0% {
+        r: 5;
+        opacity: 1;
+      }
+
+      100% {
+        r: 25;
+        opacity: 0;
+      }
+    }
+
+    .animate-pulse-signal {
+      animation: pulse-signal 1.5s ease-out infinite;
+    }
+
+    /* Hero UI */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #111;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      padding: 0.375rem 1rem;
+      font-size: 0.75rem;
+      color: #9CA3AF;
+      transition: all 0.3s ease;
+    }
+
+    .hero-badge:hover {
+      border-color: rgba(62, 207, 142, 0.5);
+    }
+  </style>
+</head>
+
+<!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+<div id="navbar-placeholder"></div>
+
+
+<!-- Hero Section -->
+<section class="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden">
+  <div class="absolute inset-0 grid-pattern opacity-40"></div>
+
+  <!-- Animated Glow -->
+  <div
+    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#3ECF8E] opacity-10 blur-[120px] rounded-full animate-pulse-slow">
+  </div>
+
+  <!-- Moving Beams -->
+  <!-- <div class="absolute inset-0 pointer-events-none">
+      <div
+        class="absolute top-20 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#3ECF8E]/30 to-transparent animate-beam">
+      </div>
+      <div
+        class="absolute bottom-40 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#3ECF8E]/30 to-transparent animate-beam"
+        style="animation-delay: 1.5s"></div>
+    </div> -->
+
+  <div class="relative z-10 max-w-5xl mx-auto py-20 reveal">
+    <!-- <div class="hero-badge mb-8 animate-float">
+        <span class="text-[#3ECF8E] font-bold">v2.0</span>
+        <span class="w-px h-3 bg-white/20"></span>
+        <span>Edge Training &amp; HuggingFace Integration now live</span>
+        <span class="material-icons-outlined" style="font-size: 14px;">arrow_forward</span>
+      </div> -->
+    <h1 class="text-5xl md:text-7xl font-extrabold tracking-tighter text-white leading-[0.9] mb-8">
+      Local-First Deterministic<br />
+      <span class="text-primary mt-2">Vision Engineering Environment.</span>
+    </h1>
+    <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed mb-4">
+      ML Forge provides local-first execution, dataset versioning, immutable config snapshots, reproducible training,
+      and edge-ready export.
+      Dataset Manager → Annotation Studio → Training → Benchmark → Inference → Export
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="download_page.html"
+        class="px-8 py-4 bg-primary text-black font-bold rounded hover:scale-105 hover:shadow-[0_0_20px_rgba(62,207,142,0.4)] transition-all flex items-center gap-2">
+        Download IDE <span class="material-icons-outlined">download</span>
+      </a>
+      <a href="docs_page.html"
+        class="px-8 py-4 bg-surface-dark text-white border border-white/10 rounded hover:bg-surface-darker transition-all font-medium flex items-center gap-2">
+        Read Docs <span class="material-icons-outlined">description</span>
+      </a>
+    </div>
+  </div>
+  <div class="pt-24 pb-12 w-full border-t border-white/5 bg-background-dark/50">
+    <div class="max-w-7xl mx-auto px-6">
+      <p class="text-[10px] text-gray-500 uppercase tracking-[0.3em] mb-12 text-center font-bold">Integrated with
+        SOTA Industrial Ecosystems</p>
+      <div
+        class="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-700">
+        <span class="text-2xl font-black italic tracking-tighter text-white">NVIDIA</span>
+        <span class="text-2xl font-black tracking-widest text-white">PyTorch</span>
+        <span class="text-2xl font-bold font-mono text-white">ONNX</span>
+        <span class="text-2xl font-extrabold tracking-tight text-white">TENSORFLOW</span>
+        <span class="text-xl font-medium text-white border border-white/20 px-3 py-1">HuggingFace</span>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<section class="py-24 px-4 bg-background-dark relative z-10 border-t border-white/5">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <div>
+        <span
+          class="text-primary text-xs font-mono uppercase tracking-widest border border-primary/20 px-3 py-1 rounded-full bg-primary/5">The
+          Problem</span>
+        <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tighter mb-6">Why ML Forge Exists.
+        </h2>
+        <p class="text-gray-400 mb-6 font-light leading-relaxed">
+          Cloud pipelines are fragmented. Data versioning is manual. Model lineage is heavily reliant on fragile
+          scripts, and cloud dependency risks lock your engineering team into specific vendors.<br><br>
+          Without a unified environment, non-reproducible experiments cost millions in engineering hours. We built ML
+          Forge to fix this.
+        </p>
+        <div class="mt-8">
+          <h3 class="text-xl font-bold text-white mb-4">Technical Credibility</h3>
+          <ul class="text-gray-400 space-y-3 font-mono text-sm tracking-wide">
+            <li class="flex items-start gap-3"><span
+                class="material-icons-outlined text-primary text-lg">verified</span> Dataset versioning engine.</li>
+            <li class="flex items-start gap-3"><span class="material-icons-outlined text-primary text-lg">history</span>
+              Immutable config snapshots.</li>
+            <li class="flex items-start gap-3"><span class="material-icons-outlined text-primary text-lg">shuffle</span>
+              Deterministic seed control.</li>
+            <li class="flex items-start gap-3"><span class="material-icons-outlined text-primary text-lg">memory</span>
+              Hardware-native training.</li>
+            <li class="flex items-start gap-3"><span class="material-icons-outlined text-primary text-lg">output</span>
+              Export integrity (ONNX / TensorRT).
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <span
+          class="text-primary text-xs font-mono uppercase tracking-widest border border-primary/20 px-3 py-1 rounded-full bg-primary/5">Differentiation</span>
+        <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tighter mb-6">Built Unlike Anything
+          Else.</h2>
+        <ul class="text-gray-400 space-y-4 font-mono text-sm tracking-wide">
+          <li class="flex items-start gap-3"><span class="text-white font-bold min-w-[140px]">vs. Roboflow</span> No
+            cloud lock-in. Full dataset ownership. Edge export Native.</li>
+          <li class="flex items-start gap-3"><span class="text-white font-bold min-w-[140px]">vs. YOLO CLI</span>
+            Visual debugging. Managed snapshot environment. Traceable lineage.</li>
+          <li class="flex items-start gap-3"><span class="text-white font-bold min-w-[140px]">vs. Cloud AutoML</span>
+            Hardware-native GPU execution. Zero latency overhead. Predictable costs.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-24 px-4 bg-background-dark relative z-10">
+  <div class="max-w-7xl mx-auto">
+    <!-- Section Header -->
+    <div class="mb-16 text-center">
+      <span
+        class="text-primary text-xs font-mono uppercase tracking-widest border border-primary/20 px-3 py-1 rounded-full bg-primary/5">The
+        Complete IDE</span>
+      <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tighter">Everything in one
+        environment.</h2>
+      <p class="text-gray-400 mt-3 max-w-lg mx-auto">From raw images to exported models — the full vision AI
+        lifecycle, local and secure.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[300px] lg:auto-rows-[350px]">
+
+      <!-- CARD 1: Annotation Studio (Large, 2x2) -->
+      <div
+        class="col-span-1 md:col-span-2 row-span-1 md:row-span-2 bento-card group flex flex-col p-0 overflow-hidden border-[#ffffff08] bg-[#020202]">
+        <div class="p-8 pb-0 shrink-0 relative z-10">
+          <div class="flex items-center gap-2 mb-2 text-primary">
+            <span class="material-symbols-outlined text-sm">edit_square</span>
+            <span class="text-[10px] uppercase font-mono tracking-[0.2em] font-bold">Annotation Studio Pro</span>
+          </div>
+          <h3 class="text-2xl font-black text-white mb-2 tracking-tighter">Pixel-perfect labeling</h3>
+          <p class="text-gray-400 text-sm max-w-sm mb-6 leading-relaxed">Industrial ground truth generation. Support
+            for multi-stage review cycles and sub-millisecond drawing latency.</p>
+        </div>
+
+        <div class="flex-grow relative overflow-hidden group/labeler">
+          <!-- Professional Labeler UI Simulation -->
+          <div class="absolute inset-0 bg-[#050505] flex">
+            <!-- Sidebar Removed per request -->
+
+            <!-- Main Canvas -->
+            <div class="flex-grow relative overflow-hidden h-full">
+              <!-- Data Display Top Bar -->
+              <div
+                class="absolute top-0 left-0 right-0 h-6 bg-black/60 backdrop-blur-md border-b border-white/5 z-20 flex items-center px-3 justify-between">
+                <div class="flex items-center gap-4 text-[7px] font-mono tracking-widest text-gray-400">
+                  <span class="flex items-center gap-1"><span class="text-primary font-bold">OBJ-34</span> //
+                    ACTIVE</span>
+                  <span class="flex items-center gap-1"><span class="text-white">COORDS:</span> [1420 . 842 ]</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-1 h-1 rounded-full bg-primary pulse-signal"></div>
+                  <span class="text-[7px] font-mono text-primary">REAL-TIME SYNC</span>
+                </div>
+              </div>
+
+              <!-- Background Image Layer -->
+              <div
+                class="absolute inset-0 bg-cover bg-center grayscale-[0.3] brightness-75 group-hover/labeler:brightness-90 transition-all duration-700"
+                style="background-image: url('annotation_bg.png');"></div>
+              <div class="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+
+              <!-- Annotation Overlay -->
+              <svg class="absolute inset-0 w-full h-full" viewBox="0 0 400 240">
+                <!-- Object: House 1 -->
+                <g class="annotation-group">
+                  <rect x="50" y="40" width="80" height="60" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444"
+                    stroke-width="0.5" stroke-dasharray="2 1"
+                    class="hover:fill-[rgba(239,68,68,0.3)] transition-all cursor-pointer" />
+                  <rect x="50" y="40" width="25" height="4" fill="#ef4444" />
+                  <text x="52" y="43" fill="white" font-family="monospace" font-size="2"
+                    font-weight="bold">HOUSE_ID_024</text>
+                  <!-- Keypoints -->
+                  <circle cx="50" cy="40" r="0.5" fill="white" />
+                  <circle cx="130" cy="40" r="0.5" fill="white" />
+                  <circle cx="50" cy="100" r="0.5" fill="white" />
+                  <circle cx="130" cy="100" r="0.5" fill="white" />
+                </g>
+
+                <!-- Object: House 2 -->
+                <g class="annotation-group">
+                  <rect x="250" y="30" width="100" height="80" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444"
+                    stroke-width="0.5" />
+                  <rect x="250" y="30" width="25" height="4" fill="#ef4444" />
+                  <text x="252" y="33" fill="white" font-family="monospace" font-size="2"
+                    font-weight="bold">HOUSE_ID_025</text>
+                </g>
+
+                <!-- Object: Cars (Cyan) -->
+                <g>
+                  <!-- Car 1 -->
+                  <rect x="180" y="140" width="15" height="10" fill="rgba(62, 207, 142, 0.2)" stroke="#3ECF8E"
+                    stroke-width="0.3" />
+                  <!-- Car 2 -->
+                  <rect x="210" y="160" width="15" height="10" fill="rgba(62, 207, 142, 0.2)" stroke="#3ECF8E"
+                    stroke-width="0.3" />
+                  <!-- Car 3 (Being scanned) -->
+                  <g>
+                    <rect x="195" y="100" width="12" height="18" fill="rgba(62, 207, 142, 0.2)" stroke="#3ECF8E"
+                      stroke-width="0.5" class="animate-pulse">
+                      <animate attributeName="stroke-width" values="0.5;1;0.5" dur="1s" repeatCount="indefinite" />
+                    </rect>
+                    <text x="195" y="98" fill="#3ECF8E" font-family="monospace" font-size="2" font-weight="bold">VEHICLE
+                      // 98.4%</text>
+                  </g>
+                </g>
+
+                <!-- Laser Scan Line -->
+                <line x1="0" y1="0" x2="400" y2="0" stroke="rgba(62, 207, 142, 0.4)" stroke-width="0.5">
+                  <animate attributeName="y1" from="0" to="240" dur="4s" repeatCount="indefinite" />
+                  <animate attributeName="y2" from="0" to="240" dur="4s" repeatCount="indefinite" />
+                </line>
+
+                <!-- Cursor Drawing Logic -->
+                <path d="M140,20 L160,20 L160,50 L140,50 Z" fill="none" stroke="white" stroke-width="0.3"
+                  stroke-dasharray="1 1">
+                  <animate attributeName="stroke-dashoffset" from="10" to="0" dur="0.5s" repeatCount="indefinite" />
+                </path>
+
+                <g>
+                  <circle r="0.8" fill="white">
+                    <animateMotion path="M140,20 L160,20 L160,50 L140,50 Z" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                </g>
+              </svg>
+
+              <!-- Status Info Overlays -->
+              <div class="absolute bottom-4 left-4 flex flex-col gap-1 z-20">
+                <div
+                  class="px-2 py-0.5 bg-black/80 border border-white/10 rounded flex items-center gap-1.5 backdrop-blur-md">
+                  <div class="w-1 h-1 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]"></div>
+                  <span class="text-[7px] font-mono text-white/60 tracking-tighter uppercase">Building Class
+                    (8)</span>
+                </div>
+                <div
+                  class="px-2 py-0.5 bg-black/80 border border-white/10 rounded flex items-center gap-1.5 backdrop-blur-md">
+                  <div class="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_#3ECF8E]"></div>
+                  <span class="text-[7px] font-mono text-white/60 tracking-tighter uppercase">Traffic Class
+                    (12)</span>
+                </div>
+              </div>
+
+              <!-- Mini Toolbar Bottom Right -->
+              <div
+                class="absolute bottom-4 right-4 flex items-center gap-1 p-1 bg-black/80 border border-white/5 rounded-lg backdrop-blur-md z-20">
+                <div
+                  class="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+                  <span class="material-symbols-outlined text-xs">zoom_in</span>
+                </div>
+                <div class="w-px h-3 bg-white/10"></div>
+                <div
+                  class="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
+                  <span class="material-symbols-outlined text-xs">layers</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- CARD 2: Training Engine -->
+      <div class="col-span-1 lg:col-span-2 bento-card flex flex-col group">
+        <div class="mb-4 relative z-10">
+          <div class="flex items-center gap-2 mb-2 text-gray-400">
+            <span class="material-symbols-outlined text-sm">model_training</span>
+            <span class="text-xs uppercase font-mono tracking-wider">Training Engine</span>
+          </div>
+          <h3 class="text-xl font-semibold text-white mb-1">Multi-Model Training</h3>
+          <p class="text-gray-400 text-sm">Queue parallel training runs. Live GPU metrics, loss curves, and
+            auto-stop.</p>
+        </div>
+        <div class="flex-grow relative mt-2 font-mono text-xs">
+          <div class="bg-black/60 rounded-lg border border-white/5 p-4 h-full overflow-hidden">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-gray-500 text-[10px] uppercase tracking-widest">Training Monitor</span>
+              <span class="text-primary animate-pulse text-[10px]">● RUNNING</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400 w-20 shrink-0">YOLOv10-X</span>
+                <div class="flex-grow bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-primary h-full rounded-full animate-pulse" style="width: 72%"></div>
+                </div>
+                <span class="text-primary">mAP 0.84</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400 w-20 shrink-0">RT-DETR-L</span>
+                <div class="flex-grow bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-white/40 h-full rounded-full animate-pulse" style="width: 45%; animation-delay: 0.3s">
+                  </div>
+                </div>
+                <span class="text-gray-400">mAP 0.61</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400 w-20 shrink-0">SAM-Seg</span>
+                <div class="flex-grow bg-white/5 rounded-full h-1.5">
+                  <div class="bg-white/20 h-full rounded-full" style="width: 10%"></div>
+                </div>
+                <span class="text-gray-500">Queued</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/5 grid grid-cols-3 gap-2 text-[10px]">
+              <div>
+                <div class="text-gray-500">GPU Util</div>
+                <div class="text-white font-bold">88%</div>
+              </div>
+              <div>
+                <div class="text-gray-500">VRAM</div>
+                <div class="text-white font-bold">19.2 / 24GB</div>
+              </div>
+              <div>
+                <div class="text-gray-500">Epoch</div>
+                <div class="text-white font-bold">47 / 100</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: Model Zoo -->
+      <div class="col-span-1 bento-card flex flex-col group">
+        <div class="mb-4">
+          <div class="flex items-center gap-2 mb-2 text-gray-400">
+            <span class="material-symbols-outlined text-sm">hub</span>
+            <span class="text-xs uppercase font-mono tracking-wider">Model Zoo</span>
+          </div>
+          <h3 class="text-xl font-semibold text-white">500+ SOTA Models</h3>
+          <p class="text-gray-400 text-xs mt-1">HuggingFace, NVIDIA NIM &amp; local weights.</p>
+        </div>
+        <div class="flex-grow flex flex-col gap-2">
+          <div class="flex gap-2">
+            <div
+              class="flex-1 bg-surface-dark border border-white/10 rounded p-2 transform group-hover:-translate-y-1 transition-transform duration-300">
+              <div class="font-mono text-[10px] text-gray-500">Detection</div>
+              <div class="font-mono text-xs text-primary mt-0.5">YOLOv10</div>
+            </div>
+            <div
+              class="flex-1 bg-surface-dark border border-white/10 rounded p-2 transform group-hover:-translate-y-2 transition-transform duration-300 delay-75">
+              <div class="font-mono text-[10px] text-gray-500">Face</div>
+              <div class="font-mono text-xs text-white mt-0.5">ArcFace</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <div
+              class="flex-1 bg-surface-dark border border-white/10 rounded p-2 transform group-hover:-translate-y-1 transition-transform duration-300 delay-100">
+              <div class="font-mono text-[10px] text-gray-500">Segment</div>
+              <div class="font-mono text-xs text-white mt-0.5">SAM-Pro</div>
+            </div>
+            <div
+              class="flex-1 bg-surface-dark border border-white/10 rounded p-2 transform group-hover:-translate-y-2 transition-transform duration-300 delay-150">
+              <div class="font-mono text-[10px] text-gray-500">Classify</div>
+              <div class="font-mono text-xs text-white mt-0.5">ViT-B/16</div>
+            </div>
+          </div>
+          <div
+            class="mt-2 flex items-center gap-1.5 text-[10px] font-mono text-gray-500 border border-white/5 rounded p-2 bg-black/40">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.563 21.8 24 17.302 24 12 24 5.374 18.627.001 12 .001z" />
+            </svg>
+            <span>HuggingFace Hub Connected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: Export & Deploy -->
+      <div class="col-span-1 bento-card flex flex-col group overflow-hidden">
+        <div class="mb-4 relative z-10">
+          <div class="flex items-center gap-2 mb-2 text-gray-400">
+            <span class="material-symbols-outlined text-sm">output</span>
+            <span class="text-xs uppercase font-mono tracking-wider">Export</span>
+          </div>
+          <h3 class="text-xl font-semibold text-white">Any Format, Any Edge</h3>
+          <p class="text-gray-400 text-xs mt-1">ONNX, TensorRT, CoreML, TFLite, OpenVINO.</p>
+        </div>
+        <div class="flex-grow relative flex flex-col gap-2">
+          <div
+            class="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5 font-mono text-xs group-hover:border-primary/20 transition-all">
+            <span class="text-gray-400">ONNX</span>
+            <span class="text-primary">✓ 3.2 MB</span>
+          </div>
+          <div class="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5 font-mono text-xs"
+            style="animation-delay:0.1s">
+            <span class="text-gray-400">TensorRT INT8</span>
+            <span class="text-primary animate-pulse">⟳ Building</span>
+          </div>
+          <div
+            class="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5 font-mono text-xs opacity-50">
+            <span class="text-gray-400">CoreML</span>
+            <span class="text-gray-600">Queued</span>
+          </div>
+          <div
+            class="flex items-center justify-between p-2 bg-black/40 rounded border border-white/5 font-mono text-xs opacity-50">
+            <span class="text-gray-400">TFLite</span>
+            <span class="text-gray-600">Queued</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="mt-8 text-center">
+      <p class="text-xl font-medium text-white mb-2">One IDE. The complete pipeline.</p>
+      <p class="text-gray-400 font-mono text-sm">Local first. No cloud required. Sovereign by design.</p>
+    </div>
+  </div>
+</section>
+<!-- ===== SECTION: IDE PIPELINE WALKTHROUGH ===== -->
+<section class="py-24 px-4 bg-background-dark relative overflow-hidden">
+  <div class="absolute inset-0 grid-pattern opacity-[0.03]"></div>
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="text-center mb-16">
+      <span
+        class="text-primary text-xs font-mono uppercase tracking-widest border border-primary/20 px-3 py-1 rounded-full bg-primary/5">The
+        Complete Pipeline</span>
+      <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 mb-3 tracking-tighter">From raw data.<br />To
+        production model.</h2>
+      <p class="text-gray-400 max-w-lg mx-auto">The entire vision AI workflow inside one sovereign IDE — no cloud
+        account required.</p>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="flex flex-wrap justify-center gap-2 mb-10" id="pipeline-tabs">
+      <button onclick="switchTab('dataset')"
+        class="pipeline-tab active-tab-btn px-4 py-2 rounded-full text-sm font-mono font-bold border border-primary bg-primary/10 text-primary transition-all"
+        data-tab="dataset">Dataset Manager</button>
+      <button onclick="switchTab('annotate')"
+        class="pipeline-tab px-4 py-2 rounded-full text-sm font-mono border border-white/10 text-gray-400 hover:text-white transition-all"
+        data-tab="annotate">Annotation Studio</button>
+      <button onclick="switchTab('train')"
+        class="pipeline-tab px-4 py-2 rounded-full text-sm font-mono border border-white/10 text-gray-400 hover:text-white transition-all"
+        data-tab="train">Training</button>
+      <button onclick="switchTab('benchmark')"
+        class="pipeline-tab px-4 py-2 rounded-full text-sm font-mono border border-white/10 text-gray-400 hover:text-white transition-all"
+        data-tab="benchmark">Benchmark</button>
+      <button onclick="switchTab('export')"
+        class="pipeline-tab px-4 py-2 rounded-full text-sm font-mono border border-white/10 text-gray-400 hover:text-white transition-all"
+        data-tab="export">Export & Deploy</button>
+    </div>
+
+    <!-- Tab Content Panel -->
+    <div class="bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden shadow-2xl max-w-5xl mx-auto">
+      <!-- Title bar -->
+      <div class="bg-black/80 px-5 py-3 flex items-center justify-between border-b border-white/5">
+        <div class="flex gap-1.5">
+          <div class="w-3 h-3 rounded-full bg-red-500/30 border border-red-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/30 border border-yellow-500/50"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50"></div>
+        </div>
+        <span id="tab-label" class="text-[10px] text-gray-500 font-mono tracking-widest uppercase">ml_forge //
+          Dataset Manager</span>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+          <span class="text-[10px] font-mono text-primary">ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Dataset Tab -->
+      <div id="tab-dataset" class="tab-panel p-6 font-mono text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="md:col-span-1 space-y-2">
+            <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Projects</div>
+            <div class="px-3 py-2 bg-primary/10 border border-primary/30 rounded text-primary">factory_defects_v3
+            </div>
+            <div
+              class="px-3 py-2 bg-white/5 border border-white/5 rounded text-gray-400 hover:text-white cursor-pointer">
+              face_recognition_v2</div>
+            <div
+              class="px-3 py-2 bg-white/5 border border-white/5 rounded text-gray-400 hover:text-white cursor-pointer">
+              assembly_line_qa</div>
+          </div>
+          <div class="md:col-span-2 bg-black/40 rounded-lg border border-white/5 p-4">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <div class="text-white font-bold">factory_defects_v3</div>
+                <div class="text-gray-500 text-[10px] mt-1">4,821 images · 12 classes · YOLO format</div>
+              </div>
+              <span class="text-[10px] border border-primary/30 text-primary px-2 py-0.5 rounded-full">Locked
+                ✓</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div class="text-center bg-white/5 rounded p-2">
+                <div class="text-white font-bold text-sm">3,856</div>
+                <div class="text-gray-500 text-[10px]">Train</div>
+              </div>
+              <div class="text-center bg-white/5 rounded p-2">
+                <div class="text-white font-bold text-sm">578</div>
+                <div class="text-gray-500 text-[10px]">Val</div>
+              </div>
+              <div class="text-center bg-white/5 rounded p-2">
+                <div class="text-white font-bold text-sm">387</div>
+                <div class="text-gray-500 text-[10px]">Test</div>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="text-[10px] bg-white/5 px-2 py-1 rounded text-gray-400">Augmentation: ON</span>
+              <span class="text-[10px] bg-white/5 px-2 py-1 rounded text-gray-400">Normalized: 640×640</span>
+              <span class="text-[10px] bg-primary/10 px-2 py-1 rounded text-primary">SHA-256: a3f9c12</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Annotate Tab (hidden by default) -->
+      <div id="tab-annotate" class="tab-panel hidden p-6">
+        <div class="text-center text-gray-500 font-mono text-xs py-8">
+          <svg class="w-full text-primary" viewBox="0 0 400 200" style="max-height:180px">
+            <rect x="20" y="20" width="360" height="160" fill="#050505" stroke="#222" stroke-width="0.5" rx="4" />
+            <rect x="60" y="55" width="100" height="80" fill="none" stroke="#3ECF8E" stroke-width="1"
+              stroke-dasharray="4 2">
+              <animate attributeName="stroke-dashoffset" from="0" to="24" dur="2s" repeatCount="indefinite" />
+            </rect>
+            <rect x="60" y="55" width="50" height="10" fill="#3ECF8E" />
+            <text x="63" y="63" fill="black" font-family="monospace" font-size="6" font-weight="bold">DEFECT //
+              99.1%</text>
+            <path d="M200,60 Q240,50 280,75 Q290,100 270,130 Q240,145 210,130 Q195,105 200,60"
+              fill="rgba(62,207,142,0.15)" stroke="#3ECF8E" stroke-width="0.8">
+              <animate attributeName="fill-opacity" values="0.15;0.4;0.15" dur="3s" repeatCount="indefinite" />
+            </path>
+            <circle cx="200" cy="60" r="3" fill="#3ECF8E">
+              <animate attributeName="r" values="2;4;2" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="280" cy="75" r="2" fill="#3ECF8E" />
+            <circle cx="270" cy="130" r="2" fill="#3ECF8E" />
+            <circle cx="210" cy="130" r="2" fill="#3ECF8E" />
+            <text x="310" y="100" fill="#3ECF8E" font-family="monospace" font-size="7">SEG-MASK</text>
+            <text x="310" y="112" fill="#888" font-family="monospace" font-size="5">confidence: 0.96</text>
+            <rect x="20" y="20" width="10" height="160" fill="rgba(62,207,142,0.05)">
+              <animate attributeName="x" values="20;370;20" dur="4s" repeatCount="indefinite" />
+            </rect>
+          </svg>
+          <p class="mt-3 text-gray-500">BBoxes · Polygons · Keypoints · SAM Magic Wand · Auto-Review Pipeline</p>
+        </div>
+      </div>
+
+      <!-- Train Tab (hidden) -->
+      <div id="tab-train" class="tab-panel hidden p-6 font-mono text-xs">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-white font-bold">Training Run #847 — YOLOv10-X</span>
+          <span class="text-primary animate-pulse">● RUNNING</span>
+        </div>
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div class="bg-white/5 rounded p-3">
+            <div class="text-gray-500 text-[10px] mb-1">Loss</div>
+            <div class="text-white font-bold">0.0213</div>
+          </div>
+          <div class="bg-white/5 rounded p-3">
+            <div class="text-gray-500 text-[10px] mb-1">mAP@50</div>
+            <div class="text-primary font-bold">88.4%</div>
+          </div>
+          <div class="bg-white/5 rounded p-3">
+            <div class="text-gray-500 text-[10px] mb-1">Epoch</div>
+            <div class="text-white font-bold">62/100</div>
+          </div>
+          <div class="bg-white/5 rounded p-3">
+            <div class="text-gray-500 text-[10px] mb-1">GPU Util</div>
+            <div class="text-yellow-400 font-bold">94%</div>
+          </div>
+        </div>
+        <div class="space-y-1 text-[10px] text-gray-500 bg-black/40 rounded p-3 h-24 overflow-hidden">
+          <div><span class="text-gray-600">[62/100]</span> loss=0.0213 | mAP50=0.884 | lr=0.00021</div>
+          <div><span class="text-gray-600">[61/100]</span> loss=0.0228 | mAP50=0.877 | lr=0.00021</div>
+          <div><span class="text-gray-600">[60/100]</span> loss=0.0241 | mAP50=0.869 | checkpoint saved ✓</div>
+          <div><span class="text-gray-600">[59/100]</span> loss=0.0259 | mAP50=0.863 | lr=0.00022</div>
+          <div class="text-primary animate-pulse">_</div>
+        </div>
+      </div>
+
+      <!-- Benchmark Tab (hidden) -->
+      <div id="tab-benchmark" class="tab-panel hidden p-6 font-mono text-xs">
+        <div class="text-white font-bold mb-4">Benchmark Results — factory_defects_v3</div>
+        <table class="w-full text-left">
+          <thead>
+            <tr class="text-[10px] text-gray-500 border-b border-white/5">
+              <th class="pb-2">Model</th>
+              <th class="pb-2">mAP@50</th>
+              <th class="pb-2">FPS (Jetson)</th>
+              <th class="pb-2">Size</th>
+              <th class="pb-2">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <tr class="py-2">
+              <td class="py-2 text-primary">YOLOv10-X</td>
+              <td class="py-2 text-white">88.4%</td>
+              <td class="py-2">47 FPS</td>
+              <td class="py-2">21 MB</td>
+              <td class="py-2 text-primary">✓ Champion</td>
+            </tr>
+            <tr>
+              <td class="py-2 text-gray-400">RT-DETR-L</td>
+              <td class="py-2">84.1%</td>
+              <td class="py-2">31 FPS</td>
+              <td class="py-2">67 MB</td>
+              <td class="py-2 text-gray-500">Candidate</td>
+            </tr>
+            <tr>
+              <td class="py-2 text-gray-400">YOLOv8-M</td>
+              <td class="py-2">81.2%</td>
+              <td class="py-2">62 FPS</td>
+              <td class="py-2">12 MB</td>
+              <td class="py-2 text-gray-500">Archived</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Export Tab (hidden) -->
+      <div id="tab-export" class="tab-panel hidden p-6 font-mono text-xs">
+        <div class="text-white font-bold mb-4">Export Center — YOLOv10-X · factory_defects_v3</div>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 bg-primary/10 border border-primary/30 rounded"><span
+              class="text-primary">ONNX (opset 17)</span><span class="text-primary">✓ Complete — 21.4 MB</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded"><span
+              class="text-white">TensorRT INT8 (Jetson)</span><span class="text-primary animate-pulse">⟳ Building...
+              74%</span></div>
+          <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded opacity-50">
+            <span class="text-gray-400">CoreML (iOS 17+)</span><span class="text-gray-600">Queued</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded opacity-50">
+            <span class="text-gray-400">TFLite (Android)</span><span class="text-gray-600">Queued</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded opacity-50">
+            <span class="text-gray-400">OpenVINO (Intel NCS)</span><span class="text-gray-600">Queued</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function switchTab(tab) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.pipeline-tab').forEach(b => {
+          b.classList.remove('active-tab-btn', 'border-primary', 'bg-primary/10', 'text-primary');
+          b.classList.add('border-white/10', 'text-gray-400');
+        });
+        document.getElementById('tab-' + tab).classList.remove('hidden');
+        const btn = document.querySelector('[data-tab="' + tab + '"]');
+        btn.classList.add('active-tab-btn', 'border-primary', 'bg-primary/10', 'text-primary');
+        btn.classList.remove('border-white/10', 'text-gray-400');
+        const labels = { dataset: 'ml_forge // Dataset Manager', annotate: 'ml_forge // Annotation Studio', train: 'ml_forge // Training Engine', benchmark: 'ml_forge // Benchmark Suite', export: 'ml_forge // Export Center' };
+        document.getElementById('tab-label').textContent = labels[tab];
+      }
+    </script>
+  </div>
+</section>
+
+<!-- ===== SECTION: LOCAL FIRST + SOVEREIGN ===== -->
+<section class="py-24 px-4 bg-background-dark border-t border-white/5">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 text-center">
+      <span
+        class="text-primary text-xs font-mono uppercase tracking-widest border border-primary/20 px-3 py-1 rounded-full bg-primary/5">Security
+        & Privacy</span>
+      <h2 class="text-3xl md:text-4xl font-bold text-white mt-4">Local First. Sovereign by Design.</h2>
+      <p class="text-gray-400 mt-2 max-w-xl mx-auto">Your data never leaves your machine. Every training run is
+        deterministic, auditable, and air-gap ready.</p>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Terminal -->
+      <div class="lg:col-span-2 bento-card bg-surface-darker/50 p-0 border-white/5 overflow-hidden">
+        <div class="bg-black/80 px-4 py-3 border-b border-white/5 flex items-center justify-between">
+          <span class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">secure_audit_log //
+            forge@local</span>
+          <div class="flex gap-2">
+            <div class="w-2 h-2 rounded-full bg-green-500/50"></div>
+            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          </div>
+        </div>
+        <div id="sovereign-terminal" class="p-6 font-mono text-xs leading-loose overflow-y-auto h-56 bg-black/40">
+          <!-- Typewriter target -->
+        </div>
+        <script>
+          (function () {
+            const logData = [
+              { role: 'SYSTEM', text: 'ML Forge IDE kernel booting in LOCAL mode...', color: 'text-gray-500' },
+              { role: 'AUDIT', text: 'Dataset SHA-256 verified: factory_defects_v3 → a3f9c12b ✓', color: 'text-primary' },
+              { role: 'SECURITY', text: 'Network egress check: BLOCKED. Training data stays on-device.', color: 'text-green-400' },
+              { role: 'ENGINEER-01', text: 'Confirm model weights are not leaving the secure enclave.', color: 'text-primary' },
+              { role: 'ENGINEER-02', text: 'Confirmed. Only export artifacts (ONNX/TRT) are written to output dir.', color: 'text-white' },
+              { role: 'SYSTEM', text: '>>> SOVEREIGN PROTOCOL ACTIVE. Zero cloud dependency. <<<', color: 'text-yellow-400' }
+            ];
+            const terminal = document.getElementById('sovereign-terminal');
+            let logIdx = 0;
+            function typeLog() {
+              if (!terminal) return;
+              if (logIdx < logData.length) {
+                const p = document.createElement('div');
+                p.className = 'mb-2';
+                p.innerHTML = `<span class="${logData[logIdx].color} font-bold">[${logData[logIdx].role}]</span> <span class="text-gray-400">${logData[logIdx].text}</span>`;
+                terminal.appendChild(p);
+                terminal.scrollTop = terminal.scrollHeight;
+                logIdx++;
+                setTimeout(typeLog, 1800);
+              } else {
+                setTimeout(() => { terminal.innerHTML = ''; logIdx = 0; typeLog(); }, 4000);
+              }
+            }
+            window.addEventListener('DOMContentLoaded', typeLog);
+          })();
+        </script>
+      </div>
+      <!-- Security feature cards -->
+      <div class="flex flex-col gap-4">
+        <div class="glass-panel p-5 rounded-xl border border-white/5 hover:border-primary/30 transition-all group">
+          <div class="flex items-center gap-3 mb-2">
+            <span
+              class="material-symbols-outlined text-primary text-lg group-hover:scale-110 transition-transform">lock</span>
+            <h4 class="text-white font-bold text-sm">Air-Gapped Ready</h4>
+          </div>
+          <p class="text-xs text-gray-500">Runs fully offline. No telemetry, no cloud calls. Built for secure
+            industrial and defense environments.</p>
+        </div>
+        <div class="glass-panel p-5 rounded-xl border border-white/5 hover:border-primary/30 transition-all group">
+          <div class="flex items-center gap-3 mb-2">
+            <span
+              class="material-symbols-outlined text-primary text-lg group-hover:scale-110 transition-transform">verified</span>
+            <h4 class="text-white font-bold text-sm">Deterministic Hashing</h4>
+          </div>
+          <p class="text-xs text-gray-500">SHA-256 anchors on datasets and model checkpoints guarantee bit-for-bit
+            reproducibility across runs.</p>
+        </div>
+        <div class="glass-panel p-5 rounded-xl border border-white/5 hover:border-primary/30 transition-all group">
+          <div class="flex items-center gap-3 mb-2">
+            <span
+              class="material-symbols-outlined text-primary text-lg group-hover:scale-110 transition-transform">developer_board</span>
+            <h4 class="text-white font-bold text-sm">Local GPU First</h4>
+          </div>
+          <p class="text-xs text-gray-500">Auto-detects CUDA, ROCm, and Apple MPS. Train at full throughput without
+            leaving your workstation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION: IDE FEATURE GRID (Supabase Reference Style) ===== -->
+<section class="py-32 px-4 bg-[#000000] border-t border-white/5">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Community driven examples, libraries
+        and guides</h2>
+      <p class="text-gray-400 text-lg max-w-2xl mx-auto font-medium">Supported by a network of early advocates,
+        contributors, and champions.</p>
+
+      <div class="flex items-center justify-center gap-4 mt-8">
+        <a href="docs_page.html"
+          class="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-white/10 rounded-md text-sm text-white hover:bg-[#222222] transition-colors">
+          <span class="material-symbols-outlined text-lg">menu_book</span> View guides
+        </a>
+        <a href="#"
+          class="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-white/10 rounded-md text-sm text-white hover:bg-[#222222] transition-colors">
+          <span class="material-symbols-outlined text-lg">code</span> Official GitHub library
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
+      <!-- Card 1: Dataset Manager -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D] relative overflow-hidden">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <rect x="30" y="30" width="40" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-colors" />
+            <circle cx="50" cy="50" r="4" class="fill-primary animate-data" />
+            <circle cx="35" cy=" map 35" r="3" class="fill-gray-600 group-hover:fill-primary transition-colors"
+              style="animation: data-pulse 2.5s infinite 0.5s" />
+            <circle cx="65" cy="65" r="3" class="fill-gray-600 group-hover:fill-primary transition-colors"
+              style="animation: data-pulse 2.5s infinite 1s" />
+            <path d="M30 50 H70 M50 30 V70" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"
+              class="text-gray-800" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Dataset Manager</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Industrial-grade version control for vision data.
+            Automated health checks and reproducible science.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Launch Module <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 2: Annotation Studio -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <rect x="25" y="25" width="50" height="50" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-colors animate-draw" />
+            <circle cx="25" cy="25" r="2" fill="currentColor" class="text-primary" />
+            <circle cx="75" cy="25" r="2" fill="currentColor" class="text-primary" />
+            <circle cx="25" cy="75" r="2" fill="currentColor" class="text-primary" />
+            <circle cx="75" cy="75" r="2" fill="currentColor" class="text-primary" />
+            <path d="M40 40 L60 60 M60 40 L40 60" stroke="currentColor" stroke-width="1"
+              class="text-gray-800 opacity-50" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Annotation Studio</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Low-latency labeling engine with SAM integration.
+            Support for BBoxes, Polygons, and Keypoints.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Launch Studio <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 3: Training Engine -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <path d="M50 20 L55 35 H70 L58 45 L65 60 L50 50 L35 60 L42 45 L30 35 H45 Z" fill="none"
+              stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-colors animate-rotate" />
+            <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-800 group-hover:text-primary transition-colors" />
+            <path d="M50 35 V25 M50 65 V75 M35 50 H25 M65 50 H75" stroke="currentColor" stroke-width="2"
+              class="text-gray-800" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Training Engine</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Parallel orchestrator for SOTA models. Direct hardware
+            access and automated hyperparameter sweep.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Start Training <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 4: Model Zoo -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-all" />
+            <g class="animate-rotate" style="transform-origin: 50% 50%">
+              <circle cx="50" cy="20" r="4" fill="currentColor" class="text-primary" />
+              <circle cx="80" cy="50" r="4" fill="currentColor" class="text-primary/40" />
+              <circle cx="50" cy="80" r="4" fill="currentColor" class="text-primary/40" />
+              <circle cx="20" cy="50" r="4" fill="currentColor" class="text-primary/40" />
+            </g>
+            <path d="M50 35 V20 M50 65 V80 M35 50 H20 M65 50 H80" stroke="currentColor" stroke-width="1"
+              class="text-gray-800" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Model Zoo Hub</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Seamless integration with HuggingFace and NVIDIA NIM.
+            Pull pre-trained weights in one click.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Explore Zoo <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+      <!-- Card 5: Face Logic -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D] relative overflow-hidden">
+          <svg viewBox="0 0 100 100" class="w-24 h-24 z-10">
+            <path d="M30 40 Q50 20 70 40 Q75 60 50 80 Q25 60 30 40" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-colors" />
+            <ellipse cx="40" cy="45" rx="3" ry="2" fill="currentColor" class="text-gray-600" />
+            <ellipse cx="60" cy="45" rx="3" ry="2" fill="currentColor" class="text-gray-600" />
+            <path d="M45 65 Q50 70 55 65" stroke="currentColor" stroke-width="1" fill="none" class="text-gray-600" />
+          </svg>
+          <div
+            class="absolute inset-0 bg-gradient-to-b from-transparent via-primary/20 to-transparent h-1 w-full animate-scan z-20">
+          </div>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Face Dataset Logic</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">68-point landmark extraction, pose alignment, and
+            multi-factor identity verification.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            View Tools <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 6: Benchmark Suite -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <path d="M20 70 A35 35 0 1 1 80 70" fill="none" stroke="currentColor" stroke-width="4"
+              class="text-gray-800 group-hover:text-primary/20 transition-colors" />
+            <path d="M50 70 L50 40" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+              class="text-primary animate-speed" />
+            <circle cx="50" cy="70" r="4" fill="currentColor" class="text-white" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Benchmark Suite</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Profile model performance. Measure mAP, latency, FPS,
+            and wattage directly inside the IDE.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Run Benchmark <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 7: Inference Console -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <rect x="20" y="30" width="60" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-gray-700 group-hover:text-primary transition-colors" />
+            <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" stroke-width="1"
+              class="text-gray-800 opacity-50" />
+            <circle cx="50" cy="50" r="5" fill="currentColor" class="text-primary">
+              <animate attributeName="r" values="5;15;5" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="1;0;1" dur="2s" repeatCount="indefinite" />
+            </circle>
+            <rect x="45" y="70" width="10" height="4" fill="currentColor" class="text-gray-800" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Inference Console</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">Run live inference tests on camera feeds. Debug model
+            behavior and visualize masks in real-time.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Open Console <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 8: Universal Export -->
+      <div
+        class="bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden group hover:border-primary/30 transition-all flex flex-col h-[420px]">
+        <div class="flex-1 flex items-center justify-center bg-[#0D0D0D]">
+          <svg viewBox="0 0 100 100" class="w-24 h-24">
+            <path d="M40 70 V30 M40 30 L30 40 M40 30 L50 40" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-primary transition-transform group-hover:translate-y-[-10px]">
+              <animateTransform attributeName="transform" type="translate" from="0 0" to="0 -10" dur="1.5s"
+                repeatCount="indefinite" />
+            </path>
+            <path d="M20 50 V80 H80 V50" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-700" />
+            <rect x="30" y="60" width="40" height="4" rx="2" fill="currentColor" class="text-gray-800" />
+          </svg>
+        </div>
+        <div class="p-8 border-t border-white/5">
+          <h4 class="text-xl font-bold text-white mb-3 tracking-tight">Universal Export</h4>
+          <p class="text-sm text-gray-500 leading-relaxed mb-6">One-click optimization for any edge silicon. Export to
+            ONNX, TensorRT, and OpenVINO.</p>
+          <a href="#"
+            class="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest">
+            Export Model <span class="material-symbols-outlined text-sm">north_east</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION: TESTIMONIALS (IDE-focused) ===== -->
+<section class="py-24 px-4 bg-background-dark border-t border-white/5">
+  <div class="max-w-5xl mx-auto text-center mb-12">
+    <h2 class="text-3xl font-bold text-white mb-3">Engineers love ML Forge</h2>
+    <p class="text-gray-400">What real computer vision engineers say about the IDE.</p>
+  </div>
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div
+      class="p-6 rounded-xl bg-surface-dark/50 border border-white/5 backdrop-blur-sm hover:border-primary/20 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center font-bold text-white text-sm">
+          SC</div>
+        <div>
+          <div class="text-white text-sm font-medium">Sarah Chen</div>
+          <div class="text-gray-500 text-xs">CV Engineer, NVIDIA</div>
+        </div>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">"The Annotation Studio + training loop in one IDE is a game
+        changer. I went from raw images to ONNX in under 4 hours."</p>
+    </div>
+    <div
+      class="p-6 rounded-xl bg-surface-dark/50 border border-white/5 backdrop-blur-sm hover:border-primary/20 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center font-bold text-white text-sm">
+          DM</div>
+        <div>
+          <div class="text-white text-sm font-medium">David Miller</div>
+          <div class="text-gray-500 text-xs">ML Lead, Bosch</div>
+        </div>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">"The face dataset conversion tools saved us weeks.
+        Auto-landmark extraction and alignment worked perfectly out of the box."</p>
+    </div>
+    <div
+      class="p-6 rounded-xl bg-surface-dark/50 border border-white/5 backdrop-blur-sm hover:border-primary/20 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center font-bold text-white text-sm">
+          ER</div>
+        <div>
+          <div class="text-white text-sm font-medium">Elena Rodriguez</div>
+          <div class="text-gray-500 text-xs">Robotics Engineer, Siemens</div>
+        </div>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">"Running inference directly in the IDE on Jetson footage,
+        benchmarking right there — no context switching. Brilliant DX."</p>
+    </div>
+    <div
+      class="p-6 rounded-xl bg-surface-dark/50 border border-white/5 backdrop-blur-sm hover:border-primary/20 transition-colors">
+      <div class="flex items-center gap-3 mb-4">
+        <div
+          class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center font-bold text-white text-sm">
+          JW</div>
+        <div>
+          <div class="text-white text-sm font-medium">James Wilson</div>
+          <div class="text-gray-500 text-xs">AI Architect, Lockheed</div>
+        </div>
+      </div>
+      <p class="text-gray-300 text-sm leading-relaxed">"Air-gapped local operation was non-negotiable for us. ML
+        Forge is the only IDE that takes sovereign AI seriously."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION: CTA ===== -->
+<section class="py-24 px-4 bg-background-dark relative border-t border-white/5">
+  <div class="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent pointer-events-none">
+  </div>
+  <div class="max-w-4xl mx-auto text-center relative z-10">
+    <div
+      class="inline-flex items-center gap-2 bg-surface-dark border border-white/10 px-4 py-2 rounded-full text-sm text-gray-300 hover:bg-surface-darker cursor-pointer mb-8">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path
+          d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+      </svg>
+      <span>@mlforge</span>
+      <span class="w-px h-3 bg-gray-700"></span>
+      <span class="font-bold text-white">14.2K</span>
+    </div>
+    <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-3 tracking-tighter">Start building.<br /><span
+        class="text-primary">No cloud needed.</span></h2>
+    <p class="text-gray-400 mb-10 max-w-xl mx-auto">Download ML Forge and run the complete vision AI pipeline on
+      your own machine — free and open source.</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="download_page.html"
+        class="w-full sm:w-auto px-8 py-4 bg-primary text-black font-black rounded hover:scale-105 hover:shadow-[0_0_30px_rgba(62,207,142,0.4)] transition-all flex items-center justify-center gap-2 uppercase tracking-tight">
+        <span class="material-icons-outlined">download</span> Download IDE — Free
+      </a>
+      <a href="docs_page.html"
+        class="w-full sm:w-auto px-8 py-4 bg-surface-dark text-white border border-white/10 rounded hover:bg-surface-darker hover:border-white/20 transition-all font-medium flex items-center justify-center gap-2">
+        <span class="material-icons-outlined">description</span> Read Documentation
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+<div id="footer-placeholder"></div>
+</main>
+
+<!-- Reveal Animation Script -->
+<script>
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: "0px 0px -50px 0px"
+  };
+
+  // Reveal Scroll logic
+  const observer = new IntersectionObserver((entries) => {
+
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('reveal');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // No navbar logic needed as it was removed
+
+
+  document.querySelectorAll('section > div:not(.absolute)').forEach(el => {
+    el.style.opacity = "0";
+    observer.observe(el);
+  });
+</script>
+<script src="components.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ML Forge - Embedding & Similarity Search</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#304FFE",
+                        "background-light": "#FFFFFF",
+                        "background-dark": "#0F172A",
+                        "border-light": "#E2E8F0",
+                        "border-dark": "#1E293B",
+                        "text-muted-light": "#64748B",
+                        "text-muted-dark": "#94A3B8",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "4px",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .active-tab {
+            border-bottom: 2px solid #304FFE;
+            color: #304FFE;
+        }
+
+        .data-bar-segment {
+            height: 8px;
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased min-h-screen flex flex-col">
+    <!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+    <div id="navbar-placeholder"></div>
+    <header class="border-b border-border-light dark:border-border-dark bg-white dark:bg-slate-900 sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-6 flex gap-8 text-[13px] font-semibold text-slate-600 dark:text-slate-400 pt-3"
+            id="main-nav">
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('get-started')">Get started</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('dataset-manager')">Dataset Manager</a>
+            <a class="pb-2 active-tab cursor-pointer" onclick="updatePageContent('annotation-studio')">Annotation
+                Studio</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('model-zoo')">Model Zoo</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('training-logs')">Training Logs</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('training-runs')">Training & Runs</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('evaluation-benchmarks')">Evaluation & Benchmarks</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('export-deployment')">Export & Deployment</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('inference')">Inference</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('benchmark')">Benchmark</a>
+            <a class="pb-2 border-b-2 border-transparent hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                onclick="updatePageContent('ide-reference')">IDE Reference</a>
+        </div>
+    </header>
+    <div class="flex flex-1 max-w-[1600px] mx-auto w-full">
+        <aside class="w-64 border-r border-border-light dark:border-border-dark p-6 hidden lg:block">
+            <div
+                class="mb-6 bg-blue-50 dark:bg-blue-900/20 text-primary px-3 py-2 rounded flex items-center gap-2 text-xs font-semibold">
+                <span class="material-symbols-outlined text-sm">star</span>
+                Premium feature
+            </div>
+            <nav class="space-y-4 text-sm">
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">Vector database data
+                    sources</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">Create a vector
+                    database</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">Update resident vector
+                    databases</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">Update connected vector
+                    databases</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary font-medium" href="#">Register and
+                    deploy vector databases</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">Use an embedding NVIDIA
+                    NIM to create a vector database</a>
+                <a class="block text-slate-600 dark:text-slate-400 hover:text-primary" href="#">ACL Hydration</a>
+            </nav>
+        </aside>
+        <main class="flex-1 p-8 lg:p-12 max-w-4xl" id="content-area">
+            <nav class="flex items-center gap-2 text-xs text-slate-500 mb-6" id="breadcrumb">
+                <a class="hover:underline" href="#">Core workflow</a>
+                <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+                <span class="text-slate-900 dark:text-slate-300">Annotation Studio</span>
+            </nav>
+            <div id="dynamic-content">
+                <!-- Content injected via JavaScript -->
+            </div>
+        </main>
+    </div>
+    <script>
+        const pageData = {
+            'annotation-studio': {
+                breadcrumb: 'Core workflow',
+                title: 'Annotation Studio',
+                lede: 'Annotation Studio is ML FORGE’s high-performance labeling environment, offering advanced tools for rapid and precise vision dataset creation.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Precision Annotation Toolkit</h3>
+                        <p>Our Studio is engineered for professional-grade labeling, combining traditional manual tools with AI-assisted features to accelerate your workflow without compromising accuracy.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Full-Featured Tooling</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Bounding Boxes:</strong> Industry-standard rectangular annotations for object detection with pixel-perfect alignment tools.</li>
+                            <li><strong>Polygons & Segmentation:</strong> Create complex masks for instance and semantic segmentation. Support for vertex editing and polygon-to-mask conversion.</li>
+                            <li><strong>Keypoint & Skeleton:</strong> Specialized tools for human pose estimation and industrial part alignment.</li>
+                            <li><strong>Polyline Tools:</strong> Ideal for lane detection, wire tracking, and path-based annotations.</li>
+                            <li><strong>Magic Wand (AI Assist):</strong> Use the Segment Everything Model (SAM) to automatically generate precise masks with a single click.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Advanced Workflow Features</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Label Hierarchy:</strong> Support for nested classes, attributes, and multi-label classification per object.</li>
+                            <li><strong>Review-Gated Pipeline:</strong> A multi-stage review process (Label -> Review -> Approved) ensures only "Golden Samples" reach the training engine.</li>
+                            <li><strong>Roboflow Cloud Sync:</strong> Native integration with Roboflow universes. Sync local datasets for distributed team collaboration.</li>
+                            <li><strong>Hotkeys & Efficiency:</strong> Fully customizable keyboard shortcuts for rapid label switching and tool selection.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Audit & History</h3>
+                        <p>Every change is tracked. View the complete history of an image's annotations, see who made changes, and revert to previous versions if needed.</p>
+                    </article>`
+            },
+            'dataset-manager': {
+                breadcrumb: 'Core workflow',
+                title: 'Dataset Manager',
+                lede: 'The Dataset Manager is the foundation of ML FORGE. Every model, training run, evaluation, and export begins here.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Comprehensive Dataset Lifecycle</h3>
+                        <p>ML FORGE treats datasets as versioned, immutable, and auditable assets. The Dataset Manager provides a complete workspace for handling the entire vision data lifecycle.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Version Control & Management</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Multi-Version Handling:</strong> Maintain multiple versions of your datasets (e.g., v1-baseline, v2-augmented). Revert to any previous state with a single click.</li>
+                            <li><strong>Dataset Creation Tools:</strong> Create datasets from raw images, video frames, or stream captures directly within the IDE.</li>
+                            <li><strong>Smart Splitting:</strong> Automatically split data into Train, Validation, and Test sets using deterministic algorithms to ensure reproducible results.</li>
+                            <li><strong>Class & Identity Management:</strong> Unified interface for managing labels, merging classes, and handling complex identity mappings for recognition tasks.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Advanced Data Processing</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Data Augmentation:</strong> Built-in suite for geometric (flip, rotate, crop) and photometric (brightness, contrast, noise) augmentations to increase model robustness.</li>
+                            <li><strong>Preprocessing Pipeline:</strong> Standardize your data with automated resizing, normalization, and color-space conversions (RGB to Grayscale/HSV).</li>
+                            <li><strong>Face Dataset Conversion:</strong> Specialized tools for converting raw portrait data into structured facial recognition datasets, including auto-alignment and landmark extraction.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Supported Dataset Types</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <h4 class="font-bold mb-2">Object Detection</h4>
+                                <p class="text-sm">Native support for YOLO, COCO, and Pascal VOC formats with real-time validation.</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <h4 class="font-bold mb-2">Face Recognition</h4>
+                                <p class="text-sm">Optimized storage for large-scale identity datasets with high-dimensional vector indexing.</p>
+                            </div>
+                        </div>
+                    </article>`
+            },
+            'training-logs': {
+                breadcrumb: 'Core workflow',
+                title: 'Training Logs',
+                lede: 'The Training Logs tab provides a real-time, immutable, and auditable record of everything that happens during a training run.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Purpose</h3>
+                        <p>Training Logs are designed for debugging failed runs, understanding training behavior, and auditing experiments. Unlike cloud dashboards, ML FORGE logs are local, explicit, and permanent.</p>
+                        <h3 class="text-xl font-bold mt-8 mb-4">What is Captured</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li>Dataset loading and validation</li>
+                            <li>Hardware detection (CPU / GPU)</li>
+                            <li>Loss and metric updates</li>
+                            <li>Checkpoint saving events</li>
+                        </ul>
+                    </article>`
+            },
+            'training-runs': {
+                breadcrumb: 'Core workflow',
+                title: 'Training & Runs',
+                lede: 'The Training Engine transforms locked datasets and selected models into deterministic training runs with full metric tracking.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">High-Performance Training Engine</h3>
+                        <p>ML FORGE's training engine is built for speed and flexibility, allowing you to train multiple models simultaneously while maintaining full control over the training process.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Core Capabilities</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Multi-Model Training:</strong> Queue and run multiple training jobs in parallel. Compare performance across different architectures on the same dataset.</li>
+                            <li><strong>Smart Training (Auto-Stop):</strong> Intelligent early stopping based on validation metrics to prevent overfitting and save compute time.</li>
+                            <li><strong>Hyperparameter Tuning:</strong> Integrated grid and random search for optimizing learning rates, batch sizes, and optimizer settings.</li>
+                            <li><strong>Direct Config Edit:</strong> Full access to YAML/JSON training configurations for advanced users. Modify every aspect of the training pipeline.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Live Monitoring & Control</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Resource Tracking:</strong> Real-time GPU utilization, VRAM usage, and temperature monitoring.</li>
+                            <li><strong>Metric Visualization:</strong> Live loss curves, mAP, precision-recall curves, and accuracy tracking.</li>
+                            <li><strong>Interactive Checkpoints:</strong> Pause training, adjust hyperparameters on the fly, and resume from any saved checkpoint.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Hardware Optimization</h3>
+                        <p>Automatically detects and leverages NVIDIA CUDA, AMD ROCm, and Apple Silicon (MPS) for maximum training throughput.</p>
+                    </article>`
+            },
+            'training-logs': {
+                breadcrumb: 'Core workflow',
+                title: 'Training Logs',
+                lede: 'The Training Logs tab provides a real-time, immutable, and auditable record of everything that happens during a training run.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Deep Insights & Observability</h3>
+                        <p>ML FORGE captures every detail of the training process, providing a comprehensive audit trail for debugging and experiment tracking.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Comprehensive Logging</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>System Health:</strong> Continuous tracking of CPU, GPU, and memory utilization to identify hardware bottlenecks.</li>
+                            <li><strong>Dataset Auditing:</strong> Logs of data loading, augmentation steps, and class distribution for every batch.</li>
+                            <li><strong>Metric Streams:</strong> Real-time streaming of loss, accuracy, mAP, and custom user-defined metrics.</li>
+                            <li><strong>Error & Warning Tracking:</strong> Immediate alerts for gradient explosions, vanishing gradients, or data corruption issues.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Exportable Artifacts</h3>
+                        <p>All logs are stored in standard formats (JSON, CSV, TensorBoard) and can be exported for external analysis or reporting.</p>
+                    </article>`
+            },
+            'model-zoo': {
+                breadcrumb: 'Models',
+                title: 'Model Zoo',
+                lede: 'Browse supported architectures, backbones, and task-specific presets that ML FORGE can train and export reproducibly.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Extensive Model Library</h3>
+                        <p>ML FORGE provides a curated selection of state-of-the-art vision models, ranging from efficient edge-ready backbones to powerful transformer-based architectures.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Detection & Recognition</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Object Detection:</strong> Support for YOLOv8, YOLOv10, and RT-DETR for high-speed, real-time inference.</li>
+                            <li><strong>Face Recognition:</strong> Integration with ArcFace, FaceNet, and InsightFace backbones for high-accuracy identity verification.</li>
+                            <li><strong>Instance Segmentation:</strong> Segment Everything Model (SAM) integration for precise pixel-level masks.</li>
+                            <li><strong>Classification:</strong> MobileNetV3, EfficientNet, and Vision Transformers (ViT) for robust image categorization.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Flexible Model Sourcing</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Hugging Face Integration:</strong> Directly pull models and weights from the Hugging Face Hub. Search, download, and fine-tune thousands of community models within the IDE.</li>
+                            <li><strong>Local Model Support:</strong> Import your custom weights (.pt, .weights, .safetensors) and continue training or run inference locally.</li>
+                            <li><strong>NVIDIA NIM Integration:</strong> Leverage NVIDIA's optimized microservices for accelerated model deployment and inference.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Model Optimization</h3>
+                        <p>Every model in the Zoo is compatible with our <strong>Auto-Optimizer</strong>, which selects the best backbone based on your target hardware (Jetson, PC, or Mobile).</p>
+                    </article>`
+            },
+            'evaluation-benchmarks': {
+                breadcrumb: 'Core workflow',
+                title: 'Evaluation & Benchmarks',
+                lede: 'Compare runs, metrics, and models tied directly to the dataset and config that produced them.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Scientific Evaluation Framework</h3>
+                        <p>ML FORGE provides a rigorous benchmarking environment to ensure your models are production-ready and free from regressions.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Core Benchmarking Features</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Cross-Model Comparison:</strong> Compare mAP, F1-Score, and Precision-Recall curves across different training runs or architectures.</li>
+                            <li><strong>Regression Detection:</strong> Automatically identify performance drops when using new dataset versions or configurations.</li>
+                            <li><strong>Hardware Benchmarking:</strong> Measure inference latency, throughput (FPS), and power consumption on target devices.</li>
+                            <li><strong>Confusion Matrix:</strong> Deep-dive into class-level performance to identify specific failure modes.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Dataset Integrity</h3>
+                        <p>All evaluations are tied to specific dataset snapshots, ensuring that your benchmarks are always "apples-to-apples" and fully reproducible.</p>
+                    </article>`
+            },
+            'get-started': {
+                breadcrumb: 'Getting started',
+                title: 'Get Started',
+                lede: 'ML FORGE is a desktop-first Vision AI IDE built for local execution and reproducible results. Get up and running in minutes.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Installation Steps</h3>
+                        <p>Follow these steps to install ML FORGE on your local machine:</p>
+                        <ol class="list-decimal ml-6 space-y-4">
+                            <li>
+                                <strong>System Requirements:</strong>
+                                <ul class="list-disc ml-6 mt-2">
+                                    <li>NVIDIA GPU (RTX 30-series or higher recommended) for training.</li>
+                                    <li>Python 3.10+ and CUDA Toolkit 11.8+.</li>
+                                    <li>16GB RAM minimum (32GB recommended).</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Download the Installer:</strong>
+                                <p class="mt-2">Download the latest executable from the <a href="#" class="text-primary hover:underline">Downloads</a> page.</p>
+                            </li>
+                            <li>
+                                <strong>Run the Setup:</strong>
+                                <p class="mt-2">Execute the installer and follow the on-screen instructions. The IDE will automatically configure a virtual environment.</p>
+                            </li>
+                            <li>
+                                <strong>Initialize Workspace:</strong>
+                                <p class="mt-2">Upon first launch, select a directory for your projects. ML FORGE will create the necessary folder structure.</p>
+                            </li>
+                        </ol>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">First Project</h3>
+                        <p>Once installed, start by importing a dataset from the <strong>Dataset Manager</strong> or connecting your <strong>Roboflow</strong> account to pull existing data.</p>
+                    </article>`
+            },
+            'inference': {
+                breadcrumb: 'Validation',
+                title: 'Inference',
+                lede: 'Validate models on real-world images, batches, or streams using exported artifacts.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Real-World Validation</h3>
+                        <p>Run your trained models against new data to verify performance in production-like environments.</p>
+                    </article>`
+            },
+            'benchmark': {
+                breadcrumb: 'Validation',
+                title: 'Benchmark',
+                lede: 'Standardize your model evaluations with repeatable benchmarks and hardware-specific metrics.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Comprehensive Performance Metrics</h3>
+                        <p>Benchmarking in ML FORGE goes beyond simple accuracy. We provide a full suite of metrics to ensure your model is ready for real-world deployment.</p>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-4">Key Metrics Captured</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Inference Latency:</strong> End-to-end time for a single prediction (measured in ms).</li>
+                            <li><strong>Throughput (FPS):</strong> Frames per second processed on target hardware.</li>
+                            <li><strong>Power Consumption:</strong> Estimated energy usage per inference (critical for edge/battery devices).</li>
+                            <li><strong>Model Size:</strong> On-disk and in-memory footprint after optimization.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Hardware Benchmarking</h3>
+                        <p>Run the same model across different hardware profiles (Jetson Nano, RTX 4090, CPU) within the IDE to compare performance and choose the right deployment target.</p>
+                    </article>`
+            },
+            'ide-reference': {
+                breadcrumb: 'Reference',
+                title: 'IDE Reference',
+                lede: 'Master the ML FORGE interface with this detailed guide to panels, shortcuts, and core components.',
+                content: `
+                    <article class="prose prose-slate dark:prose-invert max-w-none text-[15px] leading-relaxed">
+                        <h3 class="text-xl font-bold mt-8 mb-4">Workspace Layout</h3>
+                        <p>The ML FORGE interface is divided into functional zones designed for an efficient AI development workflow.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <h4 class="font-bold mb-2">Primary Sidebar</h4>
+                                <p class="text-sm">Quick access to Dataset Manager, Annotation Studio, Model Zoo, and Training Engine.</p>
+                            </div>
+                            <div class="p-4 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                <h4 class="font-bold mb-2">Central Workspace</h4>
+                                <p class="text-sm">Context-aware panel for labeling, model configuration, or monitoring live training runs.</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Core Components</h3>
+                        <ul class="list-disc ml-6 space-y-2">
+                            <li><strong>Asset Browser:</strong> Manage images, videos, and model weights with drag-and-drop support.</li>
+                            <li><strong>Console & Logs:</strong> Real-time output from the training engine and system diagnostics.</li>
+                            <li><strong>Properties Panel:</strong> Fine-tune hyperparameters and model settings in a structured UI.</li>
+                        </ul>
+
+                        <h3 class="text-xl font-bold mt-8 mb-4">Essential Shortcuts</h3>
+                        <table class="min-w-full mt-4 text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200 dark:border-slate-700">
+                                    <th class="text-left py-2">Action</th>
+                                    <th class="text-left py-2">Shortcut</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tr><td class="py-2">Start Training</td><td class="py-2 font-mono">Ctrl + R</td></tr>
+                                <tr><td class="py-2">Save Dataset Version</td><td class="py-2 font-mono">Ctrl + S</td></tr>
+                                <tr><td class="py-2">Switch Tool</td><td class="py-2 font-mono">Number Keys (1-5)</td></tr>
+                            </tbody>
+                        </table>
+                    </article>`
+            },
+        };
+
+        function updatePageContent(pageKey) {
+            const data = pageData[pageKey] || pageData['annotation-studio'];
+
+            // Update breadcrumb
+            const breadcrumbLink = document.querySelector('#breadcrumb a');
+            const breadcrumbTitle = document.querySelector('#breadcrumb span:last-child');
+            if (breadcrumbLink) breadcrumbLink.textContent = data.breadcrumb;
+            if (breadcrumbTitle) breadcrumbTitle.textContent = data.title;
+
+            // Update content area
+            const dynamicContent = document.getElementById('dynamic-content');
+            if (dynamicContent) {
+                dynamicContent.innerHTML = `
+                    <h1 class="text-5xl md:text-7xl font-bold text-black tracking-tight mb-6">${data.title}</h1>
+                    <p class="mt-4 text-xl text-black max-w-2xl font-medium leading-relaxed">${data.lede}</p>
+                    ${data.content}
+                `;
+            }
+
+            // Update active state in nav
+            const navLinks = document.querySelectorAll('#main-nav a');
+            navLinks.forEach(link => {
+                link.classList.remove('active-tab');
+                link.classList.add('border-b-2', 'border-transparent', 'hover:text-slate-900', 'dark:hover:text-white');
+                if (link.getAttribute('onclick')?.includes(`'${pageKey}'`)) {
+                    link.classList.add('active-tab');
+                    link.classList.remove('border-b-2', 'border-transparent', 'hover:text-slate-900', 'dark:hover:text-white');
+                }
+            });
+
+            // Update URL hash without reload
+            window.location.hash = pageKey;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && pageData[hash]) {
+                updatePageContent(hash);
+            } else {
+                updatePageContent('annotation-studio');
+            }
+        });
+    </script>
+    <!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+    <div id="footer-placeholder"></div>
+    <script src="components.js"></script>
+</body>
+
+</html>

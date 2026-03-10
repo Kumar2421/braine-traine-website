@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Pricing | ML Forge - Industrial-Grade AI/ML IDE</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3ECF8E",
+                        "primary-hover": "#34b27b",
+                        "background-dark": "#000000",
+                        "surface-dark": "#111111",
+                        "surface-darker": "#080808",
+                        "border-dark": "#222222",
+                        "accent-purple": "#A855F7",
+                        "accent-blue": "#3B82F6",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Space Grotesk", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* Absolute Theme Reset */
+        html {
+            background-color: #000000 !important;
+            color-scheme: dark;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        /* Noise Texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 50;
+        }
+
+        /* Core Animations */
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pulse-slow {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.1;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.15;
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse-slow 8s ease-in-out infinite !important;
+        }
+
+        /* Utilities */
+        .grid-pattern {
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .glass-panel {
+            background: rgba(8, 8, 8, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .glow-border {
+            position: relative;
+            background: #080808;
+            border-radius: 1rem;
+        }
+
+        .glow-border::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(62, 207, 142, 0.3), transparent 40%, rgba(59, 130, 246, 0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .pricing-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pricing-card:hover {
+            border-color: rgba(62, 207, 142, 0.4);
+            transform: translateY(-8px);
+            background: rgba(62, 207, 142, 0.02);
+        }
+
+        /* FAQ Accordion */
+        .faq-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 200px;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white selection:bg-primary selection:text-black">
+    <div id="navbar-placeholder"></div>
+
+    <main class="relative">
+        <!-- Hero Section -->
+        <section class="relative pt-40 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+            <!-- Animated Glow -->
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary opacity-10 blur-[120px] rounded-full animate-pulse-slow">
+            </div>
+
+            <div class="max-w-4xl mx-auto relative z-10 reveal">
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-8 backdrop-blur-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#3ECF8E]"></span>
+                    License Protocols FY2026
+                </div>
+
+                <h1 class="text-6xl md:text-8xl font-display font-bold leading-[0.9] mb-8 text-white tracking-tighter">
+                    Industrial power.<br />
+                    <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary">Predictable
+                        scale.</span>
+                </h1>
+
+                <p class="text-xl md:text-2xl text-gray-400 mb-12 leading-relaxed font-light">
+                    Local AI infrastructure built for engineers. Choose a tier that matches your hardware topology, with
+                    zero context switching.
+                </p>
+            </div>
+        </section>
+
+        <!-- Pricing Grid -->
+        <section class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
+            <!-- Monthly/Yearly Toggle -->
+            <div class="flex justify-center mb-16 reveal">
+                <div class="bg-surface-dark p-1 rounded-lg border border-white/5 inline-flex items-center">
+                    <button
+                        class="px-6 py-2 bg-primary text-black font-bold text-xs uppercase tracking-widest rounded-md"
+                        id="toggle-monthly">Monthly</button>
+                    <button class="px-6 py-2 text-gray-500 hover:text-white font-bold text-xs uppercase tracking-widest"
+                        id="toggle-yearly">Yearly (-15%)</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 reveal">
+                <!-- Explore (Free) -->
+                <div class="glow-border p-8 pricing-card flex flex-col">
+                    <div class="mb-6">
+                        <span class="text-[10px] font-mono text-gray-600 uppercase tracking-widest">Entry Level</span>
+                        <h3 class="text-2xl font-display font-bold text-white mt-1">Explore</h3>
+                    </div>
+                    <div class="mb-6">
+                        <span class="text-4xl font-display font-bold text-white">$0</span>
+                        <span class="text-sm text-gray-500">/ single device</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-8 leading-relaxed font-light">
+                        Evaluate the core vision pipeline locally. Build and prototype without commitment.
+                    </p>
+                    <ul class="space-y-4 mb-10 flex-1">
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Dataset Manager Access
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Basic Annotation Studio
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Model Zoo base access
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-600">
+                            <span class="material-icons-outlined text-sm">cancel</span>
+                            Export protocols locked
+                        </li>
+                    </ul>
+                    <a href="download_page.html"
+                        class="w-full py-4 text-center border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all">Download
+                        Free</a>
+                </div>
+
+                <!-- Data Pro -->
+                <div class="glow-border p-8 pricing-card flex flex-col">
+                    <div class="mb-6">
+                        <span class="text-[10px] font-mono text-accent-blue uppercase tracking-widest">Integrity
+                            Phase</span>
+                        <h3 class="text-2xl font-display font-bold text-white mt-1">Data Pro</h3>
+                    </div>
+                    <div class="mb-6" id="price-data">
+                        <span class="text-4xl font-display font-bold text-white">$49</span>
+                        <span class="text-sm text-gray-500">/ workstation / month</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-8 leading-relaxed font-light">
+                        Deterministic prep and locking for serious vision projects.
+                    </p>
+                    <ul class="space-y-4 mb-10 flex-1">
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Everything in Explore
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Full augmentation suite
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Dataset version locking
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-600">
+                            <span class="material-icons-outlined text-sm">cancel</span>
+                            Auto-tuning protocols
+                        </li>
+                    </ul>
+                    <button
+                        class="w-full py-4 text-center border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all">Start
+                        14-Day Trial</button>
+                </div>
+
+                <!-- Train Pro (Featured) -->
+                <div class="glow-border p-8 pricing-card flex flex-col border-primary/40 bg-primary/[0.02]">
+                    <div class="mb-6">
+                        <span class="text-[10px] font-mono text-primary uppercase tracking-widest">Production
+                            Phase</span>
+                        <h3 class="text-2xl font-display font-bold text-white mt-1">Train Pro</h3>
+                    </div>
+                    <div class="mb-6" id="price-train">
+                        <span class="text-4xl font-display font-bold text-white">$99</span>
+                        <span class="text-sm text-gray-500">/ workstation / month</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-8 leading-relaxed font-light">
+                        Full model training visibility and shared GPU orchestration.
+                    </p>
+                    <ul class="space-y-4 mb-10 flex-1">
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Everything in Data Pro
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Hyperparameter sweeps
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Shared GPU scheduling
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Full training logs
+                        </li>
+                    </ul>
+                    <button
+                        class="w-full py-4 text-center bg-primary text-black rounded-lg text-[10px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_15px_rgba(62,207,142,0.3)]">Get
+                        Train Pro</button>
+                </div>
+
+                <!-- Deploy Pro -->
+                <div class="glow-border p-8 pricing-card flex flex-col">
+                    <div class="mb-6">
+                        <span class="text-[10px] font-mono text-accent-purple uppercase tracking-widest">Facility
+                            Level</span>
+                        <h3 class="text-2xl font-display font-bold text-white mt-1">Site License</h3>
+                    </div>
+                    <div class="mb-6" id="price-deploy">
+                        <span class="text-4xl font-display font-bold text-white">Custom</span>
+                        <span class="text-sm text-gray-500">/ fixed hardware parameter</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-8 leading-relaxed font-light">
+                        Production export, benchmarking, and offline edge deployment.
+                    </p>
+                    <ul class="space-y-4 mb-10 flex-1">
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Everything in Train Pro
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            All Export Formats (TRT, ONNX)
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Edge / Air-gapped support
+                        </li>
+                        <li class="flex items-center gap-3 text-xs text-gray-400">
+                            <span class="material-icons-outlined text-primary text-sm">check_circle</span>
+                            Priority Support
+                        </li>
+                    </ul>
+                    <button
+                        class="w-full py-4 text-center border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all">Submit
+                        Technical Requirements</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Matrix Table (Supabase Style) -->
+        <section class="py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/5 reveal">
+            <div class="mb-16">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-8 h-[1px] bg-primary"></span>
+                    <span class="text-[10px] font-mono text-primary uppercase tracking-[0.2em]">Deep Comparison</span>
+                </div>
+                <h2 class="text-4xl font-display font-bold text-white mb-4 tracking-tight">Technical Feature Matrix</h2>
+                <p class="text-gray-500 font-light max-w-2xl">A granular breakdown of the ML Forge kernel capabilities
+                    across different licensing protocols.</p>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-white/5 bg-surface-darker/20 backdrop-blur-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/[0.02]">
+                            <th
+                                class="py-6 px-8 text-[10px] font-mono uppercase tracking-widest text-gray-500 border-b border-white/5">
+                                Capability</th>
+                            <th
+                                class="py-6 px-6 text-[10px] font-mono uppercase tracking-widest text-white border-b border-white/5">
+                                Explore</th>
+                            <th
+                                class="py-6 px-6 text-[10px] font-mono uppercase tracking-widest text-white border-b border-white/5">
+                                Data Pro</th>
+                            <th
+                                class="py-6 px-6 text-[10px] font-mono uppercase tracking-widest text-white border-b border-white/5">
+                                Train Pro</th>
+                            <th
+                                class="py-6 px-6 text-[10px] font-mono uppercase tracking-widest text-white border-b border-white/5">
+                                Deploy Pro</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-[11px]">
+                        <!-- Core Workflow -->
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Build, Label, Train Locally</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Model Zoo Access</td>
+                            <td class="py-5 px-6 text-gray-600">Most Models</td>
+                            <td class="py-5 px-6 text-gray-600">Most Models</td>
+                            <td class="py-5 px-6 text-primary">All Models</td>
+                            <td class="py-5 px-6 text-primary">All Models</td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Annotation Tools</td>
+                            <td class="py-5 px-6 text-gray-600">Basic</td>
+                            <td class="py-5 px-6 text-primary">Full + Review</td>
+                            <td class="py-5 px-6 text-primary">Full + Review</td>
+                            <td class="py-5 px-6 text-primary">Full + Review</td>
+                        </tr>
+                        <!-- Data Management -->
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Face Dataset Conversion</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Advanced Augmentations</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                        </tr>
+                        <!-- Training & Analysis -->
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Training Engine</td>
+                            <td class="py-5 px-6 text-gray-600">Small/Med</td>
+                            <td class="py-5 px-6 text-gray-600">Small/Med</td>
+                            <td class="py-5 px-6 text-primary">All + Auto-tune</td>
+                            <td class="py-5 px-6 text-primary">All + Auto-tune</td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Inference Visibility</td>
+                            <td class="py-5 px-6 text-gray-600">Basic</td>
+                            <td class="py-5 px-6 text-yellow-500/50">Limited</td>
+                            <td class="py-5 px-6 text-primary">Full Runtime</td>
+                            <td class="py-5 px-6 text-primary">Full Runtime</td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Training Audit Logs</td>
+                            <td class="py-5 px-6 text-gray-700">7 Days</td>
+                            <td class="py-5 px-6 text-gray-500">30 Days</td>
+                            <td class="py-5 px-6 text-accent-blue">90 Days</td>
+                            <td class="py-5 px-6 text-primary font-bold">Infinite</td>
+                        </tr>
+                        <!-- Export & Deployment -->
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Export Formats (TRT, ONNX)</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6 text-yellow-500/50">Limited Presets</td>
+                            <td class="py-5 px-6 text-primary font-bold">All Edge Formats</td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Benchmarking Suite</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6 text-yellow-500/50">Basic</td>
+                            <td class="py-5 px-6 text-primary font-bold">Full Analytical</td>
+                        </tr>
+                        <tr class="group border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Offline/Air-gap License</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6 text-primary font-bold">Standard</td>
+                        </tr>
+                        <!-- Collaborative -->
+                        <tr class="group hover:bg-white/[0.01] transition-colors">
+                            <td class="py-5 px-8 text-gray-400 group-hover:text-white">Team Collaboration</td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-gray-700 text-sm">close</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                            <td class="py-5 px-6"><span
+                                    class="material-icons-outlined text-primary text-sm">check</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="py-32 bg-surface-darker/30 border-t border-white/5 reveal">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-20">
+                    <h2 class="text-4xl font-display font-bold text-white mb-6 tracking-tight">Frequently Asked
+                        Questions</h2>
+                    <p class="text-xl text-gray-400 font-light leading-relaxed">
+                        Everything you need to know about ML Forge licensing and deployment.
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <!-- Q1 -->
+                    <div class="faq-item group" onclick="toggleFaq(this)">
+                        <button class="w-full py-8 flex items-center justify-between text-left focus:outline-none">
+                            <span class="text-lg font-bold text-gray-200 group-hover:text-white transition-colors">What
+                                happens after my Data Pro trial ends?</span>
+                            <span
+                                class="material-icons-outlined faq-icon text-primary transition-transform duration-300">add</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p class="pb-8 text-gray-400 leading-relaxed font-light">
+                                After your 14-day trial, your project will automatically revert to the Explore (Free)
+                                tier unless you provide payment information. All your data remains intact, but advanced
+                                features like version locking will be inaccessible until you upgrade.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Q2 -->
+                    <div class="faq-item group" onclick="toggleFaq(this)">
+                        <button class="w-full py-8 flex items-center justify-between text-left focus:outline-none">
+                            <span class="text-lg font-bold text-gray-200 group-hover:text-white transition-colors">Can I
+                                use ML Forge in air-gapped environments?</span>
+                            <span
+                                class="material-icons-outlined faq-icon text-primary transition-transform duration-300">add</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p class="pb-8 text-gray-400 leading-relaxed font-light">
+                                Yes. The Deploy Pro tier includes support for completely offline licensing and edge
+                                deployment protocols. We provide signed binaries that can be deployed via your internal
+                                artifact management system.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Q3 -->
+                    <div class="faq-item group" onclick="toggleFaq(this)">
+                        <button class="w-full py-8 flex items-center justify-between text-left focus:outline-none">
+                            <span class="text-lg font-bold text-gray-200 group-hover:text-white transition-colors">Do
+                                you offer multi-user enterprise plans?</span>
+                            <span
+                                class="material-icons-outlined faq-icon text-primary transition-transform duration-300">add</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p class="pb-8 text-gray-400 leading-relaxed font-light">
+                                Absolutely. For teams larger than 10 engineers, we offer volume-based licensing and
+                                dedicated on-prem orchestration servers. Contact our engineering support team for a
+                                custom quote and architectural review.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Q4 -->
+                    <div class="faq-item group" onclick="toggleFaq(this)">
+                        <button class="w-full py-8 flex items-center justify-between text-left focus:outline-none">
+                            <span class="text-lg font-bold text-gray-200 group-hover:text-white transition-colors">What
+                                hardware is supported for Edge deployment?</span>
+                            <span
+                                class="material-icons-outlined faq-icon text-primary transition-transform duration-300">add</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p class="pb-8 text-gray-400 leading-relaxed font-light">
+                                ML Forge natively supports NVIDIA Jetson (Orin, Xavier, Nano), Google Coral TPUs, and
+                                ARM-based processors. Our Deploy Pro tier includes automated optimization for TensorRT
+                                and ONNX Runtime.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-32 px-4 reveal">
+            <div class="max-w-4xl mx-auto glass-panel p-12 md:p-20 text-center relative overflow-hidden group">
+                <div class="absolute inset-0 grid-pattern opacity-10"></div>
+                <h2 class="text-4xl md:text-5xl font-display font-bold text-white mb-8 tracking-tighter">Ready to
+                    engineer
+                    deterministic AI?</h2>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
+                    <button
+                        class="bg-primary hover:bg-primary-hover text-black px-10 py-5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all">Get
+                        Local License</button>
+                    <button
+                        class="border border-white/10 hover:bg-white/5 text-white px-10 py-5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all">Discuss
+                        Technical Integration</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="components.js"></script>
+    <script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            const isActive = element.classList.contains('active');
+            document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+            if (!isActive) {
+                element.classList.add('active');
+            }
+        }
+
+        // Pricing Toggle
+        const monthlyBtn = document.getElementById('toggle-monthly');
+        const yearlyBtn = document.getElementById('toggle-yearly');
+
+        monthlyBtn.addEventListener('click', () => {
+            monthlyBtn.classList.add('bg-primary', 'text-black');
+            monthlyBtn.classList.remove('text-gray-500');
+            yearlyBtn.classList.add('text-gray-500');
+            yearlyBtn.classList.remove('bg-primary', 'text-black');
+            updatePrices('monthly');
+        });
+
+        yearlyBtn.addEventListener('click', () => {
+            yearlyBtn.classList.add('bg-primary', 'text-black');
+            yearlyBtn.classList.remove('text-gray-500');
+            monthlyBtn.classList.add('text-gray-500');
+            monthlyBtn.classList.remove('bg-primary', 'text-black');
+            updatePrices('yearly');
+        });
+
+        function updatePrices(tier) {
+            const dataP = document.getElementById('price-data');
+            const trainP = document.getElementById('price-train');
+            const deployP = document.getElementById('price-deploy');
+
+            if (tier === 'monthly') {
+                dataP.querySelector('.text-4xl').innerText = '$49';
+                trainP.querySelector('.text-4xl').innerText = '$99';
+                deployP.querySelector('.text-4xl').innerText = 'Custom';
+            } else {
+                dataP.querySelector('.text-4xl').innerText = '$490';
+                trainP.querySelector('.text-4xl').innerText = '$990';
+                deployP.querySelector('.text-4xl').innerText = 'Custom';
+            }
+        }
+
+        // Standard Reveal Animation
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('reveal');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    </script>
+</body>
+
+</html>

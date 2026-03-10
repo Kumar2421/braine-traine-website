@@ -1,0 +1,44 @@
+.iframe-wrapper {
+    position: relative;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.iframe-full {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.iframe-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.iframe-spinner {
+    width: 38px;
+    height: 38px;
+    border: 2px solid rgba(102, 255, 153, 0.18);
+    border-top-color: #66FF99;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

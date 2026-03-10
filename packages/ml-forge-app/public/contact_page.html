@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ml forge - Engineering Support & Community</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#66FF99",
+                        "primary-hover": "#52E085",
+                        "background-dark": "#0B0B0B",
+                        "surface-dark": "#141414",
+                        "accent-yellow": "#FFFF33",
+                        "text-dark": "#E5E5E5",
+                        "subtle-dark": "#1A1A1A",
+                        accent: "#66FF99",
+                        "text-gray": "#A3A3A3",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Manrope', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                        DEFAULT: "4px",
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        .glass-card {
+            background: rgba(20, 20, 20, 0.4);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(102, 255, 153, 0.5);
+        }
+        .dashboard-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+    @keyframes slideInUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-slide-up {
+    animation: slideInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+    }
+    .animate-float {
+    animation: float 6s ease-in-out infinite;
+    }
+    .technical-label {
+    font-size: 9px;
+    color: #71717a;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    display: block;
+    }
+    .boundary-tag {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.125rem;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 1px solid rgba(102, 255, 153, 0.4);
+    background: rgba(102, 255, 153, 0.1);
+    color: #66FF99;
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    .shimmer-text {
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+        background-size: 200% 100%;
+        animation: shimmer 3s infinite;
+    }
+    @keyframes grid-pan {
+        0% { background-position: 0 0; }
+        100% { background-position: 40px 40px; }
+    }
+    .dashboard-grid {
+        animation: grid-pan 10s linear infinite;
+    }
+    .glass-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 30%, rgba(102, 255, 153, 0.05) 50%, transparent 70%);
+        background-size: 200% 100%;
+        opacity: 0;
+        transition: opacity 0.5s;
+        pointer-events: none;
+    }
+    .glass-card:hover::after {
+        opacity: 1;
+        animation: shimmer 2s infinite linear;
+    }
+    .glass-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(102, 255, 153, 0.3) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(102, 255, 153, 0.05);
+    }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-white bg-background-dark">
+    <!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+    <div id="navbar-placeholder"></div>
+
+    <header class="relative pt-32 pb-40 overflow-hidden border-b border-white/5 bg-background-dark">
+        <div class="absolute inset-0 opacity-10 dashboard-grid"></div>
+
+        <!-- Background Animation Elements -->
+        <div class="absolute top-1/4 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-1/4 right-10 w-96 h-96 bg-accent-yellow/5 rounded-full blur-3xl animate-pulse"
+            style="animation-delay: 2s"></div>
+
+        <div class="max-w-5xl mx-auto px-4 relative z-10 text-center">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-8">
+                Inquiry Gateway // Support v2.1
+            </div>
+            <h1
+                class="text-6xl md:text-9xl font-black text-white leading-[0.8] tracking-tighter uppercase italic mb-8 animate-slide-up group">
+                Forge <br /> <span
+                    class="text-primary text-glow transition-all duration-700 group-hover:tracking-widest">Connection.</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto leading-relaxed font-medium animate-slide-up"
+                style="animation-delay: 0.2s;">
+                Direct access to ML Forge engineers and the local-first Vision AI community.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <!-- Form Section -->
+            <div class="lg:col-span-7">
+                <div class="mb-12">
+                    <span class="technical-label">Communication Layer</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase mb-2">
+                        Initialize <span class="text-primary">Contact.</span>
+                    </h2>
+                    <p class="text-gray-500 font-medium">Connect with our engineering and sales architecture teams.</p>
+                </div>
+
+                <form id="contact-form" class="glass-card p-10 relative group overflow-hidden space-y-8">
+                    <div class="absolute top-0 right-0 p-4 font-mono text-[9px] text-gray-700">INQ-0xDEADBEEF</div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
+                            <label class="technical-label">First Name *</label>
+                            <input name="first_name" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder-gray-600"
+                                placeholder="John" type="text" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="technical-label">Last Name *</label>
+                            <input name="last_name" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder-gray-600"
+                                placeholder="Doe" type="text" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
+                            <label class="technical-label">Corporate Email *</label>
+                            <input name="email" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder-gray-600"
+                                placeholder="john@enterprise.ai" type="email" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="technical-label">Organization *</label>
+                            <input name="company" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder-gray-600"
+                                placeholder="DeepForge Tech" type="text" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-2">
+                            <label class="technical-label">Infrastructure Context *</label>
+                            <select name="use_case" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer">
+                                <option value="" class="bg-background-dark">Select specialization...</option>
+                                <option value="enterprise_license" class="bg-background-dark">Custom Enterprise License
+                                </option>
+                                <option value="consultation" class="bg-background-dark">Architectural Consultation
+                                </option>
+                                <option value="object_detection" class="bg-background-dark">Object Detection</option>
+                                <option value="face_recognition" class="bg-background-dark">Face Recognition</option>
+                                <option value="segmentation" class="bg-background-dark">Instance Segmentation</option>
+                                <option value="edge_deployment" class="bg-background-dark">Edge Deployment</option>
+                                <option value="other" class="bg-background-dark">Custom Vision Protocol</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="technical-label">Hardware Target *</label>
+                            <select name="hardware" required
+                                class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer">
+                                <option value="" class="bg-background-dark">Select architecture...</option>
+                                <option value="nvidia_rtx" class="bg-background-dark">NVIDIA RTX (30/40 series)</option>
+                                <option value="nvidia_jetson" class="bg-background-dark">NVIDIA Jetson (Edge)</option>
+                                <option value="apple_silicon" class="bg-background-dark">Apple Silicon (M1/M2/M3)
+                                </option>
+                                <option value="amd_rocm" class="bg-background-dark">AMD ROCm</option>
+                                <option value="cpu_only" class="bg-background-dark">CPU Cluster</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="technical-label">Detailed Intelligence</label>
+                        <textarea name="message"
+                            class="w-full bg-white/5 border border-white/10 rounded p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder-gray-600 h-32 resize-none"
+                            placeholder="Specify vision pipeline requirements or hardware constraints..."></textarea>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row items-center gap-6 pt-4">
+                        <button id="submit-btn"
+                            class="w-full md:w-auto px-12 py-4 bg-primary hover:bg-primary-hover text-black font-black uppercase italic tracking-tighter transition-all disabled:opacity-50"
+                            type="submit">
+                            Transmit Request
+                        </button>
+                        <p class="text-[10px] text-gray-600 font-mono leading-tight max-w-[200px]">
+                            By initiating transmission, you adhere to the ML Forge <a href="privacy_page.html"
+                                class="text-primary hover:underline">Privacy Protocol</a>.
+                        </p>
+                    </div>
+                    <div id="form-status" class="hidden text-sm font-black uppercase text-center md:text-left"></div>
+                </form>
+                <div class="mt-8 text-left text-sm text-gray-400">
+                    <h4 class="text-white text-lg font-bold mb-4">Inquiries</h4>
+                    <ul class="space-y-2 font-mono">
+                        <li>- Enterprise procurement & volume licensing</li>
+                        <li>- Technical partnerships & hardware integrations</li>
+                        <li>- Custom model deployment integrations</li>
+                        <li>- Edge deployment engineering consulting</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Visual Support Cards -->
+            <div class="lg:col-span-5 flex flex-col gap-8 pt-12 lg:pt-0">
+                <a href="#"
+                    class="glass-card p-10 group hover:border-primary/40 relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                    <div class="absolute top-0 right-0 p-4 font-mono text-[9px] text-gray-700">PRT-01</div>
+                    <div>
+                        <span
+                            class="material-symbols-outlined text-primary mb-6 text-3xl group-hover:scale-110 transition-transform">support_agent</span>
+                        <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Kernel Support
+                        </h3>
+                        <p class="text-xs text-gray-500 leading-relaxed font-medium">Direct line to core developers for
+                            urgent system troubleshooting and integration audits.</p>
+                    </div>
+                    <div
+                        class="boundary-tag bg-primary/10 border-primary/40 text-primary mt-6 w-fit group-hover:bg-primary group-hover:text-black transition-colors uppercase tracking-widest font-black text-[10px]">
+                        Open Ticket</div>
+                </a>
+
+                <a href="#"
+                    class="glass-card p-10 group hover:border-accent-yellow/40 relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                    <div class="absolute top-0 right-0 p-4 font-mono text-[9px] text-gray-700">COM-02</div>
+                    <div>
+                        <span
+                            class="material-symbols-outlined text-accent-yellow mb-6 text-3xl group-hover:scale-110 transition-transform">forum</span>
+                        <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Neural Hub
+                        </h3>
+                        <p class="text-xs text-gray-500 leading-relaxed font-medium">Collaborate with thousands of
+                            vision engineering experts on our verified Discord servers.</p>
+                    </div>
+                    <div
+                        class="boundary-tag bg-accent-yellow/10 border-accent-yellow/40 text-accent-yellow mt-6 w-fit group-hover:bg-accent-yellow group-hover:text-black transition-colors uppercase tracking-widest font-black text-[10px]">
+                        Join Discord</div>
+                </a>
+
+                <a href="docs_page.html"
+                    class="glass-card p-10 group hover:border-white/40 relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                    <div class="absolute top-0 right-0 p-4 font-mono text-[9px] text-gray-700">DOC-03</div>
+                    <div>
+                        <span
+                            class="material-symbols-outlined text-white mb-6 text-3xl group-hover:scale-110 transition-transform">menu_book</span>
+                        <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Technical Logs
+                        </h3>
+                        <p class="text-xs text-gray-500 leading-relaxed font-medium">Access full SDK documentation,
+                            model zoo manifests, and edge-native deployment guides.</p>
+                    </div>
+                    <div
+                        class="boundary-tag bg-white/10 border-white/40 text-white mt-6 w-fit group-hover:bg-white group-hover:text-black transition-colors uppercase tracking-widest font-black text-[10px]">
+                        Explore Docs</div>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+    <div id="footer-placeholder"></div>
+    <script src="components.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+        let supabase = null;
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL') {
+            supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const contactForm = document.getElementById('contact-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const formStatus = document.getElementById('form-status');
+
+            if (contactForm) {
+                contactForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    if (!supabase) {
+                        alert('Supabase is not configured. Please set project credentials.');
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Transmitting...';
+                    formStatus.classList.remove('hidden', 'text-red-500', 'text-primary');
+                    formStatus.textContent = '';
+
+                    const formData = new FormData(contactForm);
+                    const data = {
+                        first_name: formData.get('first_name'),
+                        last_name: formData.get('last_name'),
+                        email: formData.get('email'),
+                        company: formData.get('company'),
+                        use_case: formData.get('use_case'),
+                        hardware: formData.get('hardware'),
+                        message: formData.get('message'),
+                        created_at: new Date().toISOString()
+                    };
+
+                    try {
+                        const { error } = await supabase.from('contact_submissions').insert([data]);
+                        if (error) throw error;
+                        formStatus.classList.add('text-primary');
+                        formStatus.textContent = '// SUCCESS: Transmission received. Response queued.';
+                        contactForm.reset();
+                    } catch (error) {
+                        formStatus.classList.add('text-red-500');
+                        formStatus.textContent = '// ERROR: Transmission interrupted. Retrying required.';
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Transmit Request';
+                        formStatus.classList.remove('hidden');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

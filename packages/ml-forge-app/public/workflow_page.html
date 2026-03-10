@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Workflow | ML Forge - Industrial-Grade AI/ML IDE</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3ECF8E",
+                        "primary-hover": "#34b27b",
+                        "background-dark": "#000000",
+                        "surface-dark": "#111111",
+                        "surface-darker": "#080808",
+                        "border-dark": "#222222",
+                        "accent-purple": "#A855F7",
+                        "accent-blue": "#3B82F6",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Space Grotesk", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* Absolute Theme Reset */
+        html {
+            background-color: #000000 !important;
+            color-scheme: dark;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        /* Noise Texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 50;
+        }
+
+        /* Core Animations */
+        @keyframes reveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes orbital-float {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: translate(20px, -100px) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .node {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #3ECF8E;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #3ECF8E;
+            animation: orbital-float 15s infinite linear;
+        }
+
+        /* Utilities */
+        .grid-pattern {
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .glass-panel {
+            background: rgba(8, 8, 8, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .glow-border {
+            position: relative;
+            background: #080808;
+            border-radius: 1rem;
+        }
+
+        .glow-border::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(62, 207, 142, 0.3), transparent 40%, rgba(59, 130, 246, 0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-slow {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.1;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.15;
+            }
+        }
+
+        @keyframes beam {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse-slow 8s ease-in-out infinite !important;
+        }
+
+        .animate-beam {
+            animation: beam 4s linear infinite !important;
+        }
+
+        /* Nav Transition */
+        .nav-scrolled {
+            background: rgba(0, 0, 0, 0.8) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Custom Hover Effects */
+        .technical-card {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .technical-card:hover {
+            border-color: rgba(62, 207, 142, 0.3);
+            transform: translateY(-4px);
+            background: rgba(62, 207, 142, 0.02);
+        }
+
+        /* Language Tab Active */
+        .tab-active {
+            color: #3ECF8E;
+            border-bottom: 2px solid #3ECF8E;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white selection:bg-primary selection:text-black">
+    <div id="navbar-placeholder"></div>
+
+    <main class="relative">
+        <!-- Hero Section -->
+        <section
+            class="relative min-h-[90vh] flex flex-col justify-center items-center text-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-30"></div>
+
+            <!-- Animated Glow -->
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary opacity-10 blur-[120px] rounded-full animate-pulse-slow">
+            </div>
+
+            <!-- Moving Beams -->
+            <div class="absolute inset-0 pointer-events-none opacity-50">
+                <div
+                    class="absolute top-20 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-beam">
+                </div>
+                <div class="absolute bottom-40 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-primary/30 to-transparent animate-beam"
+                    style="animation-delay: 1.5s"></div>
+            </div>
+
+            <!-- Orbital Nodes -->
+            <div class="absolute inset-0 z-0 pointer-events-none opacity-20">
+                <div class="node" style="top: 80%; left: 10%; animation-delay: 0s;"></div>
+                <div class="node" style="top: 60%; left: 80%; animation-delay: 5s;"></div>
+                <div class="node" style="top: 90%; left: 40%; animation-delay: 2s;"></div>
+                <div class="node" style="top: 40%; left: 20%; animation-delay: 8s;"></div>
+                <div class="node" style="top: 70%; left: 60%; animation-delay: 3s;"></div>
+            </div>
+
+            <div class="relative z-10 py-20 reveal">
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-8 backdrop-blur-sm mx-auto">
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#3ECF8E]"></span>
+                    Core Distribution / Local Desktop Architecture
+                </div>
+
+                <h1 class="text-6xl md:text-8xl font-display font-bold leading-[0.9] mb-8 text-white tracking-tighter">
+                    Refine the data.<br />
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary">Forge
+                        the model.</span>
+                </h1>
+
+                <p class="text-lg md:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+                    Transform raw multi-modal datasets into production-grade intelligence.
+                    Automate the entire lifecycle with <span class="text-white font-medium">zero-copy versioning</span>
+                    and
+                    <span class="text-white font-medium">multi-target</span> edge deployment.
+                </p>
+
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <a class="bg-primary hover:bg-primary-hover text-black px-8 py-4 rounded font-bold transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(62,207,142,0.4)] text-sm uppercase tracking-widest flex items-center gap-2"
+                        href="#">
+                        Deploy Fleet <span class="material-icons-outlined">arrow_forward</span>
+                    </a>
+                    <a class="border border-white/10 hover:bg-white/5 text-white px-8 py-4 rounded font-bold transition-all text-sm uppercase tracking-widest backdrop-blur-sm"
+                        href="#">
+                        API Reference
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Industry Ecosystems Band -->
+        <section class="py-16 border-y border-white/5 bg-surface-darker/50 relative z-20 overflow-hidden">
+            <div class="absolute inset-0 grid-pattern opacity-10"></div>
+            <div class="max-w-7xl mx-auto px-6 relative z-10">
+                <p class="text-[10px] text-gray-500 uppercase tracking-[0.4em] mb-12 text-center font-bold opacity-60">
+                    Integrated with SOTA Industrial Ecosystems
+                </p>
+                <div
+                    class="flex flex-wrap justify-center items-center gap-10 md:gap-24 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-700">
+                    <div class="flex flex-col items-center group">
+                        <span
+                            class="text-2xl font-black italic tracking-tighter text-white group-hover:text-primary transition-colors">NVIDIA</span>
+                    </div>
+                    <div class="flex flex-col items-center group">
+                        <span
+                            class="text-2xl font-black tracking-widest text-white group-hover:text-accent-blue transition-colors">PyTorch</span>
+                    </div>
+                    <div class="flex flex-col items-center group">
+                        <span
+                            class="text-2xl font-bold font-mono text-white group-hover:text-primary transition-colors">ONNX</span>
+                    </div>
+                    <div class="flex flex-col items-center group">
+                        <span
+                            class="text-2xl font-extrabold tracking-tight text-white group-hover:text-gray-300 transition-colors">COREML</span>
+                    </div>
+                    <div class="flex flex-col items-center group">
+                        <span
+                            class="text-lg font-medium text-white border border-white/20 px-3 py-1 group-hover:border-primary group-hover:text-primary transition-all">HuggingFace</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Pillars Grid -->
+        <section class="py-24 px-4 sm:px-6 lg:px-8 bg-surface-darker relative overflow-hidden border-t border-white/5">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-20 reveal">
+                    <h2 class="text-4xl md:text-5xl font-display font-bold text-white mb-6 tracking-tight">
+                        Built for industrial <span class="text-primary italic">rigor</span>.
+                    </h2>
+                    <p class="text-xl text-gray-500 font-light max-w-2xl">
+                        A strict, local control plane for complex ML operations. Immutable configurations. No data
+                        movement.
+                    </p>
+                </div>
+
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/5 reveal">
+                    <!-- Pillar 01: Unified Data Fabric -->
+                    <div class="bg-black p-12 group hover:bg-white/[0.02] transition-all relative">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div
+                                class="w-12 h-12 rounded bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-colors">
+                                <span class="material-icons-outlined text-3xl">storage</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Unified Data Fabric</h3>
+                        </div>
+                        <p class="text-gray-400 leading-relaxed mb-8">
+                            Connect petabytes of multi-modal data without moving a single byte.
+                            Zero-copy indexing supports S3, Azure, and local NAS with instant versioning.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">Zero-Copy</span>
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">S3-Native</span>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 02: Industrial Studio -->
+                    <div class="bg-black p-12 group hover:bg-white/[0.02] transition-all relative">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div
+                                class="w-12 h-12 rounded bg-accent-blue/10 flex items-center justify-center text-accent-blue group-hover:bg-accent-blue group-hover:text-white transition-colors">
+                                <span class="material-icons-outlined text-3xl">model_training</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Industrial Studio</h3>
+                        </div>
+                        <p class="text-gray-400 leading-relaxed mb-8">
+                            A high-density labeling environment with Model-Assisted Labeling (MAL).
+                            Accelerate projects by 10x with active learning on proprietary datasets.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">AI-Assisted</span>
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">Pixel-Perfect</span>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 03: Edge Optimizer -->
+                    <div class="bg-black p-12 group hover:bg-white/[0.02] transition-all relative">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div
+                                class="w-12 h-12 rounded bg-accent-purple/10 flex items-center justify-center text-accent-purple group-hover:bg-accent-purple group-hover:text-white transition-colors">
+                                <span class="material-icons-outlined text-3xl">developer_board</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Edge Optimizer</h3>
+                        </div>
+                        <p class="text-gray-400 leading-relaxed mb-8">
+                            Automatically compile models for specialized hardware: NVIDIA Jetson, Coral, and ARM.
+                            Built-in pruning and INT8 quantization targets.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">TensorRT</span>
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">ONNX</span>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 04: Fleet Manager -->
+                    <div class="bg-black p-12 group hover:bg-white/[0.02] transition-all relative">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div
+                                class="w-12 h-12 rounded bg-white/10 flex items-center justify-center text-white group-hover:bg-white group-hover:text-black transition-colors">
+                                <span class="material-icons-outlined text-3xl">hub</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Fleet Manager</h3>
+                        </div>
+                        <p class="text-gray-400 leading-relaxed mb-8">
+                            Orchestrate over-the-air updates for thousands of production nodes.
+                            Monitor performance drift and trigger automated rollbacks instantly.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">OTA
+                                Ready</span>
+                            <span
+                                class="px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-gray-500 uppercase font-mono">Drift
+                                Alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lifecycle Stepper / Workflow Lifecycle -->
+        <section class="py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative border-t border-white/5">
+            <div class="mb-24 text-center max-w-3xl mx-auto reveal">
+                <h2 class="text-4xl md:text-5xl font-display font-bold text-white mb-6 tracking-tight">
+                    The Industrial ML Lifecycle
+                </h2>
+                <p class="text-lg text-gray-400 font-light">
+                    Five engineering steps to move from raw sensors to distributed edge intelligence.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 reveal">
+                <!-- 01 Organize -->
+                <div class="glow-border p-6 technical-card flex flex-col h-full">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary">
+                            <span class="material-icons-outlined text-xl">dataset</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-gray-600">01 / CAPTURE</span>
+                    </div>
+                    <h4 class="text-white font-bold mb-3">Organize</h4>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-6">Map S3/GCS buckets with zero-copy indexing.
+                    </p>
+                    <div
+                        class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                        <span class="text-primary animate-pulse">SYNC READY</span>
+                        <span class="text-gray-700">v2.1</span>
+                    </div>
+                </div>
+
+                <!-- 02 Label -->
+                <div class="glow-border p-6 technical-card flex flex-col h-full">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div
+                            class="w-10 h-10 rounded bg-accent-blue/10 flex items-center justify-center text-accent-blue">
+                            <span class="material-icons-outlined text-xl">gesture</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-gray-600">02 / ENRICH</span>
+                    </div>
+                    <h4 class="text-white font-bold mb-3">Label</h4>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-6">Deploy pixel-accurate AI-assisted studio.</p>
+                    <div
+                        class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                        <span class="text-accent-blue">MAL ACTIVE</span>
+                        <span class="text-gray-700">99.8%</span>
+                    </div>
+                </div>
+
+                <!-- 03 Train -->
+                <div class="glow-border p-6 technical-card flex flex-col h-full">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div
+                            class="w-10 h-10 rounded bg-accent-purple/10 flex items-center justify-center text-accent-purple">
+                            <span class="material-icons-outlined text-xl">memory</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-gray-600">03 / COMPUTE</span>
+                    </div>
+                    <h4 class="text-white font-bold mb-3">Train</h4>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-6">Scale DDP training with auto-checkpointing.
+                    </p>
+                    <div class="mt-auto pt-4 border-t border-white/5">
+                        <div class="h-1 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full bg-accent-purple w-2/3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 04 Benchmark -->
+                <div class="glow-border p-6 technical-card flex flex-col h-full">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div
+                            class="w-10 h-10 rounded bg-yellow-500/10 flex items-center justify-center text-yellow-500">
+                            <span class="material-icons-outlined text-xl">analytics</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-gray-600">04 / VERIFY</span>
+                    </div>
+                    <h4 class="text-white font-bold mb-3">Benchmark</h4>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-6">Validate against gold datasets automatically.
+                    </p>
+                    <div
+                        class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                        <span class="text-yellow-500">mAP 0.98</span>
+                        <span class="text-gray-700">STABLE</span>
+                    </div>
+                </div>
+
+                <!-- 05 Deploy -->
+                <div class="glow-border p-6 technical-card flex flex-col h-full">
+                    <div class="mb-6 flex justify-between items-start">
+                        <div class="w-10 h-10 rounded bg-white/10 flex items-center justify-center text-white">
+                            <span class="material-icons-outlined text-xl">rocket_launch</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-gray-600">05 / EDGE</span>
+                    </div>
+                    <h4 class="text-white font-bold mb-3">Deploy</h4>
+                    <p class="text-gray-500 text-xs leading-relaxed mb-6">Push signed binaries to edge fleets
+                        over-the-air.</p>
+                    <div
+                        class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
+                        <span class="text-white">14 NODES</span>
+                        <span class="text-gray-700">OTA</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Developer Guide (Supabase Style) -->
+        <section class="bg-surface-darker py-32 px-4 sm:px-6 lg:px-8 border-t border-white/5 relative overflow-hidden">
+            <div class="max-w-7xl mx-auto">
+                <div class="mb-20 reveal">
+                    <h2 class="text-4xl md:text-5xl font-display font-bold text-white mb-6 tracking-tight">
+                        Start building in <span class="text-primary italic">minutes</span>.
+                    </h2>
+                    <p class="text-xl text-gray-400 max-w-2xl font-light">
+                        From environment setup to edge deployment, ML Forge provides a seamless, developer-first
+                        experience.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start reveal">
+                    <!-- Left: Stepper -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <!-- Step 1 -->
+                        <div class="group cursor-pointer p-6 rounded-xl border border-white/5 bg-white/[0.02] transition-all"
+                            onclick="updateGuide(1)" id="step-1">
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 rounded-full border border-primary/30 flex items-center justify-center text-primary font-mono text-sm group-hover:bg-primary group-hover:text-black transition-all"
+                                    id="dot-1">01</div>
+                                <div class="flex-1">
+                                    <h4 class="text-white font-bold mb-1 transition-colors" id="title-1">Setup
+                                        Environment</h4>
+                                    <p class="text-gray-500 text-sm leading-relaxed">Install the CLI and initialize your
+                                        first local project workspace.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="group cursor-pointer p-6 rounded-xl border border-transparent hover:border-white/5 transition-all"
+                            onclick="updateGuide(2)" id="step-2">
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-gray-500 font-mono text-sm group-hover:border-primary/30 group-hover:text-primary transition-all"
+                                    id="dot-2">02</div>
+                                <div class="flex-1">
+                                    <h4 class="text-gray-500 font-bold mb-1 transition-colors" id="title-2">Connect Data
+                                        Lake</h4>
+                                    <p class="text-gray-500 text-sm leading-relaxed">Map your S3 buckets or local
+                                        directories with zero-copy versioning.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="group cursor-pointer p-6 rounded-xl border border-transparent hover:border-white/5 transition-all"
+                            onclick="updateGuide(3)" id="step-3">
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-gray-500 font-mono text-sm group-hover:border-primary/30 group-hover:text-primary transition-all"
+                                    id="dot-3">03</div>
+                                <div class="flex-1">
+                                    <h4 class="text-gray-500 font-bold mb-1 transition-colors" id="title-3">Define
+                                        Pipeline</h4>
+                                    <p class="text-gray-500 text-sm leading-relaxed">Configure labeling protocols and
+                                        training hyperparameters via SDK.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="group cursor-pointer p-6 rounded-xl border border-transparent hover:border-white/5 transition-all"
+                            onclick="updateGuide(4)" id="step-4">
+                            <div class="flex gap-4">
+                                <div class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-gray-500 font-mono text-sm group-hover:border-primary/30 group-hover:text-primary transition-all"
+                                    id="dot-4">04</div>
+                                <div class="flex-1">
+                                    <h4 class="text-gray-500 font-bold mb-1 transition-colors" id="title-4">Deploy to
+                                        Fleet</h4>
+                                    <p class="text-gray-500 text-sm leading-relaxed">Push optimized TensorRT binaries to
+                                        your edge devices instantly.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Terminal -->
+                    <div class="lg:col-span-7 sticky top-32">
+                        <div
+                            class="glow-border bg-black rounded-xl overflow-hidden flex flex-col shadow-2xl min-h-[460px]">
+                            <!-- Terminal Header -->
+                            <div
+                                class="bg-surface-dark border-b border-white/5 px-6 py-4 flex items-center justify-between">
+                                <div class="flex gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                                    <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50">
+                                    </div>
+                                    <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <div class="flex gap-6">
+                                        <button class="text-xs font-mono tab-active pb-1"
+                                            id="tab-python">python_sdk.py</button>
+                                        <button
+                                            class="text-xs font-mono text-gray-500 hover:text-white transition-colors pb-1"
+                                            id="tab-cli">forge_cli.sh</button>
+                                    </div>
+                                    <span
+                                        class="material-icons-outlined text-gray-500 text-sm cursor-pointer hover:text-primary">content_copy</span>
+                                </div>
+                            </div>
+
+                            <!-- Terminal Content -->
+                            <div class="p-8 flex-1 font-mono text-sm leading-relaxed overflow-y-auto no-scrollbar"
+                                id="terminal-content">
+                                <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">01</span><span
+                                        class="text-gray-400"># Install the core library</span></div>
+                                <div class="flex gap-4 mb-4"><span class="text-gray-600">02</span><span
+                                        class="text-white">pip install ml-forge-core</span></div>
+                                <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">03</span><span
+                                        class="text-gray-400"># Initialize the workspace</span></div>
+                                <div class="flex gap-4 mb-4"><span class="text-gray-600">04</span><span
+                                        class="text-accent-purple">import</span><span class="text-white">
+                                        ml_forge</span></div>
+                                <div class="flex gap-4 mb-4"><span class="text-gray-600">05</span><span
+                                        class="text-white">workspace = ml_forge.</span><span
+                                        class="text-accent-blue">init</span><span class="text-white">(</span><span
+                                        class="text-primary">"autonomous-vision"</span><span class="text-white">)</span>
+                                </div>
+                                <div class="flex gap-4 opacity-50"><span class="text-gray-600">06</span><span
+                                        class="text-gray-400"># Workspace created at ~/.mlforge/...</span></div>
+                            </div>
+
+                            <!-- Status Bar -->
+                            <div
+                                class="bg-surface-dark border-t border-white/5 px-6 py-2 flex items-center justify-between text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                                <div class="flex items-center gap-4">
+                                    <span class="flex items-center gap-1.5"><span
+                                            class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_#3ECF8E]"></span>
+                                        Connected</span>
+                                    <span>UTF-8</span>
+                                </div>
+                                <span class="text-primary font-bold">Forge OS v2.4</span>
+                            </div>
+                        </div>
+
+                        <!-- Micro Info -->
+                        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="glass-panel p-4 rounded-xl flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary">
+                                    <span class="material-icons-outlined">terminal</span>
+                                </div>
+                                <div>
+                                    <h5 class="text-white font-bold text-xs">Unified CLI</h5>
+                                    <p class="text-gray-500 text-[10px]">Manage everything from your terminal.</p>
+                                </div>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded bg-accent-blue/10 flex items-center justify-center text-accent-blue">
+                                    <span class="material-icons-outlined">api</span>
+                                </div>
+                                <div>
+                                    <h5 class="text-white font-bold text-xs">REST API Ready</h5>
+                                    <p class="text-gray-500 text-[10px]">Integrate with existing CI/CD stacks.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROI: Success at Scale -->
+        <section class="py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 pt-20 reveal">
+                <div>
+                    <h5 class="text-primary font-mono text-[10px] uppercase tracking-[0.2em] mb-4">Effort / Speed</h5>
+                    <p class="text-6xl font-display font-bold text-white mb-4 tracking-tighter">14.2x</p>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Faster deployment cycles compared to legacy container-based edge workflows.
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-accent-blue font-mono text-[10px] uppercase tracking-[0.2em] mb-4">Quality /
+                        Precision</h5>
+                    <p class="text-6xl font-display font-bold text-white mb-4 tracking-tighter">99.8%</p>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Labeling accuracy achieved via model-assisted human-in-the-loop consensus.
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-accent-purple font-mono text-[10px] uppercase tracking-[0.2em] mb-4">Scale / Reach
+                    </h5>
+                    <p class="text-6xl font-display font-bold text-white mb-4 tracking-tighter">5.2k</p>
+                    <p class="text-gray-500 text-sm leading-relaxed">
+                        Active industrial nodes managed securely across local networks.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA: The Terminal Command -->
+        <section class="py-32 px-4 reveal">
+            <div
+                class="max-w-4xl mx-auto glow-border bg-background-dark p-12 md:p-20 text-center relative overflow-hidden group">
+                <div class="absolute inset-0 grid-pattern opacity-10"></div>
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
+                </div>
+
+                <h2 class="text-5xl md:text-6xl font-display font-bold text-white mb-8 tracking-tighter relative z-10">
+                    Local AI engineering starts here.
+                </h2>
+                <p class="text-xl text-gray-400 mb-12 max-w-xl mx-auto relative z-10 font-light">
+                    Join the global infrastructure of teams forging deterministic intelligence with industrial-grade
+                    precision.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
+                    <button
+                        class="bg-primary hover:bg-primary-hover text-black px-10 py-5 rounded-lg font-bold text-sm uppercase tracking-widest transition-all hover:scale-105">
+                        Get Local License
+                    </button>
+                    <button
+                        class="border border-white/10 hover:bg-white/5 text-white px-10 py-5 rounded-lg font-bold text-sm uppercase tracking-widest transition-all">
+                        Talk to Engineering
+                    </button>
+                </div>
+
+                <div class="mt-12 pt-12 border-t border-white/5 relative z-10">
+                    <p class="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+                        $ forge license --activate --enterprise
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="components.js"></script>
+    <script>
+        // Guide Interactivity
+        const guideData = {
+            1: {
+                content: `
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">01</span><span class="text-gray-400"># Install the core library</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">02</span><span class="text-white">pip install ml-forge-core</span></div>
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">03</span><span class="text-gray-400"># Initialize the workspace</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">04</span><span class="text-accent-purple">import</span><span class="text-white"> ml_forge</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">05</span><span class="text-white">workspace = ml_forge.</span><span class="text-accent-blue">init</span><span class="text-white">(</span><span class="text-primary">"autonomous-vision"</span><span class="text-white">)</span></div>
+                    <div class="flex gap-4 opacity-50"><span class="text-gray-600">06</span><span class="text-gray-400"># Workspace created at ~/.mlforge/...</span></div>
+                `
+            },
+            2: {
+                content: `
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">01</span><span class="text-gray-400"># Connect your bucket</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">02</span><span class="text-white">dataset = workspace.</span><span class="text-accent-blue">connect</span><span class="text-white">(</span><span class="text-primary">"s3://vision-raw-data"</span><span class="text-white">)</span></div>
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">03</span><span class="text-gray-400"># Automatic zero-copy indexing</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">04</span><span class="text-white">dataset.</span><span class="text-accent-blue">index</span><span class="text-white">(recursive=True)</span></div>
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">05</span><span class="text-gray-400"># Verify dataset health</span></div>
+                    <div class="flex gap-4"><span class="text-gray-600">06</span><span class="text-white">dataset.</span><span class="text-accent-blue">check_integrity</span><span class="text-white">()</span></div>
+                `
+            },
+            3: {
+                content: `
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">01</span><span class="text-gray-400"># Define training specs</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">02</span><span class="text-white">pipeline = workspace.</span><span class="text-accent-blue">pipeline</span><span class="text-white">(</span><span class="text-primary">"object-detection"</span><span class="text-white">)</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">03</span><span class="text-white">pipeline.</span><span class="text-accent-blue">configure</span><span class="text-white">(arch=</span><span class="text-primary">"yolo-v11n"</span><span class="text-white">, epochs=200)</span></div>
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">04</span><span class="text-gray-400"># Request local training</span></div>
+                    <div class="flex gap-4"><span class="text-gray-600">05</span><span class="text-white">pipeline.</span><span class="text-accent-blue">run</span><span class="text-white">(devices=</span><span class="text-primary">"0,1"</span><span class="text-white">)</span></div>
+                `
+            },
+            4: {
+                content: `
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">01</span><span class="text-gray-400"># Export for NVIDIA Orin</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">02</span><span class="text-white">model = pipeline.</span><span class="text-accent-blue">export</span><span class="text-white">(format=</span><span class="text-primary">"tensorrt"</span><span class="text-white">)</span></div>
+                    <div class="flex gap-4 mb-4 opacity-50"><span class="text-gray-600">03</span><span class="text-gray-400"># OTA Push to warehouse-A fleet</span></div>
+                    <div class="flex gap-4 mb-4"><span class="text-gray-600">04</span><span class="text-white">workspace.</span><span class="text-accent-blue">deploy</span><span class="text-white">(model, fleet=</span><span class="text-primary">"wf-001"</span><span class="text-white">)</span></div>
+                    <div class="flex gap-4"><span class="text-gray-600">05</span><span class="text-white">print(</span><span class="text-primary">"Deployment success: 14 nodes updated"</span><span class="text-white">)</span></div>
+                `
+            }
+        };
+
+        function updateGuide(step) {
+            const terminal = document.getElementById('terminal-content');
+
+            // Update UI
+            for (let i = 1; i <= 4; i++) {
+                const card = document.getElementById(`step-${i}`);
+                const dot = document.getElementById(`dot-${i}`);
+                const title = document.getElementById(`title-${i}`);
+
+                if (i === step) {
+                    card.classList.add('bg-white/[0.02]', 'border-white/5');
+                    card.classList.remove('border-transparent');
+                    dot.classList.add('bg-primary', 'text-black', 'border-primary/30');
+                    dot.classList.remove('text-gray-500', 'border-white/10');
+                    title.classList.add('text-white');
+                    title.classList.remove('text-gray-500');
+                } else {
+                    card.classList.remove('bg-white/[0.02]', 'border-white/5');
+                    card.classList.add('border-transparent');
+                    dot.classList.remove('bg-primary', 'text-black', 'border-primary/30');
+                    dot.classList.add('text-gray-500', 'border-white/10');
+                    title.classList.remove('text-white');
+                    title.classList.add('text-gray-500');
+                }
+            }
+
+            // Animate Terminal Content
+            terminal.style.opacity = '0';
+            terminal.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                terminal.innerHTML = guideData[step].content;
+                terminal.style.opacity = '1';
+                terminal.style.transform = 'translateY(0)';
+            }, 150);
+        }
+
+        // Standard Reveal Animation
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('reveal');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // Fixed Navbar Transition
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('global-navbar');
+            if (window.scrollY > 50) {
+                nav?.classList.add('nav-scrolled');
+            } else {
+                nav?.classList.remove('nav-scrolled');
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ML FORGE - Documentation Hub</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#00FF99", // Mint green from screenshot
+                        "primary-dark": "#00CC7A",
+                        "accent-blue": "#4F46E5", // Blue for arrows
+                        "background-light": "#F8F9FA", // Light gray background
+                        "background-dark": "#111827", // Dark mode background
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1F2937",
+                        "border-light": "#E5E7EB",
+                        "border-dark": "#374151",
+                        "text-main-light": "#111827",
+                        "text-main-dark": "#F9FAFB",
+                        "text-sub-light": "#4B5563",
+                        "text-sub-dark": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark transition-colors duration-200">
+    <!-- NAVBAR PLACEHOLDER (Injected via components.js) -->
+    <div id="navbar-placeholder"></div>
+    <main class="max-w-[1440px] mx-auto px-6 py-12 md:py-16">
+        <div class="mb-12 md:mb-16">
+            <div class="flex gap-6">
+                <div class="w-1.5 self-stretch bg-primary shrink-0"></div>
+                <div>
+                    <h1
+                        class="text-3xl md:text-5xl font-bold text-text-main-light dark:text-text-main-dark mb-4 tracking-tight">
+                        Welcome to ML FORGE documentation
+                    </h1>
+                    <p class="text-lg text-text-sub-light dark:text-text-sub-dark max-w-3xl leading-relaxed">
+                        ML Forge documentation provides detailed technical specifications for dataset versioning,
+                        annotation workflows, deterministic training, export pipelines, and runtime behavior.</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-12">
+            <!-- Group: Getting Started -->
+            <div>
+                <h2
+                    class="text-2xl font-bold text-text-main-light dark:text-text-main-dark mb-6 border-b border-border-light dark:border-border-dark pb-2">
+                    Getting Started</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Installation &
+                                Setup</h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            System prerequisites, installation workflows, and initial configuration.
+                        </p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Group: Core Concepts -->
+            <div>
+                <h2
+                    class="text-2xl font-bold text-text-main-light dark:text-text-main-dark mb-6 border-b border-border-light dark:border-border-dark pb-2">
+                    Core Concepts</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Dataset Engine
+                            </h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            Managing data, versioning controls, and structural integrity.
+                        </p>
+                    </a>
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Training
+                                Orchestrator</h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            Configuring pipelines, tracking metrics, and loss validation.
+                        </p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Group: Reproducibility -->
+            <div>
+                <h2
+                    class="text-2xl font-bold text-text-main-light dark:text-text-main-dark mb-6 border-b border-border-light dark:border-border-dark pb-2">
+                    Reproducibility</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Snapshot Manager
+                            </h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            How config snapshots are locked and version-controlled.
+                        </p>
+                    </a>
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Seed &
+                                Randomness</h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            Maintaining absolute determinism across hardware configurations.
+                        </p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Group: Export & Deployment -->
+            <div>
+                <h2
+                    class="text-2xl font-bold text-text-main-light dark:text-text-main-dark mb-6 border-b border-border-light dark:border-border-dark pb-2">
+                    Export & Deployment</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">Export Compiler
+                            </h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            Compiling native format weights for ONNX, TensorRT, and CoreML.
+                        </p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Group: Hardware Support -->
+            <div>
+                <h2
+                    class="text-2xl font-bold text-text-main-light dark:text-text-main-dark mb-6 border-b border-border-light dark:border-border-dark pb-2">
+                    Hardware Support</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <a class="group p-8 bg-white dark:bg-slate-900 border border-border-light dark:border-border-dark rounded-xl hover:border-primary transition-all flex flex-col h-full"
+                        href="#">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="text-xl font-bold text-text-main-light dark:text-text-main-dark">GPU Matrix</h3>
+                            <span
+                                class="material-icons text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                        </div>
+                        <p class="text-[15px] leading-relaxed text-text-sub-light dark:text-text-sub-dark">
+                            Supported NVIDIA architectures and CUDA dependencies.
+                        </p>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div
+            class="bg-surface-light dark:bg-surface-dark rounded-lg p-6 border border-border-light dark:border-border-dark flex flex-col md:flex-row items-center justify-start gap-4 mt-8">
+            <span class="font-bold text-text-main-light dark:text-text-main-dark">Looking for documentation from earlier
+                ML FORGE builds?</span>
+            <a class="flex items-center gap-1 text-text-sub-light dark:text-text-sub-dark hover:text-black dark:hover:text-white underline decoration-1 underline-offset-4 transition-colors"
+                href="#">
+                Access legacy build guides
+                <span class="material-icons text-sm">arrow_forward</span>
+            </a>
+        </div>
+    </main>
+    <!-- FOOTER PLACEHOLDER (Injected via components.js) -->
+    <div id="footer-placeholder"></div>
+    <script src="components.js"></script>
+
+</body>
+
+</html>
