@@ -1,0 +1,26 @@
+{
+  "name": "braine-traine-monorepo",
+  "version": "0.0.0",
+  "packageManager": "npm@10.8.2",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^28.1.0",
+    "turbo": "latest",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "lightningcss": "^1.32.0"
+  }
+}
